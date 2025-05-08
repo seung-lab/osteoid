@@ -1043,7 +1043,6 @@ class Skeleton:
 
     skeletons = []
     for edge_list in forest:
-      edge_list = fastremap.unique(edge_list, axis=0)
       vert_idx = fastremap.unique(edge_list)
 
       vert_list = skel.vertices[vert_idx]
