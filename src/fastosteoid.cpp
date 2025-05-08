@@ -61,6 +61,10 @@ std::tuple<T*, uint64_t> unique(T* input, uint64_t N) {
 	return std::make_tuple(uniq_data, j);
 }
 
+uint64_t make_edge(const uint32_t lower, const uint32_t upper) {
+	return static_cast<uint64_t>(lower) | (static_cast<uint64_t>(upper) << 32);
+}
+
 
 py::list compute_components(
 	const py::array_t<uint32_t> &edges_arr,
@@ -88,7 +92,7 @@ py::list compute_components(
 	}
 
 	auto extract_component = [&](uint32_t start){
-		std::vector<std::pair<uint32_t,uint32_t>> edge_list;
+		std::vector<uint64_t> edge_list;
 		std::vector<uint32_t> stack = { start };
 		std::vector<uint32_t> parents = { std::numeric_limits<uint32_t>::max() };
 
@@ -103,10 +107,10 @@ py::list compute_components(
 				continue;
 			}
 			else if (node < parent) {
-				edge_list.emplace_back(node, parent);	
+				edge_list.push_back(make_edge(node, parent));
 			}
 			else {
-				edge_list.emplace_back(parent, node);
+				edge_list.push_back(make_edge(parent, node));
 			}
 
 			// check visited after because you can visit a node 
@@ -128,21 +132,9 @@ py::list compute_components(
 			return py::array(py::dtype("uint32"), {0, 2});
 		}
 
-    	const size_t n = edge_list.size() - 1;
-
-		uint32_t* flat_data = new uint32_t[n * 2]();
-		for (uint64_t i = 1; i < edge_list.size(); i++) {
-			flat_data[(i - 1) << 1] = edge_list[i].first;
-			flat_data[((i - 1) << 1) + 1] = edge_list[i].second;
-		}
-
-		edge_list = std::vector<std::pair<uint32_t, uint32_t>>();
-
 		auto [uniq_data, num_uniq] = unique<uint64_t>(
-			reinterpret_cast<uint64_t*>(flat_data), n
+			reinterpret_cast<uint64_t*>(edge_list.data() + 1), edge_list.size() - 1
 		);
-
-		delete[] flat_data;
 
 		uint32_t* uniq_pairs = reinterpret_cast<uint32_t*>(uniq_data);
 		return to_numpy<uint32_t>(uniq_pairs, num_uniq, 2);
