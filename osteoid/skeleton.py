@@ -1048,8 +1048,13 @@ class Skeleton:
 
       vert_list = skel.vertices[vert_idx]
 
-      remap = { vid: i for i, vid in enumerate(vert_idx) }
-      edge_list = fastremap.remap(edge_list, remap, in_place=True)
+      if max(vert_idx[-1], vert_idx.size) < int(1e8):
+        remap = np.zeros([ vert_idx[-1] + 1 ], dtype=np.uint32)
+        remap[vert_idx] = np.arange(vert_idx.size)
+        edge_list = remap[edge_list]
+      else:
+        remap = { vid: i for i, vid in enumerate(vert_idx) }
+        edge_list = fastremap.remap(edge_list, remap, in_place=True)
 
       component_skel = Skeleton(
         vert_list, edge_list,# radii, vtypes, 
