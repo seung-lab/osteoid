@@ -18,7 +18,7 @@ else:
 setuptools.setup(
   setup_requires=['pbr','pybind11','numpy'],
   cmdclass={"build_ext": build_ext},
-  version="0.0.1",
+  version="1.0.0",
   ext_modules=[
     Pybind11Extension(
         "fastosteoid",
