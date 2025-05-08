@@ -4,12 +4,15 @@ import datetime
 from io import BytesIO
 import re
 import os
+import struct
+import sys
+
+import numpy as np
 import networkx as nx
 
 import fastremap
-import numpy as np
-import struct
-import sys
+
+import fastosteoid
 
 from .exceptions import (
   SkeletonDecodeError, SkeletonEncodeError, 
@@ -1031,7 +1034,7 @@ class Skeleton:
     Returns: [ Skeleton, Skeleton, ... ]
     """
     skel = self.clone()
-    forest = self._compute_components(skel)
+    forest = fastosteoid.compute_components(skel.edges, skel.vertices.shape[0])
     
     if len(forest) == 0:
       return []
@@ -1040,7 +1043,7 @@ class Skeleton:
 
     skeletons = []
     for edge_list in forest:
-      edge_list = np.array(edge_list, dtype=np.uint32)
+      edge_list = fastremap.unique(edge_list, axis=0)
       vert_idx = fastremap.unique(edge_list)
 
       vert_list = skel.vertices[vert_idx]
