@@ -33,6 +33,35 @@ py::array to_numpy(
 	);
 }
 
+template <typename T>
+std::tuple<T*, uint64_t> unique(T* input, uint64_t N) {
+	if (N == 0) {
+		return std::make_tuple(new T[0](), 0);
+	}
+
+	std::sort(input, input + N);
+
+	uint64_t uniq = (N > 0) ? 1 : 0;
+	for (uint64_t i = 1; i < N; i++) {
+		if (input[i] != input[i-1]) {
+			uniq++;
+		}
+	}
+
+	T* uniq_data = new T[uniq];
+	uniq_data[0] = input[0];
+	uint64_t j = 1;
+	for (uint64_t i = 1; i < N; i++) {
+		if (input[i] != input[i-1]) {
+			uniq_data[j] = input[i];
+			j++;
+		}
+	}
+
+	return std::make_tuple(uniq_data, j);
+}
+
+
 py::list compute_components(
 	const py::array_t<uint32_t> &edges_arr,
 	const uint64_t Nv
@@ -41,7 +70,6 @@ py::list compute_components(
 
     py::buffer_info buf = edges_arr.request();
 
-    // Sanity check: 2D, C-contiguous, correct item size
     if (buf.ndim != 2 || buf.strides[1] != sizeof(uint32_t)) {
         throw std::runtime_error("Array must be 2D and C-contiguous");
     }
@@ -64,8 +92,6 @@ py::list compute_components(
 		std::vector<uint32_t> stack = { start };
 		std::vector<uint32_t> parents = { std::numeric_limits<uint32_t>::max() };
 
-		// printf("start: %d\n", start);
-
 		while (stack.size()) {
 			uint32_t node = stack.back();
 			uint32_t parent = parents.back();
@@ -80,7 +106,6 @@ py::list compute_components(
 				edge_list.emplace_back(node, parent);	
 			}
 			else {
-				// printf("gt\n");
 				edge_list.emplace_back(parent, node);
 			}
 
@@ -88,20 +113,16 @@ py::list compute_components(
 			// multiple times for different parents, but you don't
 			// want to keep re-adding it to the stack.
 			if (visited[node]) {
-				// printf("visited.\n");
 				continue;
 			}
 
 			visited[node] = true;
 
 			for (uint32_t child : index[node]) {
-				// printf("pb %d\n", child);
 				stack.push_back(child);
 				parents.push_back(node);
 			}
 		}
-
-		// printf("done\n");
 
 		if (edge_list.size() <= 1) {
 			return py::array(py::dtype("uint32"), {0, 2});
@@ -115,31 +136,16 @@ py::list compute_components(
 			flat_data[((i - 1) << 1) + 1] = edge_list[i].second;
 		}
 
-		return to_numpy<uint32_t>(flat_data, n, 2);
+		edge_list = std::vector<std::pair<uint32_t, uint32_t>>();
 
-		// uint64_t* flat_data_pairs = reinterpret_cast<uint64_t*>(flat_data);
-		// std::sort(flat_data_pairs, flat_data_pairs + n);
+		auto [uniq_data, num_uniq] = unique<uint64_t>(
+			reinterpret_cast<uint64_t*>(flat_data), n
+		);
 
-		// uint64_t uniq = (n > 0) ? 1 : 0;
-		// for (uint64_t i = 1; i < n; i++) {
-		// 	if (flat_data_pairs[i] != flat_data_pairs[i-1]) {
-		// 		uniq++;
-		// 	}
-		// }
+		delete[] flat_data;
 
-		// uint64_t* uniq_data = new uint64_t[uniq];
-		// uniq_data[0] = flat_data_pairs[0];
-		// uint64_t j = 1;
-		// for (uint64_t i = 1; i < n; i++) {
-		// 	if (flat_data_pairs[i] != flat_data_pairs[i-1]) {
-		// 		uniq_data[j] = flat_data_pairs[i];
-		// 		j++;
-		// 	}
-		// }
-
-		// delete[] flat_data_pairs;
-
-		// return to_numpy<uint32_t>(reinterpret_cast<uint32_t*>(uniq_data), uniq, 2);
+		uint32_t* uniq_pairs = reinterpret_cast<uint32_t*>(uniq_data);
+		return to_numpy<uint32_t>(uniq_pairs, num_uniq, 2);
 	};
 
 	py::list forest;
