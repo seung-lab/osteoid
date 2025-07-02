@@ -91,7 +91,7 @@ class Skeleton:
       self.edges = edges.astype(np.uint32)
 
     if radii is None:
-      self.radius = np.full(shape=self.vertices.shape[0], -1, dtype=np.float32)
+      self.radius = np.full(shape=self.vertices.shape[0], fill_value=-1, dtype=np.float32)
     elif type(radii) is list:
       self.radius = np.array(radii, dtype=np.float32)
     else:
