@@ -252,19 +252,23 @@ class Bbox(object):
 
   @classmethod
   def create(cls, obj, context=None, bounded=False, autocrop=False):
-    typ = type(obj)
-    if typ is Bbox:
+    if isinstance(obj, Bbox):
       obj = obj
-    elif typ in (list, tuple, slice):
+    elif (hasattr(obj, "minpt") and hasattr(obj, "maxpt")):
+      unit = "vx"
+      if hasattr(obj, "unit"):
+        unit = obj.unit
+      obj = Bbox(obj.minpt, obj.maxpt, unit=unit)
+    elif isinstance(obj, (list, tuple, slice)):
       obj = Bbox.from_slices(obj, context, bounded, autocrop)
-    elif typ is Vec:
+    elif isinstance(obj, Vec):
       obj = Bbox.from_vec(obj)
-    elif typ in string_types:
+    elif isinstance(typ, str):
       obj = Bbox.from_filename(obj)
-    elif typ is dict:
+    elif isinstance(typ, dict):
       obj = Bbox.from_dict(obj)
     else:
-      raise NotImplementedError("{} is not a Bbox convertible type.".format(typ))
+      raise NotImplementedError(f"{type(obj)} is not a Bbox convertible type.")
 
     if context and autocrop:
       obj = Bbox.intersection(obj, context)
@@ -272,9 +276,8 @@ class Bbox(object):
     if context and bounded:
       if not context.contains_bbox(obj):
         raise OutOfBoundsError(
-          "{} did not fully contain the specified bounding box {}.".format(
-            context, obj
-        ))
+          f"{context} did not fully contain the specified bounding box {obj}."
+        )
 
     return obj
 
