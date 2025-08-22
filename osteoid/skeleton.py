@@ -1317,7 +1317,7 @@ class Skeleton:
       try:
         import microviewer
         import vtk
-        microviewer.objects([self])
+        microviewer.objects([self], skeleton_color_by=color_by)
       except ImportError:
         import matplotlib
         view_matplotlib(self, units, draw_edges, draw_vertices, color_by)
