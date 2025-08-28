@@ -1,3 +1,12 @@
+[build-system]
+requires = [
+    "setuptools>=61.0.0",
+    "wheel",
+    "pybind11",
+    "numpy"
+]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "osteoid"
 version = "0.4.0"
@@ -11,7 +20,8 @@ requires-python = ">=3.9"
 dependencies = [
     "fastremap (>=1.16.0,<2.0.0)",
     "networkx (>=3.0.0,<4.0.0)",
-    "numpy (>=1.17.0,<3.0.0)"
+    "numpy (>=1.17.0,<3.0.0)",
+    "pybind11",
 ]
 
 [tool.setuptools]
