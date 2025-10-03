@@ -1029,13 +1029,13 @@ class Skeleton:
 
     Returns: [ Skeleton, Skeleton, ... ]
     """
-    skel = self.clone()
+    skel = self
     forest = fastosteoid.compute_components(skel.edges, skel.vertices.shape[0])
     
     if len(forest) == 0:
       return []
     elif len(forest) == 1:
-      return [ skel ]
+      return [ skel.clone() ]
 
     skeletons = []
     for edge_list in forest:
