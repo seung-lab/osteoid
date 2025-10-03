@@ -168,50 +168,46 @@ class Skeleton:
         """.format(self.space)
       )
 
-  def physical_space(self, copy=True):
+  def physical_space(self, copy:bool = True) -> "Skeleton":
     """
     Convert skeleton vertices into a physical space 
     representation if it's not already there.
 
-    copy: if False, don't copy if already in the correct
-      coordinate frame.
+    copy: if True, apply the transform to a copy
 
     Returns: skeleton in physical coordinates
     """
     self._check_space()
 
-    if self.space == 'physical':
-      if copy:
-        return self.clone()
-      else:
-        return self
+    skel = self
+    if copy:
+      skel = self.clone()
 
-    skel = self.clone()
-    skel.apply_transform()
-    skel.space = 'physical'
+    if self.space != 'physical':
+      skel.apply_transform()
+      skel.space = 'physical'
+
     return skel
 
-  def voxel_space(self, copy=True):
+  def voxel_space(self, copy:bool = True) -> "Skeleton":
     """
     Convert skeleton vertices into a voxel space 
     representation if it's not already there.
 
-    copy: if False, don't copy if already in the correct
-      coordinate frame.
+    copy: if True, apply the transform to a copy
 
     Returns: skeleton in voxel coordinates
     """
     self._check_space()
 
-    if self.space == 'voxel':
-      if copy:
-        return self.clone()
-      else:
-        return self
+    skel = self
+    if copy:
+      skel = self.clone()
 
-    skel = self.clone()
-    skel.apply_inverse_transform()
-    skel.space = 'voxel'
+    if self.space != 'voxel':
+      skel.apply_inverse_transform()
+      skel.space = 'voxel'
+    
     return skel
 
   @property
