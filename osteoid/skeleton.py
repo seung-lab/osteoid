@@ -1,6 +1,7 @@
 from collections import defaultdict
 import copy
 import datetime
+from enum import IntEnum
 from io import BytesIO
 import re
 import os
@@ -29,6 +30,13 @@ IDENTITY = np.array([
 
 import importlib.metadata
 __VERSION__ = importlib.metadata.version("osteoid")
+
+class SWCVertexTypes(IntEnum):
+  UNDEFINED = 0
+  SOMA = 1
+  AXON = 2
+  BASAL_DENDRITE = 3
+  APICAL_DENDRITE = 4
 
 class Skeleton:
   """
