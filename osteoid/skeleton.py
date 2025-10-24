@@ -1167,7 +1167,7 @@ class Skeleton:
 
     return Skeleton(vertices, edges, radii, vertex_types)
 
-  def to_swc(self, contributors=""):
+  def to_swc(self, contributors:str = "", soma_threshold:float = np.inf) -> str:
     """
     SWC file generator. 
 
@@ -1182,6 +1182,10 @@ class Skeleton:
     This website is also helpful for understanding the format:
 
     https://web.archive.org/web/20180423163403/http://research.mssm.edu/cnic/swc.html
+
+    soma_threshold: use radius information to determine if there 
+      is a soma in this data and if so, use it as the root of its 
+      component
 
     Returns: swc as a string
     """
@@ -1213,7 +1217,12 @@ class Skeleton:
         index[e1].add(e2)
         index[e2].add(e1)
 
-      stack = [ skel.edges[0,0] ]
+      root = skel.edges[0,0]
+      if soma_threshold < np.inf and hasattr(skel.radii):
+        if np.any(skel.radii >= soma_threshold):
+          root = np.argmax(skel.radii)
+
+      stack = [ root ]
       parents = [ -1 ]
 
       pairs = []
