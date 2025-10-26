@@ -1218,7 +1218,7 @@ class Skeleton:
         index[e2].add(e1)
 
       root = skel.edges[0,0]
-      if soma_threshold < np.inf and hasattr(skel.radii):
+      if soma_threshold < np.inf and hasattr(skel, 'radii'):
         if np.any(skel.radii >= soma_threshold):
           root = np.argmax(skel.radii)
 
