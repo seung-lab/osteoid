@@ -5,8 +5,32 @@ from typing import Union
 from functools import reduce
 import operator
 import re
+import google_crc32c
 
 import numpy as np
+
+# selected from https://users.ece.cmu.edu/~koopman/crc/index.html
+# based on a header that is larger than what a crc8 can handle
+def crc16(data:bytes) -> int:
+  # use implicit +1 representation for right shift, LSB first
+  # use explicit +1 representation for left shit, MSB first
+  polynomial = 0xd175 # implicit
+  crc = 0xFFFF # detects zeroed data better than 0x0000
+  for i in range(len(data)):
+    crc ^= data[i]
+    for k in range(8):
+      if crc & 1:
+        crc = (crc >> 1) ^ polynomial
+      else:
+        crc = crc >> 1
+
+  return int(crc & 0xFFFF)
+
+def crc32c(buffer:bytes) -> int:
+  return int.from_bytes(
+    google_crc32c.Checksum(buffer).digest(),
+    'big'
+  )  
 
 def map2(fn, a, b):
   assert len(a) == len(b), "Vector lengths do not match: {} (len {}), {} (len {})".format(a[:3], len(a), b[:3], len(b))

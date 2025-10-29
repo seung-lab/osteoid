@@ -22,6 +22,7 @@ dependencies = [
     "networkx (>=3.0.0,<4.0.0)",
     "numpy (>=1.17.0,<3.0.0)",
     "pybind11",
+    "google_crc32c",
 ]
 
 [tool.setuptools]
