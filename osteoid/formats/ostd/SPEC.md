@@ -24,8 +24,7 @@ ostd takes ideas from Precomputed, SWC, and other formats to compactly represent
 - Tracks which physical unit the vertices are in (options for common metric and imperial units)
 - Blocks individually guarded against file corruption by CRCs to enable extraction of remaining good data if one block is damaged
 - Supports representing edges as an edge list, parent pointers, or a path graph, saving space while retaining generality
-- Advisory fields to tell you the number of connected components and the graph structure (currently GRAPH or TREE, if there are multiple components this would mean a forest of trees)
-- Allows up to 2^16 - 1 additional vertex attributes (e.g. radius, cross sectional area, vertex type, etc)
+- Advisory fields to tell you the number of connected components and the graph structure
 - (Single-Part) Attributes header is located at the end of the file to enable efficient appending of more vertex attributes on POSIX systems
 - Efficiently support both vertex and edge attributes
 - Support optional octree spatial index
@@ -48,7 +47,7 @@ The attributes header is located at the end so that additional attributes can be
 | Vertices                 | Y        | Serialized XY pairs or XYZ triples.                                         |
 | Edges                    | Y        | Edge representation.                                                        |
 | Vertex & Edge Attributes |          | Serialized vertex and attributes presented in order of the following table. |
-| Attributes header        |          | Table of vertex and edge attributes                                         |
+| Attributes Section       |          | Table of vertex and edge attributes                                         |
 
 ### Combined Structure
 
@@ -63,7 +62,7 @@ The parser should check if the stream is longer than the indicated content lengt
 
 ## Header
 
-All values are little endian except where noted. Total bytes: 137
+All values are little endian except where noted. Total bytes: 83
 
 | Field                  | Bytes | Datatype    | Value                       | Description                                                                                                       |
 |------------------------|-------|-------------|-----------------------------|-------------------------------------------------------------------------------------------------------------------|
@@ -71,17 +70,15 @@ All values are little endian except where noted. Total bytes: 137
 | format_version         | 1     | u8          | 0                           | Version of this file format.                                                              |
 | total_bytes            | 8     | u64         | -                           | Total byte size of this part.                                                             |
 | id                     | 16    | uuid4 / u64 | -                           | A wide enough field to accommodate both u64s and uuid4s                                   |
-| object_flags           | 2     | bitfield    | VVVVeeeeCCCCcccc            | Vertex dtype, edge datatype, compression, see note below for definitions.                 |
-| flags                  | 4     | bitfield    | EEAGGGPPPPPSSRiat*          | edge representation, graph type, physical unit, space. See note below for definitions.   |
+| flags                  | 8     | bitfield    |VVVVeeeeCCCCccccEEAGGGPPPPPSSiatR*| See note below for definitions.   |
 | num_vertices (Nv)      | 8     | u64         | -                           | Number of vertices                                                                        |
 | num_edges (Ne)         | 8     | u64         | -                           | Number of edges                                                                           |
+| num_components         | 4     | u32         | N or (2^32-1 if unknown)    | Number of connected components in the skeleton graph. max value of uint32 is a sentinel for unknown.              |
 | vertex_bytes           | 8     | u64         | -                           | Content length of vertices (needed for compression).                                      |
 | edge_bytes             | 8     | u64         | -                           | Number of bytes encoding edges (needed for compression)                                   |
+| spatial_index_bytes    | 4     | u32         | -                           | Content length in bytes of the spatial index.                                                         |
 | attribute_header_bytes | 4     | u32         | -                           | Content length in bytes of the attribute header.                                                         |
-| num_components         | 4     | u32         | N or (2^32-1 if unknown)    | Number of connected components in the skeleton graph. max value of uint32 is a sentinel for unknown.              |
-| transform              | 64    | 4x4 f32s    | [ f32, f32, f32, f32, ... ] | Homogenous transform matrix from voxel to physical coordinates. Written in row major (C) order.                   |
 | crc16                  | 2     | uint16      | -                           | crc16 using 0xFFFF init and implicit polynomial 0xd175 of header bytes excluding magic number.                    |
-
 
 Flags definition:
 
@@ -100,6 +97,14 @@ i: Spatial index present
 a: axes (0) XY (1) XYZ
 t: transform present
 R*: RESERVED from this point forward
+
+## Transform
+
+If this optional section is not present, the transform can assumed to be the 4x4 identity matrix. The reason this section is optional is to
+significantly reduce the header overhead for small skeletons. 
+
+| transform              | 64    | 4x4 f32s    | [ f32, f32, f32, f32, ... ] | Homogenous transform matrix from voxel to physical coordinates. Written in row major (C) order.                   |
+| crc16                  | 1     | uint8       | -                          | 16-bit CRC using 0xFF init and 0xd175 implicit polynomial                  |
 
 ### Data Types
 
@@ -200,15 +205,28 @@ make it simple to fetch paths in a given region of space.
 | maxpt      | 3 x float32 | Maximum point of the bounding box.                     |
 | chunk_size | 3 x float32 | Chunked division of this space.                        |
 | Octree     |             | Division of space terminating with a list of path ids. |
+| crc32c     | uint32      | Checksum for spatial index.                            |
 
 
-## Attribute Header
+## Attribute Section
+
+The attributes section is located at the end of an ostd part in order for append operations to add more attributes to single part files easily.
+It can be omitted if there are no attributes.
+
+It consists of a header followed by a listing of attribute descriptions.
+
+num_attributes | uint16
+name_width     | uint8
+attribute_listing
+crc16
+
+### Attribute Listing
 
 Attributes can be applied to either vertices or to edges. Vertex attributes are naturally dense since they scale linearly with the number of vertices, while edge attributes are naturally sparse because the number of possible combinations is the square of the number of vertices, but skeletons are paths with branches (and rarely loops).
 
 | Field          | Bytes     | Datatype | Value            | Description                     |
 |----------------|-----------|----------|------------------|---------------------------------|
-| name           | variable? | string   | e.g. "radius"    | Name of the attribute           |
+| name           | fixed<=255| string   | e.g. "radius"    | Name of the attribute           |
 | field          | 2         | bitfield | TDDDDCCCCRRRRRRR | Packed information              |
 | num_components | 1         | uint8    | -                | Number of components.           |
 | content_length | 8         | uint64   | -                | Length of compressed bitstream. |
@@ -262,16 +280,4 @@ The next section is the links between paths:
 num_pairs | pair_1, ..., pair_n
 
 Where the pairs are: e1,e2 with the data type controlled by the header, though typically it will be the smallest data type that encodes vertices. The edges refer to the vertices, not to the path ID.
-
-
-
-
-
-
-
-
-
-
-
-
 
