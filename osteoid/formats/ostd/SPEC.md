@@ -187,6 +187,20 @@ This is because a tree can be represented as an edge list. See edge representati
 | Voxel                 | 0     |
 | Physical              | 1     |
 
+## Spatial Index
+
+This optional section provides an optimized way to fetch vertices when the edge representation is LINKED_PATHS. During path generation,
+the chunk size will be used to break long paths at chunk boundaries, creating more numerous paths connected by new edge pairs. This will
+make it simple to fetch paths in a given region of space.
+
+| Name       | Type        | Description                                            |
+|------------|-------------|--------------------------------------------------------|
+| num_bytes  | uint64      | Number of bytes in this section                        |
+| minpt      | 3 x float32 | Minimum point of the bounding box.                     |
+| maxpt      | 3 x float32 | Maximum point of the bounding box.                     |
+| chunk_size | 3 x float32 | Chunked division of this space.                        |
+| Octree     |             | Division of space terminating with a list of path ids. |
+
 
 ## Attribute Header
 
