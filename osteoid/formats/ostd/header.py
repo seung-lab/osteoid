@@ -330,6 +330,8 @@ class OstdAttribute:
   id: str
   dtype: str
   num_components: int
+  compression: CompressionType
+  content_length: int
 
   def to_bytes(self, name_width:int):
     if self.num_components >= 16:
