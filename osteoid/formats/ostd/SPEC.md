@@ -134,8 +134,6 @@ significantly reduce the header overhead for small skeletons.
 | PARENT                | 1     | parent pointers [0,0,1] means (root<-node<-leaf)    | Trees only. Half space. Structure encoded.  |
 | LINKED_PATHS          | 2     | set of paths linked at branch points                | General, efficient if branches are sparse.  |
 
-Note: Only PAIR is currently supported.
-
 ### Compression Algorithm
 
 | Algorithm | Value |
@@ -145,8 +143,6 @@ Note: Only PAIR is currently supported.
 | bzip2     | 2     |
 | zstd      | 3     |
 | draco     | 4     |
-
-This indicates that each buffer field is individually compressed. e.g. vertices, edges, each attribute all have this algorithm applied to them. This way you can extract each field individually without decompressing the whole file.
 
 Note: Only None is currently supported.
 
