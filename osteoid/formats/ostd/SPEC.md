@@ -103,6 +103,9 @@ R*: RESERVED from this point forward
 If this optional section is not present, the transform can assumed to be the 4x4 identity matrix. The reason this section is optional is to
 significantly reduce the header overhead for small skeletons. 
 
+
+| Field                  | Bytes | Datatype    | Value                       | Description                                                                                                       |
+|------------------------|-------|-------------|-----------------------------|-------------------------------------------------------------------------------------------------------------------|
 | transform              | 64    | 4x4 f32s    | [ f32, f32, f32, f32, ... ] | Homogenous transform matrix from voxel to physical coordinates. Written in row major (C) order.                   |
 | crc16                  | 1     | uint8       | -                          | 16-bit CRC using 0xFF init and 0xd175 implicit polynomial                  |
 
