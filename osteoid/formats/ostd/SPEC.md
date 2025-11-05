@@ -109,87 +109,6 @@ significantly reduce the header overhead for small skeletons.
 | transform              | 64    | 4x4 f32s    | [ f32, f32, f32, f32, ... ] | Homogenous transform matrix from voxel to physical coordinates. Written in row major (C) order.                   |
 | crc16                  | 1     | uint8       | -                          | 16-bit CRC using 0xFF init and 0xd175 implicit polynomial                  |
 
-### Data Types
-
-| Data Type              | Value |
-|------------------------|-------|
-| float8                 | 0     |
-| float16                | 1     |
-| float32                | 2     |
-| float64                | 3     |
-| uint8                  | 4     |
-| uint16                 | 5     |
-| uint32                 | 6     |
-| uint64                 | 7     |
-| int8                   | 8     |
-| int16                  | 9     |
-| int32                  | 10    |
-| int64                  | 11    |
-| boolean (1 byte)       | 12    |
-| packed boolean (1 bit) | 13    |
-
-
-### Edge Representation
-
-| Type                  | Value | Description                                         | Properties                                  |
-|-----------------------|-------|-----------------------------------------------------|---------------------------------------------|
-| PAIR                  | 0     | edge list [(e1,e2), ... ]                           | General, no parsing. Most space.            |
-| PARENT                | 1     | parent pointers [0,0,1] means (root<-node<-leaf)    | Trees only. Half space. Structure encoded.  |
-| LINKED_PATHS          | 2     | set of paths linked at branch points                | General, efficient if branches are sparse.  |
-
-### Compression Algorithm
-
-| Algorithm | Value |
-|-----------|-------|
-| None      | 0     |
-| gzip      | 1     |
-| bzip2     | 2     |
-| zstd      | 3     |
-| draco     | 4     |
-
-Note: Only None is currently supported.
-
-### Physical Dimension Values
-
-| Data Type             | Value |
-|-----------------------|-------|
-| VOXEL (dimensionless) | 0     |
-| Angstrom              | 1     |
-| Femtometer            | 2     |
-| Picometer             | 3     |
-| Nanometer             | 4     |
-| Micrometer (micron)   | 5     |
-| Millimeter            | 6     |
-| Centimeter            | 7     |
-| Meter                 | 8     |
-| Kilometer             | 9     |
-| Megameter             | 10    |
-| Lightyear             | 11    |
-| Parsec                | 12    |
-| Mil (1/1000 inch)     | 13    |
-| Inch                  | 14    |
-| Foot                  | 15    |
-| Yard                  | 16    |
-| Statute Mile          | 17    |
-| Nautical Mile         | 18    |
-
-
-### Graph Type
-
-| Graph Structure       | Value |
-|-----------------------|-------|
-| GRAPH                 | 0     |
-| TREE                  | 1     |
-
-This value is advisory and does not control the edge representation. 
-This is because a tree can be represented as an edge list. See edge representation.
-
-### Space Type
-
-| Space                 | Value |
-|-----------------------|-------|
-| Voxel                 | 0     |
-| Physical              | 1     |
 
 ## Spatial Index
 
@@ -280,3 +199,88 @@ num_pairs | pair_1, ..., pair_n
 
 Where the pairs are: e1,e2 with the data type controlled by the header, though typically it will be the smallest data type that encodes vertices. The edges refer to the vertices, not to the path ID.
 
+## Enums
+
+The following tables specify the meaning of various header values.
+
+### Data Types
+
+| Data Type              | Value |
+|------------------------|-------|
+| float8                 | 0     |
+| float16                | 1     |
+| float32                | 2     |
+| float64                | 3     |
+| uint8                  | 4     |
+| uint16                 | 5     |
+| uint32                 | 6     |
+| uint64                 | 7     |
+| int8                   | 8     |
+| int16                  | 9     |
+| int32                  | 10    |
+| int64                  | 11    |
+| boolean (1 byte)       | 12    |
+| packed boolean (1 bit) | 13    |
+
+
+### Edge Representation
+
+| Type                  | Value | Description                                         | Properties                                  |
+|-----------------------|-------|-----------------------------------------------------|---------------------------------------------|
+| PAIR                  | 0     | edge list [(e1,e2), ... ]                           | General, no parsing. Most space.            |
+| PARENT                | 1     | parent pointers [0,0,1] means (root<-node<-leaf)    | Trees only. Half space. Structure encoded.  |
+| LINKED_PATHS          | 2     | set of paths linked at branch points                | General, efficient if branches are sparse.  |
+
+### Compression Algorithm
+
+| Algorithm | Value |
+|-----------|-------|
+| None      | 0     |
+| gzip      | 1     |
+| bzip2     | 2     |
+| zstd      | 3     |
+| draco     | 4     |
+
+Note: Only None is currently supported.
+
+### Physical Dimension Values
+
+| Data Type             | Value |
+|-----------------------|-------|
+| VOXEL (dimensionless) | 0     |
+| Angstrom              | 1     |
+| Femtometer            | 2     |
+| Picometer             | 3     |
+| Nanometer             | 4     |
+| Micrometer (micron)   | 5     |
+| Millimeter            | 6     |
+| Centimeter            | 7     |
+| Meter                 | 8     |
+| Kilometer             | 9     |
+| Megameter             | 10    |
+| Lightyear             | 11    |
+| Parsec                | 12    |
+| Mil (1/1000 inch)     | 13    |
+| Inch                  | 14    |
+| Foot                  | 15    |
+| Yard                  | 16    |
+| Statute Mile          | 17    |
+| Nautical Mile         | 18    |
+
+
+### Graph Type
+
+| Graph Structure       | Value |
+|-----------------------|-------|
+| GRAPH                 | 0     |
+| TREE                  | 1     |
+
+This value is advisory and does not control the edge representation. 
+This is because a tree can be represented as an edge list. See edge representation.
+
+### Space Type
+
+| Space                 | Value |
+|-----------------------|-------|
+| Voxel                 | 0     |
+| Physical              | 1     |
