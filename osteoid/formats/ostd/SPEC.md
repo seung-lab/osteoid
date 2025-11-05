@@ -86,16 +86,16 @@ All values are little endian except where noted. Total bytes: 83
 | ------ | ---------------------------------- | ------------------------------------------------------------------------------------ |
 | **V**  | Vertex data type                   | See *Data Types*                                                                     |
 | **e**  | Edge data type                     | See *Data Types*                                                                     |
-| **E**  | Edge representation                |                                                                                      |
+| **E**  | Edge representation                | See *Edge Representation*                                                            |
 | **A**  | Append mode                        | (0) Section is self-contained<br>(1) Edges continue numbering from previous sections |
-| **C**  | Compression algorithm for vertices |                                                                                      |
-| **c**  | Compression algorithm for edges    |                                                                                      |
-| **G**  | Graph structure (advisory)         |                                                                                      |
-| **P**  | Physical dimension units           |                                                                                      |
-| **S**  | Space (voxel or physical)          |                                                                                      |
-| **i**  | Spatial index present              |                                                                                      |
+| **C**  | Compression algorithm for vertices | See *Compression Type*                                                               |
+| **c**  | Compression algorithm for edges    | See *Compression Type*                                                               |
+| **G**  | Graph structure (advisory)         | See *Graph Type*                                                                     |
+| **P**  | Physical dimension units           | See *Physical Dimension Type*                                                        |
+| **S**  | Space (voxel or physical)          | See *Space Type*                                                                     |
+| **i**  | Spatial index present              | bool                                                                                 |
 | **a**  | Axes                               | (0) XY<br>(1) XYZ                                                                    |
-| **t**  | Transform present                  |                                                                                      |
+| **t**  | Transform present                  | bool                                                                                 |
 | **R*** | RESERVED                           | From this point forward                                                              |
 
 ## Transform
@@ -203,7 +203,7 @@ Where the pairs are: e1,e2 with the data type controlled by the header, though t
 
 The following tables specify the meaning of various header values.
 
-### Data Types
+### Data Type
 
 | Data Type              | Value |
 |------------------------|-------|
@@ -223,7 +223,7 @@ The following tables specify the meaning of various header values.
 | packed boolean (1 bit) | 13    |
 
 
-### Edge Representation
+### Edge Representation Type
 
 | Type                  | Value | Description                                         | Properties                                  |
 |-----------------------|-------|-----------------------------------------------------|---------------------------------------------|
@@ -231,7 +231,7 @@ The following tables specify the meaning of various header values.
 | PARENT                | 1     | parent pointers [0,0,1] means (root<-node<-leaf)    | Trees only. Half space. Structure encoded.  |
 | LINKED_PATHS          | 2     | set of paths linked at branch points                | General, efficient if branches are sparse.  |
 
-### Compression Algorithm
+### Compression Algorithm Type
 
 | Algorithm | Value |
 |-----------|-------|
@@ -243,7 +243,7 @@ The following tables specify the meaning of various header values.
 
 Note: Only None is currently supported.
 
-### Physical Dimension Values
+### Physical Dimension Type
 
 | Data Type             | Value |
 |-----------------------|-------|
