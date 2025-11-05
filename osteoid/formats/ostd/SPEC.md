@@ -80,23 +80,23 @@ All values are little endian except where noted. Total bytes: 83
 | attribute_header_bytes | 4     | u32         | -                           | Content length in bytes of the attribute header.                                                         |
 | crc16                  | 2     | uint16      | -                           | crc16 using 0xFFFF init and implicit polynomial 0xd175 of header bytes excluding magic number.                    |
 
-Flags definition:
+### Flag Definitions
 
-V: Vertex data type (see Data Types)
-e: Edge data type (see Data Types)
-E: Edge representation
-A: Append mode
-	(0) This file section is completely self contained.
-	(1) edges are numbered such that they include preceeding section parts.
-C: Compression algorithm for vertices
-c: Compression algorithm for edges
-G: Graph structure (advisory)
-P: Physical dimension units
-S: Space (voxel or physical)
-i: Spatial index present
-a: axes (0) XY (1) XYZ
-t: transform present
-R*: RESERVED from this point forward
+| Flag   | Meaning                            | Notes                                                                                |
+| ------ | ---------------------------------- | ------------------------------------------------------------------------------------ |
+| **V**  | Vertex data type                   | See *Data Types*                                                                     |
+| **e**  | Edge data type                     | See *Data Types*                                                                     |
+| **E**  | Edge representation                |                                                                                      |
+| **A**  | Append mode                        | (0) Section is self-contained<br>(1) Edges continue numbering from previous sections |
+| **C**  | Compression algorithm for vertices |                                                                                      |
+| **c**  | Compression algorithm for edges    |                                                                                      |
+| **G**  | Graph structure (advisory)         |                                                                                      |
+| **P**  | Physical dimension units           |                                                                                      |
+| **S**  | Space (voxel or physical)          |                                                                                      |
+| **i**  | Spatial index present              |                                                                                      |
+| **a**  | Axes                               | (0) XY<br>(1) XYZ                                                                    |
+| **t**  | Transform present                  |                                                                                      |
+| **R*** | RESERVED                           | From this point forward                                                              |
 
 ## Transform
 
