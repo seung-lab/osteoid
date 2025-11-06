@@ -5,7 +5,7 @@ Skeletons (medial paths) may be represented as a possibly cyclic undirected grap
 
 The `ostd` file format fills a gap in existing skeleton file formats by offering a self-contained, high performance, safe, binary format that supports optional vertex attributes for the serialization of skeletal structures. Incorporating metadata is not a design goal, as this core file is intended to be wrapped in a container file format for that purpose.
 
-Typically skeleton file formats represent the geometry in either text, JSON, or XML which uses excess space and requires a comparatively slow parser. Examples include SWC, CSV/TSV, NML, OBJ. In the case of SWC, it is not easily extensible with additional attributes. Other file formats are designed to handle multiple kinds of objects. SWC only supports trees, when some skeletons may include loops.
+Typically skeleton file formats represent the geometry in either text, JSON, or XML which uses excess space and requires a comparatively slow parser. Examples include SWC, CSV/TSV, NML, OBJ. In the case of SWC, it is not easily extensible with additional attributes. Other file formats are designed to handle multiple kinds of objects. SWC only supports trees, when some skeletons may include loops. Other formats, e.g. TRK, only support paths. Precomputed only supports a fully general (and space hungry) edge list.
 
 Precomputed has most of the features one would desire, but is inflexible on the vertex and edge data types and also requires a separate info file to interpret the binary, so is not stand-alone. Furthermore, there is no indication of which physical scale to use (nanometers? micrometers?) which is a weakness of most of the other formats too. Precomputed also only supports an edge list representation, which is space inefficient. Precomputed smartly includes a 3x4 transform matrix for affine transforms to map from, e.g. voxel to physical space, but a fully forward-compatible design would use a 4x4 matrix capable of transforms using homogeneous coordinates, perspective transforms, and is more broadly compatible with graphics pipelines, especially since the matrix remains square.
 
@@ -13,7 +13,7 @@ Another design issue in Precomputed is that it specifies edges lists must be uin
 
 # The Design
 
-ostd takes ideas from Precomputed, SWC, and other formats to compactly represent skeletons in a stand-alone, efficiently parsable file format.
+ostd takes ideas from Precomputed, SWC, Trk, and other formats to compactly represent skeletons in a stand-alone, efficiently parsable file format.
 
 - A 3D (XYZ) binary skeleton format allowing any data type for vertices
 - Support skeletons larger than 2^32 vertices
@@ -21,12 +21,13 @@ ostd takes ideas from Precomputed, SWC, and other formats to compactly represent
 - Includes a format version number to enable smooth version upgrades
 - Has 128 bits for an object ID, tagging each object with a UUID4 by default but accepts uint64 ids (important for connectomics)
 - Incorporates a 4x4 transform matrix and tracks which state (voxel or physical) the vertices are in
-- Tracks which physical unit the vertices are in (options for common metric and imperial units)
+- Tracks which physical unit the vertices are in.
+- Tracks which orientation the coordinate frame is in.
 - Blocks individually guarded against file corruption by CRCs to enable extraction of remaining good data if one block is damaged
 - Supports representing edges as an edge list, parent pointers, or a path graph, saving space while retaining generality
-- Advisory fields to tell you the number of connected components and the graph structure
+- Advisory fields to tell you the number of connected components, path length, and the graph structure
 - (Single-Part) Attributes header is located at the end of the file to enable efficient appending of more vertex attributes on POSIX systems
-- Efficiently support both vertex and edge attributes
+- Efficiently support both vertex and edge attributes and tracks physical units.
 - Support optional octree spatial index
 - Concatenate multiple ostd files together to append vertices and edges together (inhibits adding more vertex attributes)
 
@@ -70,7 +71,7 @@ All values are little endian except where noted. Total bytes: 87
 | format_version         | 1     | u8          | 0                           | Version of this file format.                                                              |
 | total_bytes            | 8     | u64         | -                           | Total byte size of this part.                                                             |
 | id                     | 16    | uuid4 / u64 | -                           | A wide enough field to accommodate both u64s and uuid4s                                   |
-| flags                  | 8     | bitfield    |VVVVeeeeCCCCccccEEAGGGPPPPPSSiatR*| See note below for definitions.   |
+| flags                  | 8     | bitfield    | -                            | See note below for definitions.   |
 | num_vertices (Nv)      | 8     | u64         | -                           | Number of vertices                                                                        |
 | num_edges (Ne)         | 8     | u64         | -                           | Number of edges                                                                           |
 | num_components         | 4     | u32         | N or (2^32-1 if unknown)    | Number of connected components in the skeleton graph. max value of uint32 is a sentinel for unknown.              |
@@ -82,6 +83,8 @@ All values are little endian except where noted. Total bytes: 87
 | crc16                  | 2     | uint16      | -                           | crc16 using 0xFFFF init and implicit polynomial 0xd175 of header bytes excluding magic number.                    |
 
 ### Flag Definitions
+
+`VVVVeeeeCCCCccccGGGPPPPPSSSSOOOOOiatoAEER*`
 
 | Flag   | Meaning                            | Notes                                                                                |
 | ------ | ---------------------------------- | ------------------------------------------------------------------------------------ |
@@ -96,7 +99,13 @@ All values are little endian except where noted. Total bytes: 87
 | **S**  | Space (voxel or physical)          | See *Space Type*                                                                     |
 | **i**  | Spatial index present              | bool                                                                                 |
 | **a**  | Axes                               | (0) XY<br>(1) XYZ                                                                    |
-| **t**  | Transform present                  | bool                                                                                 |
+| **t**  | Transforms present                 | bool                                                                                 |
+| **O**  | Coordinate Frame Orientation       | Has own structure: `sssaaa`<br>
+s: sign of X,Y,Z axes in that order (0: positive, 1: negative)<br>
+a: axis permutation<br>
+See Axis Permutation Type, 000000 means +X+Y+Z standard frame
+                                                                                  |
+| **o*** | Voxel centered or top left corner. | Describes whether voxel coordinates are interpreted as centered or in the top left corner.                                                              |
 | **R*** | RESERVED                           | From this point forward                                                              |
 
 ## Transform
@@ -107,8 +116,10 @@ significantly reduce the header overhead for small skeletons.
 
 | Field                  | Bytes | Datatype    | Value                       | Description                                                                                                       |
 |------------------------|-------|-------------|-----------------------------|-------------------------------------------------------------------------------------------------------------------|
+| num_spaces             | 1     | uint8       | -                           | Number of transformations available. matrices.                  |
+| name                   | 10    | str         | -                           | Name of transformation: e.g. physical, patient, RAS, LAS, scanner, etc.                   |
 | transform              | 64    | 4x4 f32s    | [ f32, f32, f32, f32, ... ] | Homogenous transform matrix from voxel to physical coordinates. Written in row major (C) order.                   |
-| crc16                  | 1     | uint8       | -                          | 16-bit CRC using 0xFF init and 0xd175 implicit polynomial                  |
+| crc16                  | 2     | uint16       | -                          | 16-bit CRC using 0xFF init and 0xd175 implicit polynomial                  |
 
 
 ## Spatial Index
@@ -143,18 +154,31 @@ crc16
 
 Attributes can be applied to either vertices or to edges. Vertex attributes are naturally dense since they scale linearly with the number of vertices, while edge attributes are naturally sparse because the number of possible combinations is the square of the number of vertices, but skeletons are paths with branches (and rarely loops).
 
-| Field          | Bytes     | Datatype | Value            | Description                     |
-|----------------|-----------|----------|------------------|---------------------------------|
-| name           | fixed<=255| string   | e.g. "radius"    | Name of the attribute           |
-| field          | 2         | bitfield | TDDDDCCCCRRRRRRR | Packed information              |
-| num_components | 1         | uint8    | -                | Number of components.           |
-| content_length | 8         | uint64   | -                | Length of compressed bitstream. |
+| Field          | Bytes     | Datatype | Value                     | Description                     |
+|----------------|-----------|----------|---------------------------|---------------------------------|
+| name           | fixed<=255| string   | e.g. "radius"             | Name of the attribute           |
+| flags          | 2         | bitfield | DDDDCCCCTRRRRRRR          | Packed information              |
+| unit           | 2         | bitfield | QQQSSSSSUUUUURRR          | Physical unit.                  |
+| num_components | 1         | uint8    | -                         | Number of components.           |
+| content_length | 8         | uint64   | -                         | Length of compressed bitstream. |
 
-Bitfield (lsb on left):
-T: (0) vertex attribute (1) edge attribute
-D: Data Type
+
+#### Flags Definition
+
+lsb on left
+
+T: (0) vertex attribute (1) edge attribute  
+D: Data Type  
 C: Compression Type
 R: Reserved
+
+#### Unit Definition
+
+lsb on left
+
+Q: Quantity type (see *Physical Unit Type*)
+S: SI Prefix (see *SI Prefix Type*)
+U: Unit of that type
 
 ## Vertex Attribute
 
@@ -200,6 +224,32 @@ num_pairs | pair_1, ..., pair_n
 
 Where the pairs are: e1,e2 with the data type controlled by the header, though typically it will be the smallest data type that encodes vertices. The edges refer to the vertices, not to the path ID.
 
+## Common Coordinate Frames
+
+To interpret the meaning of the coordinate system and axis sign,
++X+Y+Z can be interpreted differently depending on whether the 
+point of view is from the object or the observer (sometimes called the 
+camera perspective).
+
+1. The orientation provided by your right-hand thumb, middle finger, and palm when your 
+hand is placed parallel to the ground pointing away from your body, palm facing up with 
+the thumb flexed at a 90 degree angle. This is Right, Anterior, Superior from your point 
+of view in the anatomical reference frame.
+
+2. Patient's Left, Posterior, Superior (LPS) in the anatomical reference frame from the 
+point of view of a clinician looking at a front facing patient.
+
+These are both right handed coordinate systems.
+
+| Axes   | Anatomical Reference Axes                 | Handedness | Notes                                                                                           |
+|--------|-------------------------------------------|------------|-------------------------------------------------------------------------------------------------|
+| +X+Y+Z | Patient's Left, Posterior, Superior (LPS) | Right      | Standard cartesian coordinate frame.                                                            |
+| +X-Y-Z | Patient's Left, Anterior, Inferior (LAI)  | Right      | Frequently used in computer image rasterization. Images are drawn left to right, top to bottom. Used in Neuroglancer. |
+| -X-Y+Z | Patient's Right, Anterior, Superior (RAS) | Right      | Frequently used in Neurology.                                                                   |
+| +X-Y+Z | Patient's Left, Anterior, Superior (LAS)  | Left       | Frequently used in Radiology.                                                                   |
+
+*Thank you to Graham Wideman (http://www.grahamwideman.com/gw/brain/orientation/orientterms.htm) for the helpful information on common coordinate systems.*
+
 ## Enums
 
 The following tables specify the meaning of various header values.
@@ -223,7 +273,6 @@ The following tables specify the meaning of various header values.
 | boolean (1 byte)       | 12    |
 | packed boolean (1 bit) | 13    |
 
-
 ### Edge Representation Type
 
 | Type                  | Value | Description                                         | Properties                                  |
@@ -244,44 +293,201 @@ The following tables specify the meaning of various header values.
 
 Note: Only None is currently supported.
 
-### Physical Dimension Type
+### Physical Unit Type
 
-| Data Type             | Value |
+| Unit Type        | Value |
+|------------------|-------|
+| Length           | 0     |
+| Area             | 1     |
+| Volume           | 2     |
+| Time             | 3     |
+| Mass             | 4     |
+| Temperature      | 5     |
+| Luminosity       | 6     |
+| Electrical       | 7     |
+| Substance Amount | 8     |
+| Energy           | 9     |
+
+### SI Prefix
+
+| Prefix | Value |
+| ------ | ----- |
+| none   | 0     |
+| quecto | 1     |
+| ronto  | 2     |
+| yocto  | 3     |
+| zepto  | 4     |
+| atto   | 5     |
+| femto  | 6     |
+| pico   | 7     |
+| nano   | 8     |
+| micro  | 9     |
+| milli  | 10    |
+| centi  | 11    |
+| deci   | 12    |
+| deka   | 13    |
+| hecto  | 14    |
+| kilo   | 15    |
+| mega   | 16    |
+| giga   | 17    |
+| tera   | 18    |
+| peta   | 19    |
+| exa    | 20    |
+| zetta  | 21    |
+| yotta  | 22    |
+| ronna  | 23    |
+| quetta | 24    |
+
+### Length Type
+
+| Unit                  | Value |
 |-----------------------|-------|
-| VOXEL (dimensionless) | 0     |
-| Angstrom              | 1     |
-| Femtometer            | 2     |
-| Picometer             | 3     |
-| Nanometer             | 4     |
-| Micrometer (micron)   | 5     |
-| Millimeter            | 6     |
-| Centimeter            | 7     |
-| Meter                 | 8     |
-| Kilometer             | 9     |
-| Megameter             | 10    |
-| Lightyear             | 11    |
-| Parsec                | 12    |
-| Mil (1/1000 inch)     | 13    |
-| Inch                  | 14    |
-| Foot                  | 15    |
-| Yard                  | 16    |
-| Statute Mile          | 17    |
-| Nautical Mile         | 18    |
+| voxel (dimensionless) | 0     |
+| meter                 | 1     |
+| angstrom              | 2     | 
+| astronomical unit     | 4     |
+| lightyear             | 5     |
+| parsec                | 6     |
+| mil (1/1000 inch)     | 7     |
+| inch                  | 8     |
+| foot                  | 9     |
+| yard                  | 10    |
+| statute mile          | 11    |
+| nautical mile         | 12    |
 
+### Area Type
+
+Inherits from length type but considers each value squared.
+Additional units such as `acre` could in theory be added.
+
+### Volume Type
+
+Inherits from length type but considers each value cubed.
+The following values are added in addition.
+
+| Unit                  | Value |
+|-----------------------|-------|
+| liter                 | 13    |
+
+### Temperature Type
+
+| Unit        | Value |
+|-------------|-------|
+| unknown     | 0     |
+| celsius     | 1     |
+| fahrenheit  | 2     |
+| rankine     | 3     |
+| kelvin      | 4     |
+
+### Time Type
+
+| Unit        | Value |
+|-------------|-------|
+| unknown     | 0     |
+| second      | 1     |
+| minute      | 2     |
+| hour        | 3     |
+| day         | 4     |
+| month       | 5     |
+| year        | 6     |
+| hertz       | 7     |
+
+### Luminosity Type
+
+| Unit                  | Value |
+| --------------------- | ----- |
+| unknown               | 0     |
+| candela               | 1     |
+| lumen                 | 2     |
+| lux                   | 3     |
+| photon                | 4     |
+| photons per second    | 5     |
+
+### Electrical Type
+
+| Unit            | Value |
+| --------------- | ----- |
+| unknown         | 0     |
+| volt            | 1     |
+| ampere          | 2     |
+| ohm             | 3     |
+| siemen          | 4     |
+| farad           | 5     |
+| henry           | 6     |
+| coulomb         | 7     |
+
+### Mass Type
+
+| Unit                  | Value |
+|-----------------------|-------|
+| unknown               | 0     |
+| gram                  | 1     |
+| dalton                | 2     |
+
+### Substance Amount
+
+| Unit                  | Value |
+|-----------------------|-------|
+| mole                  | 0     |
+
+### Energy Type
+
+| Unit                  | Value |
+|-----------------------|-------|
+| joule                 | 0     |
+| chemical joule        | 1     |
+| electrical joule      | 2     |
+| mechanical joule      | 3     |
+| nuclear joule         | 4     |
+| radiant joule         | 5     |
+| thermal joule         | 6     |
+| watt                  | 7     |
+| chemical watt         | 8     |
+| electrical watt       | 9     |
+| mechanical watt       | 10    |
+| nuclear watt          | 11    |
+| radiant watt          | 12    |
+| thermal watt          | 13    |
 
 ### Graph Type
 
 | Graph Structure       | Value |
 |-----------------------|-------|
-| GRAPH                 | 0     |
-| TREE                  | 1     |
+| graph                 | 0     |
+| tree                  | 1     |
 
 This value is advisory and does not control the edge representation. 
 This is because a tree can be represented as an edge list. See edge representation.
 
-### Space Type
+### Current Space Type
 
 | Space                 | Value |
 |-----------------------|-------|
-| Voxel                 | 0     |
-| Physical              | 1     |
+| voxel                 | 0     |
+| transformed           | 1     |
+
+### Space Type
+
+| Space                        | Value |
+|------------------------------|-------|
+| Generic                      | 0     |
+| Scanner                      | 1     |
+| Atlas                        | 2     |
+| Aligned                      | 3     |
+| World                        | 4     |
+| Soma                         | 5     |
+| Base                         | 6     |
+| Joint                        | 7     |
+| Tool                         | 8     |
+| Model                        | 9     |
+
+### Axis Permutation Type
+
+| System | Value |
+|--------|-------|
+| XYZ    | 0     |
+| XZY    | 1     |
+| YXZ    | 2     |
+| YZX    | 3     |
+| ZXY    | 4     |
+| ZYX    | 5     |
