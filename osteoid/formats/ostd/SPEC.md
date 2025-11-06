@@ -43,7 +43,7 @@ The attributes header is located at the end so that additional attributes can be
 | Section                  | Required | Description                                                                 |
 |--------------------------|----------|-----------------------------------------------------------------------------|
 | Header                   | Y        | Basic information about the file                                            |
-| Transform                |          | 4x4 float32 le C order matrix describing voxel->physical space.             |
+| Transform                |          | List of 4x4 float32 le C order matrix describing voxel to different spaces, such as physical or atlas space.             |
 | Spatial Index            |          | Octree describing locations of vertices.                                    |
 | Vertices                 | Y        | Serialized XY pairs or XYZ triples.                                         |
 | Edges                    | Y        | Edge representation.                                                        |
@@ -72,6 +72,7 @@ All values are little endian except where noted. Total bytes: 87
 | total_bytes            | 8     | u64         | -                           | Total byte size of this part.                                                             |
 | id                     | 16    | uuid4 / u64 | -                           | A wide enough field to accommodate both u64s and uuid4s                                   |
 | flags                  | 8     | bitfield    | -                            | See note below for definitions.   |
+| current_space          | 1     | u8          | 0                           | The current transform space the vertices are in. By default 0. Every +1 means selecting the next transform from the transform list. See *Transform* | 
 | num_vertices (Nv)      | 8     | u64         | -                           | Number of vertices                                                                        |
 | num_edges (Ne)         | 8     | u64         | -                           | Number of edges                                                                           |
 | num_components         | 4     | u32         | N or (2^32-1 if unknown)    | Number of connected components in the skeleton graph. max value of uint32 is a sentinel for unknown.              |
@@ -84,7 +85,7 @@ All values are little endian except where noted. Total bytes: 87
 
 ### Flag Definitions
 
-`VVVVeeeeCCCCccccGGGPPPPPSSSSOOOOOiatoAEER*`
+`VVVVeeeeCCCCccccGGGPPPPPOOOOOiatoAEER*`
 
 | Flag   | Meaning                            | Notes                                                                                |
 | ------ | ---------------------------------- | ------------------------------------------------------------------------------------ |
@@ -96,7 +97,6 @@ All values are little endian except where noted. Total bytes: 87
 | **c**  | Compression algorithm for edges    | See *Compression Type*                                                               |
 | **G**  | Graph structure (advisory)         | See *Graph Type*                                                                     |
 | **P**  | Physical dimension units           | See *Physical Dimension Type*                                                        |
-| **S**  | Space (voxel or physical)          | See *Space Type*                                                                     |
 | **i**  | Spatial index present              | bool                                                                                 |
 | **a**  | Axes                               | (0) XY<br>(1) XYZ                                                                    |
 | **t**  | Transforms present                 | bool                                                                                 |
@@ -114,9 +114,9 @@ significantly reduce the header overhead for small skeletons.
 | Field                  | Bytes | Datatype    | Value                       | Description                                                                                                       |
 |------------------------|-------|-------------|-----------------------------|-------------------------------------------------------------------------------------------------------------------|
 | num_spaces             | 1     | uint8       | -                           | Number of transformations available. matrices.                  |
-| name                   | 10    | str         | -                           | Name of transformation: e.g. physical, patient, RAS, LAS, scanner, etc.                   |
+| space                  | 1     | uint8       | -                           | The kind of space the transform represents. See *Space Type* |
 | transform              | 64    | 4x4 f32s    | [ f32, f32, f32, f32, ... ] | Homogenous transform matrix from voxel to physical coordinates. Written in row major (C) order.                   |
-| crc16                  | 2     | uint16       | -                          | 16-bit CRC using 0xFF init and 0xd175 implicit polynomial                  |
+| crc16                  | 2     | uint16      | -                          | 16-bit CRC using 0xFF init and 0xd175 implicit polynomial                  |
 
 
 ## Spatial Index
@@ -468,15 +468,17 @@ This is because a tree can be represented as an edge list. See edge representati
 | Space                        | Value |
 |------------------------------|-------|
 | Generic                      | 0     |
-| Scanner                      | 1     |
-| Atlas                        | 2     |
-| Aligned                      | 3     |
-| World                        | 4     |
-| Soma                         | 5     |
-| Base                         | 6     |
-| Joint                        | 7     |
-| Tool                         | 8     |
-| Model                        | 9     |
+| Physical                     | 1     |
+| Scanner                      | 2     |
+| Atlas                        | 3     |
+| Aligned                      | 4     |
+| World                        | 5     |
+| Soma                         | 6     |
+| Base                         | 7     |
+| Joint                        | 8     |
+| Tool                         | 9     |
+| Model                        | 10    |
+| Camera                       | 11    |
 
 ### Axis Permutation Type
 
