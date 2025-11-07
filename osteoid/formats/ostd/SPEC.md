@@ -63,7 +63,7 @@ The parser should check if the stream is longer than the indicated content lengt
 
 ## Header
 
-All values are little endian except where noted. Total bytes: 87
+All values are little endian except where noted. Total bytes: 88
 
 | Field                  | Bytes | Datatype    | Value                       | Description                                                                                                       |
 |------------------------|-------|-------------|-----------------------------|-------------------------------------------------------------------------------------------------------------------|
@@ -85,6 +85,8 @@ All values are little endian except where noted. Total bytes: 87
 
 ### Flag Definitions
 
+LSB on the left.
+
 `VVVVeeeeCCCCccccGGGPPPPPOOOOOiatoAEER*`
 
 | Flag   | Meaning                            | Notes                                                                                |
@@ -100,8 +102,7 @@ All values are little endian except where noted. Total bytes: 87
 | **i**  | Spatial index present              | bool                                                                                 |
 | **a**  | Axes                               | (0) XY<br>(1) XYZ                                                                    |
 | **t**  | Transforms present                 | bool                                                                                 |
-| **O**  | Coordinate Frame Orientation       | Has own structure: `sssaaa`<br>s: sign of X,Y,Z axes in that order (0: positive, 1: negative)<br>a: axis permutation<br>See Axis Permutation Type, 000000 means +X+Y+Z standard frame
-                                                                                  |
+| **O**  | Coordinate Frame Orientation       | Has own structure: `sssaaa`<br>s: sign of X,Y,Z axes in that order (0: positive, 1: negative)<br>a: axis permutation<br>See Axis Permutation Type, 000000 means +X+Y+Z standard frame |
 | **o*** | Voxel centered or top left corner. | Describes whether voxel coordinates are interpreted as centered or in the top left corner.                                                              |
 | **R*** | RESERVED                           | From this point forward                                                              |
 
