@@ -72,22 +72,23 @@ All values are little endian except where noted. Total bytes: 88
 | total_bytes            | 8     | u64         | -                           | Total byte size of this part.                                                             |
 | id                     | 16    | uuid4 / u64 | -                           | A wide enough field to accommodate both u64s and uuid4s                                   |
 | flags                  | 8     | bitfield    | -                            | See note below for definitions.   |
-| current_space          | 1     | u8          | 0                           | The current transform space the vertices are in. By default 0. Every +1 means selecting the next transform from the transform list. See *Transform* | 
 | num_vertices (Nv)      | 8     | u64         | -                           | Number of vertices                                                                        |
 | num_edges (Ne)         | 8     | u64         | -                           | Number of edges                                                                           |
-| num_components         | 4     | u32         | N or (2^32-1 if unknown)    | Number of connected components in the skeleton graph. max value of uint32 is a sentinel for unknown.              |
-| physical_path_length   | 4     | f32         | -                           | Physical path length of this object in the units specified in flags.  |
+units specified in flags.  |
 | vertex_bytes           | 8     | u64         | -                           | Content length of vertices (needed for compression).                                      |
 | edge_bytes             | 8     | u64         | -                           | Number of bytes encoding edges (needed for compression)                                   |
 | spatial_index_bytes    | 4     | u32         | -                           | Content length in bytes of the spatial index.                                                         |
 | attribute_header_bytes | 4     | u32         | -                           | Content length in bytes of the attribute header.                                                         |
+| num_components         | 4     | u32         | N or (2^32-1 if unknown)    | Number of connected components in the skeleton graph. max value of uint32 is a sentinel for unknown.              |
+| physical_path_length   | 4     | f32         | -                           | Physical path length of this object in the 
+| current_space          | 1     | u8          | 0                           | The current transform space the vertices are in. By default 0. Every +1 means selecting the next transform from the transform list. See *Transform* | 
 | crc16                  | 2     | uint16      | -                           | crc16 using 0xFFFF init and implicit polynomial 0xd175 of header bytes excluding magic number.                    |
 
 ### Flag Definitions
 
 LSB on the left.
 
-`VVVVeeeeCCCCccccGGGPPPPPOOOOOiatoAEER*`
+`VVVVeeeeCCCCccccGGGpppppPPPPOOOOOaaatoAEER*`
 
 | Flag   | Meaning                            | Notes                                                                                |
 | ------ | ---------------------------------- | ------------------------------------------------------------------------------------ |
@@ -98,9 +99,9 @@ LSB on the left.
 | **C**  | Compression algorithm for vertices | See *Compression Type*                                                               |
 | **c**  | Compression algorithm for edges    | See *Compression Type*                                                               |
 | **G**  | Graph structure (advisory)         | See *Graph Type*                                                                     |
-| **P**  | Physical dimension units           | See *Physical Dimension Type*                                                        |
-| **i**  | Spatial index present              | bool                                                                                 |
-| **a**  | Axes                               | (0) XY<br>(1) XYZ                                                                    |
+| **p**  | SI Prefix                          | See *SIPrefixType*
+| **P**  | Physical length units              | See *Length Type*                                                        |
+| **a**  | Number of Axes                     | Number of axes                       |
 | **t**  | Transforms present                 | bool                                                                                 |
 | **O**  | Coordinate Frame Orientation       | Has own structure: `sssaaa`<br>s: sign of X,Y,Z axes in that order (0: positive, 1: negative)<br>a: axis permutation<br>See Axis Permutation Type, 000000 means +X+Y+Z standard frame |
 | **o*** | Voxel centered or top left corner. | Describes whether voxel coordinates are interpreted as centered or in the top left corner.                                                              |
@@ -308,6 +309,8 @@ Note: Only None is currently supported.
 
 ### SI Prefix
 
+5 bits
+
 | Prefix | Value |
 | ------ | ----- |
 | none   | 0     |
@@ -338,36 +341,44 @@ Note: Only None is currently supported.
 
 ### Length Type
 
+4 bits
+
 | Unit                  | Value |
 |-----------------------|-------|
 | voxel (dimensionless) | 0     |
 | meter                 | 1     |
 | angstrom              | 2     | 
-| astronomical unit     | 4     |
-| lightyear             | 5     |
-| parsec                | 6     |
-| mil (1/1000 inch)     | 7     |
-| inch                  | 8     |
-| foot                  | 9     |
-| yard                  | 10    |
-| statute mile          | 11    |
-| nautical mile         | 12    |
+| astronomical unit     | 3     |
+| lightyear             | 4     |
+| parsec                | 5     |
+| mil (1/1000 inch)     | 6     |
+| inch                  | 7     |
+| foot                  | 8     |
+| yard                  | 9     |
+| statute mile          | 10    |
+| nautical mile         | 11    |
 
 ### Area Type
+
+4 bits
 
 Inherits from length type but considers each value squared.
 Additional units such as `acre` could in theory be added.
 
 ### Volume Type
 
+4 bits
+
 Inherits from length type but considers each value cubed.
 The following values are added in addition.
 
 | Unit                  | Value |
 |-----------------------|-------|
-| liter                 | 13    |
+| liter                 | 12    |
 
 ### Temperature Type
+
+3 bits
 
 | Unit        | Value |
 |-------------|-------|
@@ -378,6 +389,8 @@ The following values are added in addition.
 | kelvin      | 4     |
 
 ### Time Type
+
+3 bits
 
 | Unit        | Value |
 |-------------|-------|
@@ -392,6 +405,8 @@ The following values are added in addition.
 
 ### Luminosity Type
 
+3 bits
+
 | Unit                  | Value |
 | --------------------- | ----- |
 | unknown               | 0     |
@@ -402,6 +417,8 @@ The following values are added in addition.
 | photons per second    | 5     |
 
 ### Electrical Type
+
+3 bits
 
 | Unit            | Value |
 | --------------- | ----- |
@@ -416,6 +433,8 @@ The following values are added in addition.
 
 ### Mass Type
 
+2 bits
+
 | Unit                  | Value |
 |-----------------------|-------|
 | unknown               | 0     |
@@ -424,30 +443,26 @@ The following values are added in addition.
 
 ### Substance Amount
 
+1 bit
+
 | Unit                  | Value |
 |-----------------------|-------|
-| mole                  | 0     |
+| unknown               | 0     |
+| mole                  | 1     |
 
 ### Energy Type
 
+2 bits
+
 | Unit                  | Value |
 |-----------------------|-------|
-| joule                 | 0     |
-| chemical joule        | 1     |
-| electrical joule      | 2     |
-| mechanical joule      | 3     |
-| nuclear joule         | 4     |
-| radiant joule         | 5     |
-| thermal joule         | 6     |
-| watt                  | 7     |
-| chemical watt         | 8     |
-| electrical watt       | 9     |
-| mechanical watt       | 10    |
-| nuclear watt          | 11    |
-| radiant watt          | 12    |
-| thermal watt          | 13    |
+| unknown               | 0     |
+| joule                 | 1     |
+| watt                  | 2     |
 
 ### Graph Type
+
+1 bit
 
 | Graph Structure       | Value |
 |-----------------------|-------|
