@@ -1,35 +1,68 @@
 from typing import Optional, Any, Literal
 
 from .types import (
+  AreaType,
+  AxisPermutationType,
   CompressionType,
+  CurrentSpaceType,
   DataType,
-  EdgeRepresentation,
+  EdgeRepresentationType,
+  ElectricalType,
+  EnergyType,
   GraphType,
-  PhysicalUnit,
+  LengthType,
+  MassType,
+  SiPrefixType,
   SpaceType,
+  TemperatureType,
+  TimeType,
+  VolumeType,
   TO_DATATYPE, 
   FROM_DATATYPE,
+  TO_AXIS_PERMUTATION,
 )
 
 import uuid
+import struct
 
 import numpy as np
 import numpy.typing as npt
 
-def find_edge_dtype(num_verts:int) -> np.dtype:
-  if num_verts < np.dtype(np.uint8).max:
-    return np.uint8
-  elif num_verts < np.dtype(np.uint16).max:
-    return np.uint16
-  elif num_verts < np.dtype(np.uint32).max:
-    return np.uint32
-  else:
-    return np.uint64
+@dataclass
+class CoordinateFrame:
+  sign_x:bool
+  sign_y:bool
+  sign_z:bool
+  permutation:AxisPermutationType
+
+def parse_coordinate_frame_orientation(orientation:str) -> AxisPermutationType:
+  if len(orientation) > 6:
+    raise ValueError(f"Unable to parse orientation: {orientation[:100]}")
+
+  orientation = orientation.upper()
+  normalized = orientation.replace('+', '').replace('-', '')
+
+  if len(normalized) > 3 or normalized < 2:
+    raise ValueError(f"Unable to parse orientation: {normalized}")
+
+  POSITIVE = 0
+  NEGATIVE = 1
+
+  signs = [ POSITIVE, POSITIVE, POSITIVE ]
+  mapping = { "X": 0, "Y": 1, "Z": 2 }
+
+  for i in range(len(orientation) - 1):
+    if orientation[i] == "-":
+      signs[mapping[orientation[i+1]]] = NEGATIVE
+
+  permutation = TO_AXIS_PERMUTATION[normalized]
+
+  return CoordinateFrame(*signs, permutation)
 
 class OstdHeader:
   MAGIC = b'ostd'
   FORMAT_VERSION = 0
-  HEADER_BYTES = 81
+  HEADER_BYTES = 88
 
   def __init__(
     self,
@@ -37,8 +70,9 @@ class OstdHeader:
     Ne:int,
     append_mode:bool = False,
     attribute_header_bytes:int = 0,
+    coordinate_frame_orientation:str = '+X+Y+Z',
     crc16:Optional[int] = None,
-    edge_datatype:DataType = DataType.U32,
+    edge_data_type:DataType = DataType.U32,
     edge_compression:CompressionType = CompressionType.NONE,
     edge_representation:EdgeRepresentation = EdgeRepresentation.PAIR,
     edge_bytes:int = 0,
@@ -47,14 +81,16 @@ class OstdHeader:
     has_transform:bool = True,
     id:Optional[int] = None,
     num_axes:Literal[2,3] = 3,
-    num_components:Optional[int] = None,
+    num_components:int = np.iinfo(np.uint32).max,
     physical_unit:Union[str, PhysicalUnit] = PhysicalUnit.NANOMETER,
+    physical_path_length:float = float('NaN'),
     space:Union[str, SpaceType] = SpaceType.VOXEL,
     spatial_index_bytes:int = 0,
     total_bytes:int = 0,
     vertex_compression:CompressionType = CompressionType.NONE,
-    vertex_datatype:DataType = DataType.F32,
+    vertex_data_type:DataType = DataType.F32,
     vertex_bytes:int = 0,
+    voxel_centered:bool = True,
   ):
     self.Nv = int(Nv)
     self.Ne = int(Ne)
@@ -64,8 +100,8 @@ class OstdHeader:
 
     self.append_mode = append_mode
 
-    self.vertex_datatype = vertex_datatype
-    self.edge_dtype = edge_dtype
+    self.vertex_data_type = vertex_data_type
+    self.edge_data_type = edge_data_type
     self.edge_representation = edge_representation
     self.graph_type = graph_type
 
@@ -74,17 +110,14 @@ class OstdHeader:
     else:
       self.physical_unit = physical_unit
 
+    self.coordinate_frame_orientation = coordinate_frame_orientation
+    self.voxel_centered = voxel_centered
     self.compression = compression
-    self.transform = np.asfortranarray(transform)
+    self.has_transform = bool(has_transform)
+    self.num_axes = num_axes
     self.num_components = int(num_components)
 
     self.format_version = format_version
-
-    assert 0 < attr_name_width <= 255
-    assert Nattr < (1 << 15)
-
-    self.attr_name_width = attr_name_width
-    self.Nattr = Nattr
 
     if id is None:
       self.id = uuid.uuid4().bytes
@@ -98,11 +131,11 @@ class OstdHeader:
 
   @property
   def vertex_dtype(self):
-    return np.dtype(FROM_DATATYPE[self.vertex_datatype])
+    return np.dtype(FROM_DATATYPE[self.vertex_data_type])
 
   @property
   def edge_dtype(self):
-    return np.dtype(FROM_DATATYPE[self.edge_datatype])
+    return np.dtype(FROM_DATATYPE[self.edge_data_type])
 
   @property
   def Nvb(self):
@@ -110,24 +143,68 @@ class OstdHeader:
 
   def encode_flags(self) -> int:
     flags = np.uint32(0)
-    flags |= np.uint32(self.vertex_datatype.value & 0b1111) # 4 bits
-    flags |= np.uint32((self.edge_representation.value & 0b1) << 4) # 1 bit
-    flags |= np.uint32((self.compression.value & 0b1111) << 5) # 4 bits
-    flags |= np.uint32((self.graph_type.value & 0b111) << 9) # 3 bits
-    flags |= np.uint32((self.physical_unit.value & 0b11111) << 12) # 5 bits
-    flags |= np.uint32((self.space.value & 0b11) << 17) # 2 bits
+    offset = 0
+    def write_int(value, nbits):
+      nonlocal flags
+      nonlocal offset
+      flags |= np.uint32(value & nbits) << offset
+      offset += nbits
+
+    write_int(self.vertex_data_type.value, 4)
+    write_int(self.edge_data_type.value, 4)
+
+    write_int(self.vertex_compression.value, 4)
+    write_int(self.edge_compression.value, 4)
+
+    write_int(self.graph_type.value, 3)
+    write_int(self.unit[0].value, 5)
+    write_int(self.unit[1].value, 4)
+
+    write_int(self.coordinate_frame_orientation.sign_x, 1)
+    write_int(self.coordinate_frame_orientation.sign_y, 1)
+    write_int(self.coordinate_frame_orientation.sign_z, 1)
+    write_int(self.coordinate_frame_orientation.permutation.value, 3)
+
+    write_int(self.num_axes, 3)
+    write_int(bool(self.has_transform), 1)
+    write_int(self.voxel_centered, 1)
+    write_int(self.edge_representation.value, 2)
+
     return flags
 
   def decode_flags(self, flags:int):
-    self.vertex_datatype = DataType(flags & 0b1111)
-    self.edge_repr = EdgeRepresentation((flags & 0b10000) >> 4)
-    self.compression = CompressionType((flags & 0b111100000) >> 5)
-    self.graph_type = GraphType((flags & 0b1110000000000) >> 9)
-    self.unit = PhysicalUnit((flags & 0b11111000000000000) >> 12)
-    self.space = SpaceType((flags & 0b1100000000000000000) >> 17)
+    offset = 0
+    masks = [ 0b0, 0b1, 0b11, 0b111, 0b1111, 0b11111 ]
+    def read_int(N):
+      nonlocal offset
+      res = (flags >> N) & masks[N] 
+      offset += N
+      return res
+
+    self.vertex_data_type = DataType(read_int(4))
+    self.edge_data_type = DataType(read_int(4))
+    self.vertex_compression = CompressionType(read_int(4))
+    self.edge_compression = CompressionType(read_int(4))
+
+    self.graph_type = GraphType(read_int(3))
+    self.unit = (SiPrefixType(read_int(5)), LengthType(read_int(4)))
+
+    self.coordinate_frame_orientation = CoordinateFrame(
+      sign_x=bool(read_int(1)),
+      sign_y=bool(read_int(1)),
+      sign_z=bool(read_int(1)),
+      permutation=AxisPermutationType(read_int(3)),
+    )
+
+    self.num_axes = read_int(3)
+
+    self.has_transform = bool(read_int(1))
+    self.voxel_centered = bool(read_int(1))
+    self.append_mode = bool(read_int(1))
+    self.edge_representation = EdgeRepresentationType(read_int(2))
 
   @classmethod
-  def validate_header(kls, binary:bytes, ):
+  def validate_header(kls, binary:bytes):
     if len(binary) < OstdHeader.HEADER_BYTES:
       raise ValueError(f"buffer is too short to be an osteoid file. buffer: {len(binary)} bytes, needed at least: {OstdHeader.HEADER_BYTES} bytes")
 
@@ -138,6 +215,10 @@ class OstdHeader:
     format_version = binary[4]
     if format_version > OstdHeader.FORMAT_VERSION:
       raise ValueError(f"format version in buffer exceeded maximum supported version. Got: {format_version} Maximum Supported Version: {OstdHeader.FORMAT_VERSION}")
+
+    total_bytes = int.from_bytes(binary[5:13])
+    if len(binary) < total_bytes:
+      raise ValueError("Stream contained too few bytes.")
 
     crc_start, crc_end = HEADER_OFFSETS['crc16']
     stored_crc16 = int.from_bytes(binary[crc_start:crc_end])
@@ -158,31 +239,54 @@ class OstdHeader:
       offset += N
       return x
 
+    def read_float():
+      N = 4
+      x = int.from_bytes(binary[offset:offset+N], 'little')
+      offset += N
+      return x 
+
+    total_bytes = read(8)
     skel_id = read_int(16)
-    flags = read_int(2)
+    flags = read_int(8)
     Nv = read_int(8)
     Ne = read_int(8)
-    num_attr = read_int(2)
-    attr_name_width = read_int(1)
+    vertex_bytes = read_int(8)
+    edge_bytes = read_int(8)
+    spatial_index_bytes = read_int(4)
+    attribute_header_bytes = read_int(4)
     num_components = read_int(4)
+    physical_path_length = read_float()
+    current_space = read_int(1)
 
-    header = OstdHeader(Nv, Ne)
+    header = OstdHeader(
+      Nv, Ne,
+      vertex_bytes=vertex_bytes,
+      edge_bytes=edge_bytes,
+      spatial_index_bytes=spatial_index_bytes,
+      attribute_header_bytes=attribute_header_bytes,
+      num_components=num_components,
+      physical_path_length=physical_path_length,
+      current_space=current_space,
+    )
     header.decode_flags(flags)
 
-    transform = np.frombuffer(binary, dtype=np.float32, offset=offset, count=4 * 4)
-    header.transform = transform.reshape((4,4), order="F")
+    return header
 
   def to_bytes(self) -> bytes:
     header = b''.join([
-      self.format_version.to_bytes(1),
+      int(self.format_version).to_bytes(1),
+      int(self.total_bytes).to_bytes(8),
       int(self.id).to_bytes(16, 'little'),
       self.encode_flags().tobytes(),
       int(self.Nv).to_bytes(8, 'little'),
       int(self.Ne).to_bytes(8, 'little'),
-      int(self.Nattr).to_bytes(2, 'little'),
-      int(self.attr_name_width).to_bytes(1, 'little'),
+      int(self.vertex_bytes).to_bytes(8, 'little'),
+      int(self.edge_bytes).to_bytes(8, 'little'),
+      int(self.spatial_index_bytes).to_bytes(4, 'little'),
+      int(self.attribute_header_bytes).to_bytes(4, 'little'),
       int(self.num_components).to_bytes(4, 'little'),
-      self.transform.tobytes("F"),
+      struct.pack('f', self.physical_path_length)[0],
+      int(self.current_space).to_bytes(1),
     ])
     header_crc16 = lib.crc16(header)
 

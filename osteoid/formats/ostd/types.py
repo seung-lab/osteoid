@@ -1,92 +1,107 @@
 from enum import IntEnum
 
-class PhysicalUnit(IntEnum):
+class SIPrefixType(IntEnum):
+  NONE = 0 
+  QUECTO = 1 
+  RONTO = 2 
+  YOCTO = 3 
+  ZEPTO = 4 
+  ATTO = 5 
+  FEMTO = 6 
+  PICO = 7 
+  NANO = 8 
+  MICRO = 9 
+  MILLI = 10
+  CENTI = 11
+  DECI = 12
+  DEKA = 13
+  HECTO = 14
+  KILO = 15
+  MEGA = 16
+  GIGA = 17
+  TERA = 18
+  PETA = 19
+  EXA = 20
+  ZETTA = 21
+  YOTTA = 22
+  RONNA = 23
+  QUETTA = 24
+
+class LengthType(IntEnum):
   VOXEL = 0
+  METER = 1
+  ANGSTROM = 2
+  ASTRONOMICAL_UNIT = 3
+  LIGHTYEAR = 4
+  PARSEC = 5
+  MIL = 6
+  INCH = 7
+  FOOT = 8
+  YARD = 9
+  STATUTE_MILE = 10
+  NAUTICAL_MILE = 11
 
-  ANGSTROM = 1
-  FEMTOMETER = 2
-  PICOMETER = 3
-  NANOMETER = 4
-  MICROMETER = 5
-  MILLIMETER = 6
-  CENTIMETER = 7
-  METER = 8
-  KILOMETER = 9
-  MEGAMETER = 10
-  LIGHTYEAR = 11
-  PARSEC = 12
+class AreaType(LengthType):
+  pass
 
-  MIL = 13
-  INCH = 14
-  FOOT = 15
-  YARD = 16
-  STATUTE_MILE = 17
-  NAUTICAL_MILE = 18
+class VolumeType(LengthType):
+  LITER = 12
 
-TO_UNIT = {
-  "vx": PhysicalUnit.VOXEL,
-  "voxel": PhysicalUnit.VOXEL,
+class TemperatureType(IntEnum):
+  UNKNOWN = 0
+  CELSIUS = 1
+  FAHRENHEIT = 2
+  RANKINE = 3
+  KELVIN = 4
 
-  "A": PhysicalUnit.ANGSTROM,
-  "angstrom": PhysicalUnit.ANGSTROM,
-  
-  "fm": PhysicalUnit.FEMTOMETER,
-  "femtometer": PhysicalUnit.FEMTOMETER,
-  
-  "pm": PhysicalUnit.PICOMETER,
-  "picometer": PhysicalUnit.PICOMETER,
-  
-  "nm": PhysicalUnit.NANOMETER,
-  "nanometer": PhysicalUnit.NANOMETER,
-  
-  "um": PhysicalUnit.MICROMETER,
-  "micrometer": PhysicalUnit.MICROMETER,
-  "micron": PhysicalUnit.MICROMETER,
-  
-  "mm": PhysicalUnit.MILLIMETER,
-  "millimeter": PhysicalUnit.MILLIMETER,
+class TimeType(IntEnum):
+  UNKNOWN = 0
+  SECOND = 1
+  MINUTE = 2
+  HOUR = 3
+  DAY = 4
+  MONTH = 5
+  YEAR = 6
+  HERTZ = 7
 
-  "cm": PhysicalUnit.CENTIMETER,
-  "centimeter": PhysicalUnit.CENTIMETER,
-  
-  "m": PhysicalUnit.METER,
-  "meter": PhysicalUnit.METER,
-  
-  "km": PhysicalUnit.KILOMETER,
-  "kilometer": PhysicalUnit.KILOMETER,
+class LuminosityType(IntEnum):
+  UNKNOWN = 0
+  CANDELA = 1
+  LUMEN = 2
+  LUX = 3
+  PHOTON = 4
+  PHOTONS_PER_SECOND = 5
 
-  "Mm": PhysicalUnit.MEGAMETER,
-  
-  "ly": PhysicalUnit.LIGHTYEAR,
-  "lightyear": PhysicalUnit.LIGHTYEAR,
+class ElectricalType(IntEnum):
+  UNKNOWN = 0
+  VOLT = 1
+  AMPERE = 2
+  OHM = 3
+  SIEMEN = 4
+  FARAD = 5
+  HENRY = 6
+  COULOMB = 7
 
-  "pc": PhysicalUnit.PARSEC,
-  "parsec": PhysicalUnit.PARSEC,
+class MassType(IntEnum):
+  UNKNOWN = 0
+  GRAM = 1
+  DALTON = 2
 
-  "mil": PhysicalUnit.MIL,
-  
-  "in": PhysicalUnit.INCH,
-  "inch": PhysicalUnit.INCH,
-  "inches": PhysicalUnit.INCH,
-  
-  "ft": PhysicalUnit.FOOT,
-  "foot": PhysicalUnit.FOOT,
-  "feet": PhysicalUnit.FOOT,
+class SubstanceAmount(IntEnum):
+  UNKNOWN = 0
+  MOLE = 1
 
-  "yd": PhysicalUnit.YARD,
-  "yard": PhysicalUnit.YARD,
-  
-  "mi": PhysicalUnit.STATUTE_MILE,
-  "mile": PhysicalUnit.STATUTE_MILE,
-  
-  "nmi": PhysicalUnit.NAUTICAL_MILE,
-}
+class EnergyType(IntEnum):
+  UNKNOWN = 0
+  JOULE = 1
+  WATT = 2
 
 class CompressionType(IntEnum):
   NONE = 0
   GZIP = 1
   BZIP2 = 2
   ZSTD = 3
+  DRACO = 4
 
 class DataType(IntEnum):
   F8 = 0
@@ -101,8 +116,118 @@ class DataType(IntEnum):
   I16 = 9
   I32 = 10
   I64 = 11
-  BOOLEAN = 12
-  PACKED_BOOLEAN = 13
+  BOOL = 12
+  PACKED_BOOL = 13
+
+class EdgeRepresentationType(IntEnum):
+  PAIR = 0
+  PARENT = 1
+
+class GraphType(IntEnum):
+  GRAPH = 0
+  TREE = 1
+
+class CurrentSpaceType(IntEnum):
+  VOXEL = 0
+  TRANSFORMED = 1
+
+class SpaceType(IntEnum):
+  GENERIC = 0
+  PHYSICAL = 1
+  SCANNER = 2
+  ATLAS = 3
+  ALIGNED = 4
+  WORLD = 5
+  SOMA = 6
+  BASE = 7
+  JOINT = 8
+  TOOL = 9
+  MODEL = 10
+  CAMERA = 11
+
+class AxisPermutationType(IntEnum):
+  XYZ = 0
+  XZY = 1
+  YXZ = 2
+  YZX = 3
+  ZXY = 4
+  ZYX = 5
+  XY = 6
+  YX = 7
+
+TO_LENGTH_UNIT = {
+  "vx": (SIPrefixType.NONE, LengthType.VOXEL),
+  "voxel": (SIPrefixType.NONE, LengthType.VOXEL),
+
+  "A": (SIPrefixType.NONE, LengthType.ANGSTROM),
+  "angstrom": (SIPrefixType.NONE, LengthType.ANGSTROM),
+  
+  "fm": (SIPrefixType.FEMTO, LengthType.METER),
+  "femtometer": (SIPrefixType.FEMTO, LengthType.METER),
+  
+  "pm": (SIPrefixType.PICO, LengthType.METER),
+  "picometer": (SIPrefixType.PICO, LengthType.METER),
+  
+  "nm": (SIPrefixType.NANO, LengthType.METER),
+  "nanometer": (SIPrefixType.NANO, LengthType.METER),
+  
+  "um": (SIPrefixType.MICRO, LengthType.METER),
+  "micrometer": (SIPrefixType.MICRO, LengthType.METER),
+  "micron": (SIPrefixType.MICRO, LengthType.METER),
+  
+  "mm": (SIPrefixType.MILLI, LengthType.METER),
+  "millimeter": (SIPrefixType.MILLI, LengthType.METER),
+
+  "cm": (SIPrefixType.CENTI, LengthType.METER),
+  "centimeter": (SIPrefixType.CENTI, LengthType.METER),
+  
+  "m": (SIPrefixType.NONE, LengthType.METER),
+  "meter": (SIPrefixType.NONE, LengthType.METER),
+  
+  "km": (SIPrefixType.KILO, LengthType.METER),
+  "kilometer": (SIPrefixType.KILO, LengthType.METER),
+
+  "Mm": (SIPrefixType.MEGA, LengthType.METER),
+  
+  "ly": (SIPrefixType.NONE, LengthType.LIGHTYEAR),
+  "lightyear": (SIPrefixType.NONE, LengthType.LIGHTYEAR),
+
+  "pc": (SIPrefixType.NONE, LengthType.PARSEC),
+  "parsec": (SIPrefixType.NONE, LengthType.PARSEC),
+
+  "mil": (SIPrefixType.NONE, LengthType.MIL),
+  
+  "in": (SIPrefixType.NONE, LengthType.INCH),
+  "inch": (SIPrefixType.NONE, LengthType.INCH),
+  "inches": (SIPrefixType.NONE, LengthType.INCH),
+  
+  "ft": (SIPrefixType.NONE, LengthType.FOOT),
+  "foot": (SIPrefixType.NONE, LengthType.FOOT),
+  "feet": (SIPrefixType.NONE, LengthType.FOOT),
+
+  "yd": (SIPrefixType.NONE, LengthType.YARD),
+  "yard": (SIPrefixType.NONE, LengthType.YARD),
+  
+  "mi": (SIPrefixType.NONE, LengthType.STATUTE_MILE),
+  "mile": (SIPrefixType.NONE, LengthType.STATUTE_MILE),
+  
+  "nmi": (SIPrefixType.NONE, LengthType.NAUTICAL_MILE),
+}
+FROM_LENGTH_UNIT = {
+  v:k for k,v in TO_LENGTH_UNIT.items()
+}
+
+TO_AXIS_PERMUTATION = {
+  'XYZ': AxisPermutationType.XYZ,
+  'XZY': AxisPermutationType.XZY,
+  'YXZ': AxisPermutationType.YXZ,
+  'YXZ': AxisPermutationType.YZX,
+  'ZXY': AxisPermutationType.ZXY,
+  'ZYX': AxisPermutationType.ZYX,
+  'XY': AxisPermutationType.XY,
+  'YX': AxisPermutationType.YX,
+}
+
 
 TO_DATATYPE = {
   np.float16: DataType.F16,
@@ -116,18 +241,7 @@ TO_DATATYPE = {
   np.int16: DataType.I16,
   np.int32: DataType.I32,
   np.int64: DataType.I64,
+  np.bool_: DataType.BOOL,
+
 }
-
 FROM_DATATYPE = { v,k for k,v in TO_DATATYPE.items() }
-
-class EdgeRepresentation(IntEnum):
-  PAIR = 0
-  PARENT = 1
-
-class GraphType(IntEnum):
-  GRAPH = 0
-  TREE = 1
-
-class SpaceType(IntEnum):
-  VOXEL = 0
-  PHYSICAL = 1
