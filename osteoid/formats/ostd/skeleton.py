@@ -1,31 +1,38 @@
 import numpy as np
+import numpy.typing as npt
 
 from .header import (
-	OstdHeader, 
-	OstdTransform,
-	OstdTransformSection,
-	OstdAttribute,
-	OstdAttributeSection,
+  OstdHeader, 
+  OstdTransform,
+  OstdTransformSection,
+  OstdAttribute,
+  OstdAttributeSection,
 )
 
+# represents one skeleton section
+# in a possibly multipart file
+class OstdSkeletonPart:
+  pass
 
+# represents a full skeleton including
+# multiple parts
 class OstdSkeleton:
-	def __init__(self):
-		self.header = None
-		self.vertices = None
-		self.edges = None
-		self.attributes = {}
+  def __init__(self):
+    self.parts = []
 
-	def save(self, filename:str):
-		pass
+  def append(self, skel:"OstdSkeleton"):
+    self.parts.append(skel)
 
-	@classmethod
-	def load(kls, filename:str) -> "OstdSkeleton":
-		pass
+  def save(self, filename:str):
+    pass
 
-	def to_bytes(self) -> bytes:
-		pass
+  @classmethod
+  def load(kls, filename:str) -> "OstdSkeleton":
+    pass
 
-	@classmethod
-	def from_bytes(kls, binary:bytes) -> "OstdSkeleton":
-		pass
+  def to_bytes(self) -> bytes:
+    pass
+
+  @classmethod
+  def from_bytes(kls, binary:bytes) -> "OstdSkeleton":
+    pass
