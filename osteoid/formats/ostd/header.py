@@ -1,4 +1,9 @@
-from typing import Optional, Any, Literal
+from dataclasses import dataclass
+from typing import Optional, Any, Literal, Union
+
+from enum import IntEnum
+
+from ... import lib
 
 from .types import (
   AreaType,
@@ -13,12 +18,12 @@ from .types import (
   GraphType,
   LengthType,
   MassType,
-  PhysicalUnitType,
-  SiPrefixType,
+  SIPrefixType,
   SpaceType,
   TemperatureType,
   TimeType,
   VolumeType,
+  TO_LENGTH_UNIT,
   TO_DATATYPE, 
   FROM_DATATYPE,
   TO_AXIS_PERMUTATION,
@@ -45,7 +50,7 @@ def parse_coordinate_frame_orientation(orientation:str) -> AxisPermutationType:
   orientation = orientation.upper()
   normalized = orientation.replace('+', '').replace('-', '')
 
-  if len(normalized) > 3 or normalized < 2:
+  if not (2 <= len(normalized) <= 3):
     raise ValueError(f"Unable to parse orientation: {normalized}")
 
   POSITIVE = 0
@@ -77,7 +82,7 @@ class OstdHeader:
     crc16:Optional[int] = None,
     edge_data_type:DataType = DataType.U32,
     edge_compression:CompressionType = CompressionType.NONE,
-    edge_representation:EdgeRepresentation = EdgeRepresentation.PAIR,
+    edge_representation:EdgeRepresentationType = EdgeRepresentationType.PAIR,
     edge_bytes:int = 0,
     format_version:int = 0,
     graph_type:GraphType = GraphType.GRAPH,
@@ -85,9 +90,9 @@ class OstdHeader:
     id:Optional[int] = None,
     num_axes:Literal[2,3] = 3,
     num_components:int = np.iinfo(np.uint32).max,
-    physical_unit:Union[str, PhysicalUnit] = PhysicalUnit.NANOMETER,
+    length_unit:Union[str, tuple[SIPrefixType, IntEnum]] = (SIPrefixType.NANO, LengthType.METER),
     physical_path_length:float = float('NaN'),
-    space:Union[str, SpaceType] = SpaceType.VOXEL,
+    space:int = 0,
     spatial_index_bytes:int = 0,
     total_bytes:int = 0,
     vertex_compression:CompressionType = CompressionType.NONE,
@@ -98,9 +103,6 @@ class OstdHeader:
     self.Nv = int(Nv)
     self.Ne = int(Ne)
     self.space = space
-    if isinstance(space, str) and space == "physical":
-      self.space = SpaceType.PHYSICAL
-
     self.append_mode = append_mode
 
     self.vertex_data_type = vertex_data_type
@@ -108,23 +110,34 @@ class OstdHeader:
     self.edge_representation = edge_representation
     self.graph_type = graph_type
 
-    if isinstance(physical_unit, str):
-      self.physical_unit = TO_UNIT[physical_unit]
+    if isinstance(length_unit, str):
+      self.length_unit = TO_LENGTH_UNIT[length_unit]
     else:
-      self.physical_unit = physical_unit
+      self.length_unit = length_unit
 
-    self.coordinate_frame_orientation = coordinate_frame_orientation
+    if isinstance(coordinate_frame_orientation, str):
+      self.coordinate_frame_orientation = parse_coordinate_frame_orientation(coordinate_frame_orientation)
+    else:
+      self.coordinate_frame_orientation = coordinate_frame_orientation
+
     self.voxel_centered = voxel_centered
-    self.compression = compression
+    self.vertex_compression = vertex_compression
+    self.edge_compression = edge_compression
     self.has_transform = bool(has_transform)
     self.num_axes = num_axes
     self.num_components = int(num_components)
+    self.physical_path_length = float(physical_path_length)
 
+    self.vertex_bytes = vertex_bytes
+    self.edge_bytes = edge_bytes
+    self.spatial_index_bytes = spatial_index_bytes
+    self.attribute_header_bytes = attribute_header_bytes
+    self.total_bytes = total_bytes
     self.format_version = format_version
 
     if id is None:
       self.id = uuid.uuid4().bytes
-      self.id = int.from_bytes(id, 'little')
+      self.id = int.from_bytes(self.id, 'little')
     elif isinstance(id, (bytes, bytearray)):
       self.id = int.from_bytes(id, 'little')
     else:
@@ -145,12 +158,13 @@ class OstdHeader:
     return self.Nv * self.num_axes * self.vertex_dtype.itemsize
 
   def encode_flags(self) -> int:
-    flags = np.uint32(0)
+    flags = np.uint64(0)
     offset = 0
-    def write_int(value, nbits):
+    def write_int(value:int, nbits:int):
       nonlocal flags
       nonlocal offset
-      flags |= np.uint32(value & nbits) << offset
+      mask = (1 << nbits) - 1
+      flags |= np.uint64(value & mask) << offset
       offset += nbits
 
     write_int(self.vertex_data_type.value, 4)
@@ -160,8 +174,8 @@ class OstdHeader:
     write_int(self.edge_compression.value, 4)
 
     write_int(self.graph_type.value, 3)
-    write_int(self.unit[0].value, 5)
-    write_int(self.unit[1].value, 4)
+    write_int(self.length_unit[0].value, 5)
+    write_int(self.length_unit[1].value, 4)
 
     write_int(self.coordinate_frame_orientation.sign_x, 1)
     write_int(self.coordinate_frame_orientation.sign_y, 1)
@@ -177,11 +191,11 @@ class OstdHeader:
 
   def decode_flags(self, flags:int):
     offset = 0
-    masks = [ 0b0, 0b1, 0b11, 0b111, 0b1111, 0b11111 ]
-    def read_int(N):
+    def read_int(nbits):
       nonlocal offset
-      res = (flags >> N) & masks[N] 
-      offset += N
+      mask = (1 << nbits) - 1
+      res = (flags >> offset) & mask
+      offset += nbits
       return res
 
     self.vertex_data_type = DataType(read_int(4))
@@ -190,7 +204,7 @@ class OstdHeader:
     self.edge_compression = CompressionType(read_int(4))
 
     self.graph_type = GraphType(read_int(3))
-    self.unit = (SiPrefixType(read_int(5)), LengthType(read_int(4)))
+    self.length_unit = (SIPrefixType(read_int(5)), LengthType(read_int(4)))
 
     self.coordinate_frame_orientation = CoordinateFrame(
       sign_x=bool(read_int(1)),
@@ -223,18 +237,18 @@ class OstdHeader:
     if len(binary) < total_bytes:
       raise ValueError("Stream contained too few bytes.")
 
-    crc_start, crc_end = HEADER_OFFSETS['crc16']
-    stored_crc16 = int.from_bytes(binary[crc_start:crc_end])
-    computed_crc16 = lib.crc16(binary[4:crc_start])
+    # hb = OstdHeader.HEADER_BYTES
+    # stored_crc16 = int.from_bytes(binary[hb-2:hb])
+    # computed_crc16 = lib.crc16(binary[len(OstdHeader.MAGIC):hb-2])
 
-    if stored_crc16 != computed_crc16:
-      raise ValueError(f"Header corruption detected. Stored CRC16: {stored_crc16}, Computed CRC16: {computed_crc16}")
+    # if stored_crc16 != computed_crc16:
+    #   raise ValueError(f"Header corruption detected. Stored CRC16: {stored_crc16}, Computed CRC16: {computed_crc16}")
 
   @classmethod
   def from_bytes(kls, binary:bytes, crc_check:bool = True) -> "OstdHeader":
     OstdHeader.validate_header(binary)
 
-    offset = len(OstdHeader.MAGIC) + 1 # magic + format_version
+    offset = len(OstdHeader.MAGIC)
 
     def read_int(N):
       nonlocal offset
@@ -243,12 +257,14 @@ class OstdHeader:
       return x
 
     def read_float():
+      nonlocal offset
       N = 4
       x = int.from_bytes(binary[offset:offset+N], 'little')
       offset += N
       return x 
 
-    total_bytes = read(8)
+    format_version = read_int(1)
+    total_bytes = read_int(8)
     skel_id = read_int(16)
     flags = read_int(8)
     Nv = read_int(8)
@@ -260,16 +276,20 @@ class OstdHeader:
     num_components = read_int(4)
     physical_path_length = read_float()
     current_space = read_int(1)
+    crc16 = read_int(2)
 
     header = OstdHeader(
       Nv, Ne,
+      id=skel_id,
       vertex_bytes=vertex_bytes,
       edge_bytes=edge_bytes,
       spatial_index_bytes=spatial_index_bytes,
       attribute_header_bytes=attribute_header_bytes,
       num_components=num_components,
       physical_path_length=physical_path_length,
-      current_space=current_space,
+      space=current_space,
+      format_version=format_version,
+      crc16=crc16,
     )
     header.decode_flags(flags)
 
@@ -288,15 +308,15 @@ class OstdHeader:
       int(self.spatial_index_bytes).to_bytes(4, 'little'),
       int(self.attribute_header_bytes).to_bytes(4, 'little'),
       int(self.num_components).to_bytes(4, 'little'),
-      struct.pack('f', self.physical_path_length)[0],
-      int(self.current_space).to_bytes(1),
+      struct.pack('f', self.physical_path_length),
+      int(self.space).to_bytes(1),
     ])
     header_crc16 = lib.crc16(header)
-
+    
     return b''.join([
       OstdHeader.MAGIC,
       header,
-      header_crc16,
+      header_crc16.to_bytes(2, 'little'),
     ])
 
 @dataclass
@@ -306,27 +326,6 @@ class OstdSpatialIndex:
   chunk_size:npt.NDArray[np.float32]
   index_binary:bytes
   paths_binary:bytes
-
-
-@dataclass
-class OstdAttributeHeader:
-  name_width:int
-  attributes:list[OstdAttribute]
-  crc16:int
-
-  def to_bytes(self) -> bytes:
-    header = [
-      len(self.attributes).to_bytes(2),
-      int(self.name_width).to_bytes(1),
-    ]
-    header += [ attr.to_bytes() for attr in self.attributes ]
-    binary = b''.join(header)
-    binary += lib.crc16(binary)
-    return binary
-
-  @classmethod
-  def from_bytes(kls, binary:bytes) -> "OstdAttributeHeader":
-    pass
 
 @dataclass
 class OstdAttribute:
@@ -385,7 +384,7 @@ class OstdAttribute:
 
     unit_info = int.from_bytes(binary[offset:offset + 2])
     DimensionTypeClass = QUANTITY_TYPE[int(unit_info & 0b111)]
-    si_prefix = SiPrefixType((unit_info >> 3) & 0b11111)
+    si_prefix = SIPrefixType((unit_info >> 3) & 0b11111)
     dimension = DimensionTypeClass((unit_info >> (3+5)) & 0b1111)
     attr.unit = (si_prefix, dimension)
 
@@ -394,5 +393,28 @@ class OstdAttribute:
     offset += 1
     attr.content_length = int.from_bytes(binary[offset:offset+8])
 
+    hb = len(OstdHeader.HEADER_BYTES)
+    attr.crc16 = int.from_bytes(binary[hb-2:hb])
+
     return attr
 
+
+@dataclass
+class OstdAttributeHeader:
+  name_width:int
+  attributes:list[OstdAttribute]
+  crc16:int
+
+  def to_bytes(self) -> bytes:
+    header = [
+      len(self.attributes).to_bytes(2),
+      int(self.name_width).to_bytes(1),
+    ]
+    header += [ attr.to_bytes() for attr in self.attributes ]
+    binary = b''.join(header)
+    binary += lib.crc16(binary)
+    return binary
+
+  @classmethod
+  def from_bytes(kls, binary:bytes) -> "OstdAttributeHeader":
+    pass

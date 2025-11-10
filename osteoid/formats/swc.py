@@ -1,8 +1,12 @@
 from typing import Union
+from collections import defaultdict
 import datetime
 import re
 
 import numpy as np
+
+import importlib.metadata
+__VERSION__ = importlib.metadata.version("osteoid")
 
 def to_swc(
   skeleton:"Skeleton", 
@@ -146,7 +150,7 @@ def to_swc(
 
   return swc
 
-def from_swc(skeleton:"Skeleton", swcstr:str) -> "Skeleton":
+def from_swc(swcstr:str) -> "Skeleton":
   """
   The SWC format was first defined in 
   

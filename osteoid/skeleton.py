@@ -29,9 +29,6 @@ IDENTITY = np.array([
   [0, 0, 1, 0],
 ], dtype=np.float32)
 
-import importlib.metadata
-__VERSION__ = importlib.metadata.version("osteoid")
-
 class SWCVertexTypes(IntEnum):
   UNDEFINED = 0
   SOMA = 1
