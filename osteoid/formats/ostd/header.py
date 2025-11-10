@@ -185,6 +185,7 @@ class OstdHeader:
     write_int(self.num_axes, 3)
     write_int(bool(self.has_transform), 1)
     write_int(self.voxel_centered, 1)
+    write_int(bool(self.append_mode), 1)
     write_int(self.edge_representation.value, 2)
 
     return flags
