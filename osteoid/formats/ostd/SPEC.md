@@ -150,7 +150,7 @@ It can be omitted if there are no attributes.
 
 It consists of a header followed by a listing of attribute descriptions.
 
-num_attributes | uint16
+num_attributes | uint8
 name_width     | uint8
 attribute_listing
 crc16
