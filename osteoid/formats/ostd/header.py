@@ -259,7 +259,7 @@ class OstdHeader:
     def read_float():
       nonlocal offset
       N = 4
-      x = int.from_bytes(binary[offset:offset+N], 'little')
+      x = struct.unpack('f', binary[offset:offset+N])[0]
       offset += N
       return x 
 
@@ -281,6 +281,7 @@ class OstdHeader:
     header = OstdHeader(
       Nv, Ne,
       id=skel_id,
+      total_bytes=total_bytes,
       vertex_bytes=vertex_bytes,
       edge_bytes=edge_bytes,
       spatial_index_bytes=spatial_index_bytes,
