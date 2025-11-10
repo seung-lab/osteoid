@@ -479,14 +479,3 @@ class OstdAttributeSection:
     return OstdTransformSection(name_width, attrs)
 
 
-
-
-
-
-
-
-
-
-
-
-
