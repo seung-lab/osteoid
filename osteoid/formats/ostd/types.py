@@ -1,5 +1,8 @@
 from enum import IntEnum
 
+class PhysicalUnitType(IntEnum):
+  pass
+
 class SIPrefixType(IntEnum):
   NONE = 0 
   QUECTO = 1 
@@ -27,7 +30,7 @@ class SIPrefixType(IntEnum):
   RONNA = 23
   QUETTA = 24
 
-class LengthType(IntEnum):
+class LengthType(PhysicalUnitType):
   VOXEL = 0
   METER = 1
   ANGSTROM = 2
@@ -47,14 +50,14 @@ class AreaType(LengthType):
 class VolumeType(LengthType):
   LITER = 12
 
-class TemperatureType(IntEnum):
+class TemperatureType(PhysicalUnitType):
   UNKNOWN = 0
   CELSIUS = 1
   FAHRENHEIT = 2
   RANKINE = 3
   KELVIN = 4
 
-class TimeType(IntEnum):
+class TimeType(PhysicalUnitType):
   UNKNOWN = 0
   SECOND = 1
   MINUTE = 2
@@ -64,7 +67,7 @@ class TimeType(IntEnum):
   YEAR = 6
   HERTZ = 7
 
-class LuminosityType(IntEnum):
+class LuminosityType(PhysicalUnitType):
   UNKNOWN = 0
   CANDELA = 1
   LUMEN = 2
@@ -72,7 +75,7 @@ class LuminosityType(IntEnum):
   PHOTON = 4
   PHOTONS_PER_SECOND = 5
 
-class ElectricalType(IntEnum):
+class ElectricalType(PhysicalUnitType):
   UNKNOWN = 0
   VOLT = 1
   AMPERE = 2
@@ -82,16 +85,16 @@ class ElectricalType(IntEnum):
   HENRY = 6
   COULOMB = 7
 
-class MassType(IntEnum):
+class MassType(PhysicalUnitType):
   UNKNOWN = 0
   GRAM = 1
   DALTON = 2
 
-class SubstanceAmount(IntEnum):
+class SubstanceAmount(PhysicalUnitType):
   UNKNOWN = 0
   MOLE = 1
 
-class EnergyType(IntEnum):
+class EnergyType(PhysicalUnitType):
   UNKNOWN = 0
   JOULE = 1
   WATT = 2
@@ -154,6 +157,10 @@ class AxisPermutationType(IntEnum):
   ZYX = 5
   XY = 6
   YX = 7
+
+class AttributeType(IntEnum):
+  VERTEX = 0
+  EDGE = 1
 
 TO_LENGTH_UNIT = {
   "vx": (SIPrefixType.NONE, LengthType.VOXEL),
@@ -245,3 +252,17 @@ TO_DATATYPE = {
 
 }
 FROM_DATATYPE = { v,k for k,v in TO_DATATYPE.items() }
+
+QUANTITY_TYPE = {
+  0: LengthType,
+  1: AreaType,
+  2: VolumeType,
+  3: TemperatureType,
+  4: TimeType,
+  5: LuminosityType,
+  6: MassType,
+  7: ElectricalType,
+  8: SubstanceAmount,
+  9: EnergyType,
+}
+

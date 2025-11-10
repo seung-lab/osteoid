@@ -2,6 +2,7 @@ from typing import Optional, Any, Literal
 
 from .types import (
   AreaType,
+  AttributeType,
   AxisPermutationType,
   CompressionType,
   CurrentSpaceType,
@@ -12,6 +13,7 @@ from .types import (
   GraphType,
   LengthType,
   MassType,
+  PhysicalUnitType,
   SiPrefixType,
   SpaceType,
   TemperatureType,
@@ -20,6 +22,7 @@ from .types import (
   TO_DATATYPE, 
   FROM_DATATYPE,
   TO_AXIS_PERMUTATION,
+  QUANTITY_TYPE,
 )
 
 import uuid
@@ -297,12 +300,44 @@ class OstdHeader:
     ])
 
 @dataclass
+class OstdSpatialIndex:
+  minpt:npt.NDArray[np.float32]
+  maxpt:npt.NDArray[np.float32]
+  chunk_size:npt.NDArray[np.float32]
+  index_binary:bytes
+  paths_binary:bytes
+
+
+@dataclass
+class OstdAttributeHeader:
+  name_width:int
+  attributes:list[OstdAttribute]
+  crc16:int
+
+  def to_bytes(self) -> bytes:
+    header = [
+      len(self.attributes).to_bytes(2),
+      int(self.name_width).to_bytes(1),
+    ]
+    header += [ attr.to_bytes() for attr in self.attributes ]
+    binary = b''.join(header)
+    binary += lib.crc16(binary)
+    return binary
+
+  @classmethod
+  def from_bytes(kls, binary:bytes) -> "OstdAttributeHeader":
+    pass
+
+@dataclass
 class OstdAttribute:
-  id: str
-  dtype: str
-  num_components: int
-  compression: CompressionType
-  content_length: int
+  def __init__(self):
+    name = ""
+    attribute_type = None
+    data_type = None
+    compression = None
+    unit = (None, None)
+    num_components = 0
+    content_length = 0
 
   def to_bytes(self, name_width:int):
     if self.num_components >= 16:
@@ -314,20 +349,50 @@ class OstdAttribute:
     type_field = dtype | (np.uint8(self.num_components) << 4)
     return b''.join([ name, type_field ])
 
-  def to_dict(self) -> dict[str,Any]:
-    return {
-      "id": self.id,
-      "data_type": np.dtype(self.dtype).name,
-      "num_components": self.num_components,
-    }
+  # def to_dict(self) -> dict[str,Any]:
+  #   return {
+  #     "id": self.id,
+  #     "data_type": np.dtype(self.dtype).name,
+  #     "num_components": self.num_components,
+  #   }
+
+  def decode_flags(self, flags:int):
+    offset = 0
+    masks = [ 0b0, 0b1, 0b11, 0b111, 0b1111, 0b11111 ]
+    def read_int(N):
+      nonlocal offset
+      res = (flags >> N) & masks[N] 
+      offset += N
+      return res
+
+    self.data_type = DataType(read_int(4))
+    self.compression = CompressionType(read_int(4))
+    self.attribute_type = AttributeType(read_int(1))
 
   @classmethod
   def from_bytes(self, binary:bytes, name_width:int) -> "OstdAttribute":
+
+    attr = OstdAttribute()
+
     name = binary[:name_width]
     name = name.split(b'\x00', 1)[0].decode('utf-8')
-    field = binary[name_width]
-    dtype = DataType(field & 0b1111)
-    dtype = np.dtype(FROM_DATATYPE[dtype])
-    num_components = int((field >> 4) & 0b1111)
-    return OstdAttribute(id=name, dtype=dtype, num_components=num_components)
+    attr.name = name
+
+    flags = int.from_bytes(binary[name_width:name_width+2])
+    attr.decode_flags(flags)
+
+    offset = name_width + 2
+
+    unit_info = int.from_bytes(binary[offset:offset + 2])
+    DimensionTypeClass = QUANTITY_TYPE[int(unit_info & 0b111)]
+    si_prefix = SiPrefixType((unit_info >> 3) & 0b11111)
+    dimension = DimensionTypeClass((unit_info >> (3+5)) & 0b1111)
+    attr.unit = (si_prefix, dimension)
+
+    offset += 2
+    attr.num_components = int.from_bytes(binary[offset:offset+1])
+    offset += 1
+    attr.content_length = int.from_bytes(binary[offset:offset+8])
+
+    return attr
 
