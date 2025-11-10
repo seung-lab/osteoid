@@ -4,6 +4,8 @@ import numpy as np
 # Assuming these enums and types are available from your module
 from osteoid.formats.ostd import (
     OstdHeader,
+    OstdTransformSection,
+    OstdTransform,
     DataType,
     CompressionType,
     EdgeRepresentationType,
@@ -57,3 +59,38 @@ def test_header_roundtrip(sample_header):
         	assert np.isclose(value, other)
         else:
             assert other == value, f"Mismatch in field '{key}': {value} != {other}"
+
+
+@pytest.fixture
+def sample_transform():
+    mat = np.arange(16, dtype=np.float32).reshape(4, 4)
+    return OstdTransform(space=SpaceType.WORLD, transform=mat)
+
+def test_transform_roundtrip(sample_transform):
+    data = sample_transform.to_bytes()
+    assert isinstance(data, (bytes, bytearray))
+    assert len(data) == OstdTransform.NUM_BYTES
+
+    recon = OstdTransform.from_bytes(data)
+    assert recon.space == sample_transform.space
+    np.testing.assert_array_equal(recon.transform, sample_transform.transform)
+
+def test_section_roundtrip(sample_transform):
+    section = OstdTransformSection(spaces=[sample_transform, sample_transform])
+    data = section.to_bytes()
+    assert isinstance(data, (bytes, bytearray))
+    assert data[0] == 2  # number of spaces
+    assert len(data) == 1 + 2 * OstdTransform.NUM_BYTES + 2  # header + payloads + crc16
+
+    recon = OstdTransformSection.from_bytes(data)
+    assert len(recon.spaces) == 2
+    for a, b in zip(recon.spaces, section.spaces):
+        assert a.space == b.space
+        np.testing.assert_array_equal(a.transform, b.transform)
+
+def test_crc_mismatch_detection(sample_transform):
+    section = OstdTransformSection(spaces=[sample_transform])
+    data = bytearray(section.to_bytes())
+    data[-1] ^= 0xFF  # corrupt CRC
+    with pytest.raises(ValueError, match="Header corruption detected"):
+        OstdTransformSection.from_bytes(bytes(data))

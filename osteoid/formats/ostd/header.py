@@ -347,7 +347,7 @@ class OstdTransformSection:
 
   @classmethod
   def from_bytes(kls, binary:bytes) -> "OstdTransformSection":
-    num_spaces = int.from_bytes(binary[0], 'little')
+    num_spaces = int.from_bytes(binary[0:1], 'little')
     spaces = []
     for i in range(num_spaces):
       offset = (i * OstdTransform.NUM_BYTES) + 1

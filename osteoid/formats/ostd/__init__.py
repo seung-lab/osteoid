@@ -23,7 +23,7 @@ from .types import (
   TO_AXIS_PERMUTATION,
   QUANTITY_TYPE,
 )
-from .header import OstdHeader, OstdAttribute
+from .header import OstdHeader, OstdAttribute, OstdTransform, OstdTransformSection
 
 # def to_ostd(
 #   skel:"Skeleton", 
