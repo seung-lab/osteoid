@@ -321,6 +321,60 @@ class OstdHeader:
       header_crc16.to_bytes(2, 'little'),
     ])
 
+
+@dataclass
+class OstdTransform:
+  space:SpaceType
+  transform:npt.NDArray[np.float32]
+  NUM_BYTES = 65
+
+  @classmethod
+  def from_bytes(kls, binary:bytes) -> "OstdTransform":
+    space = SpaceType(binary[0])
+    transform = np.frombuffer(binary, offset=1, count=4*4, dtype=np.float32)
+    transform = transform.reshape((4,4), order='C')
+    return OstdTransform(space, transform)
+
+  def to_bytes(self) -> bytes:
+    return b''.join([
+      int(self.space).to_bytes(1, 'little'),
+      self.transform.tobytes('C')
+    ])
+
+@dataclass
+class OstdTransformSection:
+  spaces:list[OstdTransform]
+
+  @classmethod
+  def from_bytes(kls, binary:bytes) -> "OstdTransformSection":
+    num_spaces = int.from_bytes(binary[0], 'little')
+    spaces = []
+    for i in range(num_spaces):
+      offset = (i * OstdTransform.NUM_BYTES) + 1
+      spaces.append(
+        OstdTransform.from_bytes(binary[offset:offset + OstdTransform.NUM_BYTES])
+      )
+
+    stored_crc16 = int.from_bytes(binary[-2:], 'little')
+    computed_crc16 = lib.crc16(binary[:-2])
+    if stored_crc16 != computed_crc16:
+      raise ValueError(f"Header corruption detected. Stored CRC16: {stored_crc16}, Computed CRC16: {computed_crc16}")
+
+    return OstdTransformSection(spaces)
+
+  def to_bytes(self) -> bytes:
+    assert len(self.spaces) < 256
+
+    sections = [
+      len(self.spaces).to_bytes(1, 'little'),
+    ]
+    sections += [ space.to_bytes() for space in self.spaces ]
+    binary = b''.join(sections)
+    crc16 = lib.crc16(binary)
+    binary += crc16.to_bytes(2, 'little')
+    return binary
+
+
 @dataclass
 class OstdSpatialIndex:
   minpt:npt.NDArray[np.float32]
@@ -399,7 +453,6 @@ class OstdAttribute:
     attr.crc16 = int.from_bytes(binary[hb-2:hb], 'little')
 
     return attr
-
 
 @dataclass
 class OstdAttributeHeader:
