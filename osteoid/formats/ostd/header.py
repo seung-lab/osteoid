@@ -238,12 +238,12 @@ class OstdHeader:
     if len(binary) < total_bytes:
       raise ValueError(f"Stream contained too few bytes. Got: {len(binary)} Expected: {total_bytes}")
 
-    # hb = OstdHeader.HEADER_BYTES
-    # stored_crc16 = int.from_bytes(binary[hb-2:hb])
-    # computed_crc16 = lib.crc16(binary[len(OstdHeader.MAGIC):hb-2])
-
-    # if stored_crc16 != computed_crc16:
-    #   raise ValueError(f"Header corruption detected. Stored CRC16: {stored_crc16}, Computed CRC16: {computed_crc16}")
+    hb = OstdHeader.HEADER_BYTES
+    stored_crc16 = int.from_bytes(binary[hb-2:hb], 'little')
+    computed_crc16 = lib.crc16(binary[len(OstdHeader.MAGIC):hb-2])
+    print(stored_crc16, computed_crc16)
+    if stored_crc16 != computed_crc16:
+      raise ValueError(f"Header corruption detected. Stored CRC16: {stored_crc16}, Computed CRC16: {computed_crc16}")
 
   @classmethod
   def from_bytes(kls, binary:bytes, crc_check:bool = True) -> "OstdHeader":
