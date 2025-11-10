@@ -9,6 +9,7 @@ from .types import (
   AreaType,
   AttributeType,
   AxisPermutationType,
+  CoordinateFrame,
   CompressionType,
   CurrentSpaceType,
   DataType,
@@ -35,13 +36,6 @@ import struct
 
 import numpy as np
 import numpy.typing as npt
-
-@dataclass
-class CoordinateFrame:
-  sign_x:bool
-  sign_y:bool
-  sign_z:bool
-  permutation:AxisPermutationType
 
 def parse_coordinate_frame_orientation(orientation:str) -> AxisPermutationType:
   if len(orientation) > 6:
