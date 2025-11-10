@@ -226,10 +226,6 @@ class GraphType(IntEnum):
   GRAPH = 0
   TREE = 1
 
-class CurrentSpaceType(IntEnum):
-  VOXEL = 0
-  TRANSFORMED = 1
-
 class SpaceType(IntEnum):
   GENERIC = 0
   PHYSICAL = 1

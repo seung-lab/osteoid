@@ -321,7 +321,6 @@ class OstdHeader:
       header_crc16.to_bytes(2, 'little'),
     ])
 
-
 @dataclass
 class OstdTransform:
   space:SpaceType
@@ -358,7 +357,7 @@ class OstdTransformSection:
     stored_crc16 = int.from_bytes(binary[-2:], 'little')
     computed_crc16 = lib.crc16(binary[:-2])
     if stored_crc16 != computed_crc16:
-      raise ValueError(f"Header corruption detected. Stored CRC16: {stored_crc16}, Computed CRC16: {computed_crc16}")
+      raise ValueError(f"Transform header corruption detected. Stored CRC16: {stored_crc16}, Computed CRC16: {computed_crc16}")
 
     return OstdTransformSection(spaces)
 
@@ -394,6 +393,10 @@ class OstdAttribute:
     num_components = 0
     content_length = 0
 
+  @classmethod
+  def num_bytes(kls, name_width:int) -> int:
+    return name_width + 13
+
   def to_bytes(self, name_width:int):
     if self.num_components >= 16:
       raise ValueError(f"Only 15 components supported per an attribute. Got {self.num_components} for {self.id}.")
@@ -403,13 +406,6 @@ class OstdAttribute:
     dtype = np.uint8(TO_DATATYPE[np.dtype(self.dtype).type])
     type_field = dtype | (np.uint8(self.num_components) << 4)
     return b''.join([ name, type_field ])
-
-  # def to_dict(self) -> dict[str,Any]:
-  #   return {
-  #     "id": self.id,
-  #     "data_type": np.dtype(self.dtype).name,
-  #     "num_components": self.num_components,
-  #   }
 
   def decode_flags(self, flags:int):
     offset = 0
@@ -449,27 +445,54 @@ class OstdAttribute:
     offset += 1
     attr.content_length = int.from_bytes(binary[offset:offset+8], 'little')
 
-    hb = len(OstdHeader.HEADER_BYTES)
-    attr.crc16 = int.from_bytes(binary[hb-2:hb], 'little')
-
     return attr
 
 @dataclass
-class OstdAttributeHeader:
-  name_width:int
+class OstdAttributeSection:
   attributes:list[OstdAttribute]
-  crc16:int
 
   def to_bytes(self) -> bytes:
+    name_width = max([ attr.name for attr in self.attributes ])
+
     header = [
-      len(self.attributes).to_bytes(2),
-      int(self.name_width).to_bytes(1),
+      len(self.attributes).to_bytes(1, 'little'),
+      int(name_width).to_bytes(1, 'little'),
     ]
-    header += [ attr.to_bytes() for attr in self.attributes ]
+    header += [ attr.to_bytes(name_width) for attr in self.attributes ]
     binary = b''.join(header)
     binary += lib.crc16(binary)
     return binary
 
   @classmethod
-  def from_bytes(kls, binary:bytes) -> "OstdAttributeHeader":
-    pass
+  def from_bytes(kls, binary:bytes) -> "OstdAttributeSection":
+    num_attrs = binary[0]
+    name_width = binary[1]
+
+    num_bytes = OstdAttribute.num_bytes(name_width)
+
+    attrs = []
+    for i in range(num_attrs):
+      offset = (i * num_bytes) + 2
+      attrs.append(
+        OstdAttribute.from_bytes(binary[offset:offset+num_bytes], name_width)
+      )
+
+    stored_crc16 = int.from_bytes(binary[-2:], 'little')
+    computed_crc16 = lib.crc16(binary[:-2])
+    if stored_crc16 != computed_crc16:
+      raise ValueError(f"Attribute header corruption detected. Stored CRC16: {stored_crc16}, Computed CRC16: {computed_crc16}")
+
+    return OstdTransformSection(name_width, attrs)
+
+
+
+
+
+
+
+
+
+
+
+
+
