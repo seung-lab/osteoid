@@ -233,9 +233,9 @@ class OstdHeader:
     if format_version > OstdHeader.FORMAT_VERSION:
       raise ValueError(f"format version in buffer exceeded maximum supported version. Got: {format_version} Maximum Supported Version: {OstdHeader.FORMAT_VERSION}")
 
-    total_bytes = int.from_bytes(binary[5:13])
+    total_bytes = int.from_bytes(binary[5:13], 'little')
     if len(binary) < total_bytes:
-      raise ValueError("Stream contained too few bytes.")
+      raise ValueError(f"Stream contained too few bytes. Got: {len(binary)} Expected: {total_bytes}")
 
     # hb = OstdHeader.HEADER_BYTES
     # stored_crc16 = int.from_bytes(binary[hb-2:hb])
@@ -259,7 +259,7 @@ class OstdHeader:
     def read_float():
       nonlocal offset
       N = 4
-      x = struct.unpack('f', binary[offset:offset+N])[0]
+      x = struct.unpack('<f', binary[offset:offset+N])[0]
       offset += N
       return x 
 
@@ -309,7 +309,7 @@ class OstdHeader:
       int(self.spatial_index_bytes).to_bytes(4, 'little'),
       int(self.attribute_header_bytes).to_bytes(4, 'little'),
       int(self.num_components).to_bytes(4, 'little'),
-      struct.pack('f', self.physical_path_length),
+      struct.pack('<f', self.physical_path_length),
       int(self.space).to_bytes(1),
     ])
     header_crc16 = lib.crc16(header)
@@ -378,24 +378,24 @@ class OstdAttribute:
     name = name.split(b'\x00', 1)[0].decode('utf-8')
     attr.name = name
 
-    flags = int.from_bytes(binary[name_width:name_width+2])
+    flags = int.from_bytes(binary[name_width:name_width+2], 'little')
     attr.decode_flags(flags)
 
     offset = name_width + 2
 
-    unit_info = int.from_bytes(binary[offset:offset + 2])
+    unit_info = int.from_bytes(binary[offset:offset + 2], 'little')
     DimensionTypeClass = QUANTITY_TYPE[int(unit_info & 0b111)]
     si_prefix = SIPrefixType((unit_info >> 3) & 0b11111)
     dimension = DimensionTypeClass((unit_info >> (3+5)) & 0b1111)
     attr.unit = (si_prefix, dimension)
 
     offset += 2
-    attr.num_components = int.from_bytes(binary[offset:offset+1])
+    attr.num_components = int.from_bytes(binary[offset:offset+1], 'little')
     offset += 1
-    attr.content_length = int.from_bytes(binary[offset:offset+8])
+    attr.content_length = int.from_bytes(binary[offset:offset+8], 'little')
 
     hb = len(OstdHeader.HEADER_BYTES)
-    attr.crc16 = int.from_bytes(binary[hb-2:hb])
+    attr.crc16 = int.from_bytes(binary[hb-2:hb], 'little')
 
     return attr
 
