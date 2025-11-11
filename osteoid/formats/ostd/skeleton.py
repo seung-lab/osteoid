@@ -21,6 +21,9 @@ from .types import (
   EdgeRepresentationType,
   SIPrefixType,
   SpaceType,
+  length_conversion_factor,
+  SI_PREFIX_VALUE,
+  FROM_LENGTH_UNIT,
 )
 
 # represents one skeleton section
@@ -140,12 +143,59 @@ class OstdSkeleton:
     return sum(( part.header.num_components for part in self.parts ))
 
   @property
+  def unit(self) -> str:
+    master_unit = self.parts[0].header.length_unit
+    return FROM_LENGTH_UNIT[master_unit]
+
+  @property
   def physical_length(self) -> float:
-    return sum(( part.header.physical_length for part in self.parts ))
+    master_si_unit, master_base_unit = self.parts[0].header.length_unit
+    master_si_value = SI_PREFIX_VALUE[master_si_unit]
+
+    physical_length = 0
+    for part in self.parts:
+      if np.isnan(part.header.physical_length):
+        # NB: Would be possible to compute this on demand....
+        raise ValueError("NaN encountered in physical length reporting.")
+
+      if part.header.unit == master_unit:
+        physical_length += part.header.physical_length
+        continue
+
+      si_unit, base_unit = part.header.unit
+      si_conversion = (master_si_value / SI_PREFIX_VALUE[si_unit])
+      base_conversion = length_conversion_factor(base_unit, master_base_unit)
+      physical_length += part.header.physical_length * (si_conversion * base_conversion)
+
+    return physical_length
 
   @property
   def vertices(self) -> npt.NDArray[Any]:
-    return np.concatenate([ part.vertices for part in self.parts ])
+    master_unit = self.parts[0].header.length_unit
+    master_value = SI_PREFIX_VALUE[master_unit]
+
+    verts = []
+    for part in self.parts:
+      if part.header.unit == master_unit:
+        verts.append(part.vertices)
+        continue
+
+      unit_value = SI_PREFIX_VALUE[part.header.unit]
+
+      if isinstance(part.vertices, np.floating):
+        verts.append(
+          part.vertices * (master_value / unit_value)
+        )
+      elif master_value > unit_value:
+        verts.append(
+          part.vertices * (master_value / unit_value)
+        )
+      else:
+        verts.append(
+          part.vertices // (unit_value / master_value)
+        )
+
+    return np.concatenate(verts)
 
   @property
   def edges(self) -> np.NDArray[np.uint64]:
