@@ -64,6 +64,34 @@ SI_PREFIXES = {
   SIPrefixType.QUETTA: "Q",
 }
 
+SI_PREFIX_VALUE = {
+  SIPrefixType.NONE: 1.0,
+  SIPrefixType.QUECTO: 1e-30,
+  SIPrefixType.RONTO: 1e-27,
+  SIPrefixType.YOCTO: 1e-24,
+  SIPrefixType.ZEPTO: 1e-21,
+  SIPrefixType.ATTO: 1e-18,
+  SIPrefixType.FEMTO: 1e-15,
+  SIPrefixType.PICO: 1e-12,
+  SIPrefixType.NANO: 1e-9,
+  SIPrefixType.MICRO: 1e-6,
+  SIPrefixType.MILLI: 0.001,
+  SIPrefixType.CENTI: 0.01,
+  SIPrefixType.DECI: 0.1,
+  SIPrefixType.DEKA: 10.0,
+  SIPrefixType.HECTO: 100.0,
+  SIPrefixType.KILO: 1000.0,
+  SIPrefixType.MEGA: 1e6,
+  SIPrefixType.GIGA: 1e9,
+  SIPrefixType.TERA: 1e12,
+  SIPrefixType.PETA: 1e15,
+  SIPrefixType.EXA: 1e18,
+  SIPrefixType.ZETTA: 1e21,
+  SIPrefixType.YOTTA: 1e24,
+  SIPrefixType.RONNA: 1e27,
+  SIPrefixType.QUETTA: 1e30,
+}
+
 class LengthType(IntEnum):
   VOXEL = 0
   METER = 1
@@ -80,6 +108,35 @@ class LengthType(IntEnum):
 
   def __str__(self):
     return LENGTH_SYMBOLS[self.value]
+
+LENGTH_CONVERSION_FACTORS = {
+  (LengthType.VOXEL, LengthType.METER): float('NaN'),
+  (LengthType.METER, LengthType.METER): 1.0,
+  (LengthType.ANGSTROM, LengthType.METER): 1e-10,
+  (LengthType.ASTRONOMICAL_UNIT, LengthType.METER): 149597870691,
+  (LengthType.LIGHTYEAR, LengthType.METER): 9.460528405e15,
+  (LengthType.PARSEC, LengthType.METER): 3.0856778570831e16,
+  (LengthType.MIL, LengthType.METER): 0.0000254,
+  (LengthType.INCH, LengthType.METER): 0.0254,
+  (LengthType.FOOT, LengthType.METER): 0.3048,
+  (LengthType.YARD, LengthType.METER): 0.9144,
+  (LengthType.STATUTE_MILE, LengthType.METER): 1609.344,
+  (LengthType.NAUTICAL_MILE, LengthType.METER): 1852,
+}
+
+def length_conversion_factor(unit1:LengthType, unit2:LengthType) -> float:
+  if unit1 == unit2:
+    return 1.0
+
+  f1 = [unit1, SIPrefixType.METER]
+  f1.sort()
+  u1_meters = LENGTH_CONVERSION_FACTORS[tuple(f1)]
+
+  f2 = [unit2, SIPrefixType.METER]
+  f2.sort()
+  u2_meters = LENGTH_CONVERSION_FACTORS[tuple(f2)]
+
+  return u2_meters / u1_meters
 
 class AreaType(IntEnum):
   VOXEL = 0
@@ -153,6 +210,8 @@ TEMPERATURE_SYMBOLS = {
   TemperatureType.KELVIN: "K",
 }
 
+TIME_SYMBOLS = {}
+
 class TimeType(IntEnum):
   UNKNOWN = 0
   SECOND = 1
@@ -162,6 +221,19 @@ class TimeType(IntEnum):
   MONTH = 5
   YEAR = 6
   HERTZ = 7
+
+  def __str__(self):
+    return TIME_SYMBOLS[self.value]
+
+TIME_SYMBOLS = {
+  TimeType.UNKNOWN: "",
+  TimeType.SECOND: "s",
+  TimeType.HOUR: "h",
+  TimeType.DAY: "d",
+  TimeType.MONTH: "m",
+  TimeType.YEAR: "y",
+  TimeType.HERTZ: "hz",
+}
 
 class LuminosityType(IntEnum):
   UNKNOWN = 0
@@ -273,7 +345,6 @@ TO_AXIS_PERMUTATION = {
   'YX': AxisPermutationType.YX,
 }
 
-
 TO_DATATYPE = {
   np.float16: DataType.F16,
   np.float32: DataType.F32,
@@ -368,8 +439,3 @@ TO_LENGTH_UNIT = {
 FROM_LENGTH_UNIT = {
   v:k for k,v in TO_LENGTH_UNIT.items()
 }
-
-
-
-
-
