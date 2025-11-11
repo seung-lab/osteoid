@@ -143,9 +143,14 @@ class OstdSkeleton:
     return sum(( part.header.num_components for part in self.parts ))
 
   @property
-  def unit(self) -> str:
-    master_unit = self.parts[0].header.length_unit
-    return FROM_LENGTH_UNIT[master_unit]
+  def unit(self) -> tuple[SIPrefixType, LengthType]:
+    if len(self.parts[0]) == 0:
+      return (SIPrefixType.NONE, LengthType.VOXEL)
+    return self.parts[0].header.length_unit
+
+  @property
+  def human_readable_unit(self) -> str:
+    return FROM_LENGTH_UNIT[self.unit]
 
   @property
   def physical_length(self) -> float:
@@ -171,8 +176,8 @@ class OstdSkeleton:
 
   @property
   def vertices(self) -> npt.NDArray[Any]:
-    master_unit = self.parts[0].header.length_unit
-    master_value = SI_PREFIX_VALUE[master_unit]
+    master_si_prefix, master_unit = self.parts[0].header.length_unit
+    master_si_value = SI_PREFIX_VALUE[master_si_prefix]
 
     verts = []
     for part in self.parts:
@@ -180,19 +185,21 @@ class OstdSkeleton:
         verts.append(part.vertices)
         continue
 
-      unit_value = SI_PREFIX_VALUE[part.header.unit]
+      si_prefix, base_unit = part.header.unit
+      factor = (master_value / SI_PREFIX_VALUE[si_prefix])
+      factor *= length_conversion_factor(base_unit, master_unit)
 
       if isinstance(part.vertices, np.floating):
         verts.append(
-          part.vertices * (master_value / unit_value)
+          part.vertices * factor
         )
-      elif master_value > unit_value:
+      elif factor >= 0:
         verts.append(
-          part.vertices * (master_value / unit_value)
+          part.vertices * factor
         )
       else:
         verts.append(
-          part.vertices // (unit_value / master_value)
+          part.vertices // (1/factor)
         )
 
     return np.concatenate(verts)
