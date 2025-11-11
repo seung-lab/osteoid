@@ -1,24 +1,167 @@
+from collections import OrderedDict
+from functools import partial
+
+from enum import IntEnum
+
 import numpy as np
 import numpy.typing as npt
 
 from .header import (
-  OstdHeader, 
-  OstdTransform,
-  OstdTransformSection,
   OstdAttribute,
   OstdAttributeSection,
+  OstdHeader, 
+  OstdSpatialIndex,
+  OstdTransform,
+  OstdTransformSection,
+)
+
+from .types import (
+  AttributeType,
+  CompressionType, 
+  EdgeRepresentationType,
+  SIPrefixType,
+  SpaceType,
 )
 
 # represents one skeleton section
 # in a possibly multipart file
+@dataclass
 class OstdSkeletonPart:
-  pass
+  header:OstdHeader
+  spaces:OstdTransformSection
+  spatial_index:OstdSpatialIndex
+  vertices:npt.NDArray[np.generic]
+  edges:npt.NDArray[np.unsignedinteger]
+  attributes:Optional[
+    OrderedDict[str,tuple[tuple[SIPrefixType, IntEnum], npt.NDArray[np.generic]]]
+  ] = None
+
+  @classmethod
+  def from_bytes(kls, binary:bytes, offset:int = 0):
+    header = OstdHeader.from_bytes(binary, offset=offset)
+
+    off = offset + OstdHeader.HEADER_BYTES
+
+    if header.has_transform:
+      spaces = OstdTransformSection.from_bytes(
+        binary[off:off + 1 + 65 * 255]
+      )
+      off += transform.nbytes
+    else:
+      spaces = OstdTransformSection([ 
+        OstdTransform(SpaceType.VOXEL, np.eye(4,4, dtype=np.float32))
+      ])
+      off += 0
+
+    spatial_index = None
+    off += 0
+    if header.spatial_index_bytes > 0:
+      raise ValueError("Spatial index not implemented.")
+
+    if header.vertex_compression != CompressionType.NONE:
+      raise ValueError(f"Compression not yet supported.")
+    if header.edge_compression != CompressionType.NONE:
+      raise ValueError(f"Compression not yet supported.")
+
+    vertex_bytes = binary[off:off+header.vertex_bytes]
+    off += header.vertex_bytes
+
+    vertices = np.frombuffer(
+      vertex_bytes, 
+      count=(header.Nv * header.num_axes),
+      dtype=header.vertex_dtype,
+    ).reshape((header.Nv, header.num_axes), order="C")
+    del vertex_bytes
+
+    if header.edge_representation != EdgeRepresentationType.PAIR:
+      raise ValueError("Only edge lists are currently supported.")
+
+    edge_bytes = binary[off:off+header.edge_bytes]
+    off += header.edge_bytes
+
+    edges = np.frombuffer(
+      edge_bytes, 
+      count=header.Ne, 
+      dtype=header.edge_dtype
+    ).reshape((header.Ne, 2), order="C")
+
+    attribute_header = None
+    attributes = OrderedDict()
+    if header.attribute_header_bytes > 0:
+      attribute_header = OstdAttributeSection.from_bytes(binary[-header.attribute_header_bytes:])
+      for attribute in attribute_header.attributes:
+
+        if attribute.attribute_type == AttributeType.EDGE:
+          raise ValueError("Edge vertex attributes are not yet supported.")
+        if attribute.compression != CompressionType.NONE:
+          raise ValueError("Attribute compression not yet supported.")
+
+        arr = np.frombuffer(
+          binary,
+          offset=off,
+          count=(header.Nv * attribute.num_components),
+          dtype=attribute.dtype,
+        ).reshape((header.Nv, attribute.num_components), order="C")
+
+        attributes[attribute.name] = (attribute.unit, arr)
+
+    return OstdSkeletonPart(
+      header=header,
+      spaces=spaces,
+      vertices=vertices,
+      edges=edges,
+      attributes=attributes,
+    )
 
 # represents a full skeleton including
 # multiple parts
+@dataclass
 class OstdSkeleton:
-  def __init__(self):
-    self.parts = []
+  parts:list[OstdSkeletonPart] = []
+
+  def is_consistent(self) -> bool:
+    """
+    Checks to see if all parts are in the same orientation,
+    same voxel centering, etc.
+    """
+    return True
+
+  @property
+  def num_vertices(self) -> int:
+    return sum(( part.header.Nv for part in self.parts ))
+
+  @property
+  def num_edges(self) -> int:
+    return sum(( part.header.Ne for part in self.parts ))
+
+  @property
+  def num_components(self) -> int:
+    """Note: This may be an overestimate for multi-part files."""
+    return sum(( part.header.num_components for part in self.parts ))
+
+  @property
+  def physical_length(self) -> float:
+    return sum(( part.header.physical_length for part in self.parts ))
+
+  @property
+  def vertices(self) -> npt.NDArray[Any]:
+    return np.concatenate([ part.vertices for part in self.parts ])
+
+  @property
+  def edges(self) -> np.NDArray[np.uint64]:
+    if len(self.parts) <= 1:
+      return self.parts[0].edges
+
+    offset = 0
+    edges = []
+    for part in parts:
+      edges.append(part.edges + offset)
+      offset += part.header.Nv
+
+    return np.concatenate(edges)
+
+  def is_multipart(self) -> bool:
+    return len(self.parts) > 1
 
   def append(self, skel:"OstdSkeleton"):
     self.parts.append(skel)
@@ -35,4 +178,30 @@ class OstdSkeleton:
 
   @classmethod
   def from_bytes(kls, binary:bytes) -> "OstdSkeleton":
-    pass
+    offset = 0
+    parts = []
+    while offset < len(binary):
+      part = OstdSkeletonPart.from_bytes(binary, offset=offset)
+      parts.append(part)
+      offset += part.header.total_bytes
+
+    skel = OstdSkeleton(parts)
+
+    if len(parts) == 0:
+      return skel
+
+    def getattribute(skel:OstdSkeleton, name:str) -> np.ndarray:
+      return np.concatenate(( part.attributes[name][1] for part in skel.parts ))
+
+    for name in parts[0].attributes:
+      prop = property(fget=partial(getattribute, skel, name))
+      setattr(skel, name, prop)
+
+    return skel
+
+
+
+
+
+
+

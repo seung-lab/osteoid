@@ -221,6 +221,7 @@ class DataType(IntEnum):
 class EdgeRepresentationType(IntEnum):
   PAIR = 0
   PARENT = 1
+  LINKED_PATHS = 2
 
 class GraphType(IntEnum):
   GRAPH = 0
