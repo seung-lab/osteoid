@@ -147,10 +147,6 @@ class OstdHeader:
   def edge_dtype(self):
     return np.dtype(FROM_DATATYPE[self.edge_data_type])
 
-  @property
-  def Nvb(self):
-    return self.Nv * self.num_axes * self.vertex_dtype.itemsize
-
   def encode_flags(self) -> int:
     flags = np.uint64(0)
     offset = 0
@@ -216,34 +212,34 @@ class OstdHeader:
     self.edge_representation = EdgeRepresentationType(read_int(2))
 
   @classmethod
-  def validate_header(kls, binary:bytes):
-    if len(binary) < OstdHeader.HEADER_BYTES:
-      raise ValueError(f"buffer is too short to be an osteoid file. buffer: {len(binary)} bytes, needed at least: {OstdHeader.HEADER_BYTES} bytes")
+  def validate_header(kls, binary:bytes, offset:int = 0):
+    if len(binary) - offset < OstdHeader.HEADER_BYTES:
+      raise ValueError(f"buffer is too short to be an osteoid file. buffer: {len(binary) - offset} bytes, needed at least: {OstdHeader.HEADER_BYTES} bytes")
 
-    magic = binary[:4]
+    magic = binary[offset:offset+4]
     if magic != OstdHeader.MAGIC:
       raise ValueError(f"magic numbers did not match. Expected: {OstdHeader.MAGIC}, Got: {magic}")
 
-    format_version = binary[4]
+    format_version = binary[offset+4]
     if format_version > OstdHeader.FORMAT_VERSION:
       raise ValueError(f"format version in buffer exceeded maximum supported version. Got: {format_version} Maximum Supported Version: {OstdHeader.FORMAT_VERSION}")
 
-    total_bytes = int.from_bytes(binary[5:13], 'little')
-    if len(binary) < total_bytes:
-      raise ValueError(f"Stream contained too few bytes. Got: {len(binary)} Expected: {total_bytes}")
+    total_bytes = int.from_bytes(binary[offset+5:offset+13], 'little')
+    if len(binary) - offset < total_bytes:
+      raise ValueError(f"Stream contained too few bytes. Got: {len(binary) - offset} Expected: {total_bytes}")
 
     hb = OstdHeader.HEADER_BYTES
-    stored_crc16 = int.from_bytes(binary[hb-2:hb], 'little')
-    computed_crc16 = lib.crc16(binary[len(OstdHeader.MAGIC):hb-2])
+    stored_crc16 = int.from_bytes(binary[offset+hb-2:offset+hb], 'little')
+    computed_crc16 = lib.crc16(binary[offset+len(OstdHeader.MAGIC):offset+hb-2])
     print(stored_crc16, computed_crc16)
     if stored_crc16 != computed_crc16:
       raise ValueError(f"Header corruption detected. Stored CRC16: {stored_crc16}, Computed CRC16: {computed_crc16}")
 
   @classmethod
-  def from_bytes(kls, binary:bytes, crc_check:bool = True) -> "OstdHeader":
-    OstdHeader.validate_header(binary)
+  def from_bytes(kls, binary:bytes, offset:int = 0, crc_check:bool = True) -> "OstdHeader":
+    OstdHeader.validate_header(binary, offset=offset)
 
-    offset = len(OstdHeader.MAGIC)
+    offset += len(OstdHeader.MAGIC)
 
     def read_int(N):
       nonlocal offset
@@ -338,6 +334,10 @@ class OstdTransform:
 class OstdTransformSection:
   spaces:list[OstdTransform]
 
+  @property
+  def nbytes(self):
+    return 1 + OstdTransform.NUM_BYTES * len(spaces)
+
   @classmethod
   def from_bytes(kls, binary:bytes) -> "OstdTransformSection":
     num_spaces = int.from_bytes(binary[0:1], 'little')
@@ -378,14 +378,17 @@ class OstdSpatialIndex:
 
 @dataclass
 class OstdAttribute:
-  def __init__(self):
-    name = ""
-    attribute_type = None
-    data_type = None
-    compression = None
-    unit = (None, None)
-    num_components = 0
-    content_length = 0
+  name:str = ""
+  attribute_type:AttributeType = AttributeType.VERTEX
+  data_type:DataType = DataType.F32
+  compression:CompressionType = CompressionType.NONE
+  unit:tuple[SIPrefixType, Any] = (SIPrefixType.NONE, LengthType.VOXEL)
+  num_components:int = 0
+  content_length:int = 0
+
+  @property
+  def dtype(self):
+    return FROM_DATATYPE[self.data_type]
 
   @classmethod
   def num_bytes(kls, name_width:int) -> int:
@@ -403,11 +406,11 @@ class OstdAttribute:
 
   def decode_flags(self, flags:int):
     offset = 0
-    masks = [ 0b0, 0b1, 0b11, 0b111, 0b1111, 0b11111 ]
-    def read_int(N):
+    def read_int(nbits):
       nonlocal offset
-      res = (flags >> N) & masks[N] 
-      offset += N
+      mask = (1 << nbits) - 1
+      res = (flags >> offset) & mask
+      offset += nbits
       return res
 
     self.data_type = DataType(read_int(4))
