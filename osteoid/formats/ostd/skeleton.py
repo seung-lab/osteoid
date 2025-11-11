@@ -31,16 +31,38 @@ from .types import (
 @dataclass
 class OstdSkeletonPart:
   header:OstdHeader
-  spaces:OstdTransformSection
-  spatial_index:OstdSpatialIndex
+  spaces:Optional[OstdTransformSection] = None
+  spatial_index:Optional[OstdSpatialIndex] = None
   vertices:npt.NDArray[np.generic]
   edges:npt.NDArray[np.unsignedinteger]
   attributes:Optional[
     OrderedDict[str,tuple[tuple[SIPrefixType, IntEnum], npt.NDArray[np.generic]]]
   ] = None
 
+  def to_bytes(self) -> bytes:
+    vertex_binary = self.vertices.tobytes("C")
+    vertex_binary += lib.crc32c(vertex_binary)
+
+    edge_binary = self.edges.tobytes("C")
+    edge_binary += lib.crc32c(edge_binary)
+
+    self.header.vertex_bytes = len(vertex_binary)
+    self.header.edge_bytes = len(edge_binary)
+    self.header.total_bytes = (
+      OstdHeader.HEADER_BYTES + 
+      header.vertex_bytes + 
+      header.edge_bytes + 
+      header.spatial_index_bytes +
+      header.attribute_header_bytes
+    )
+    return b''.join([
+      header.to_bytes(),
+      vertex_binary,
+      edge_binary,
+    ])
+
   @classmethod
-  def from_bytes(kls, binary:bytes, offset:int = 0):
+  def from_bytes(kls, binary:bytes, offset:int = 0) -> "OstdSkeletonPart":
     header = OstdHeader.from_bytes(binary, offset=offset)
 
     off = offset + OstdHeader.HEADER_BYTES
@@ -230,8 +252,37 @@ class OstdSkeleton:
   def load(kls, filename:str) -> "OstdSkeleton":
     pass
 
+
+  @classmethod
+  def create(kls, 
+    vertices:npt.NDArray[np.generic], 
+    edges:npt.NDArray[np.unsignedinteger],
+    id:Optional[int] = None,
+    coordinate_frame_orientation:str = "+X+Y+Z",
+    voxel_centered:bool = True,
+  ):
+    header = OstdHeader(
+      Nv = vertices.shape[0],
+      Ne = edges.shape[0],
+      coordinate_frame_orientation = coordinate_frame_orientation,
+      edge_data_type = TO_DATATYPE[edges.dtype],
+      edge_compression = CompressionType.NONE,
+      edge_representation = EdgeRepresentationType.PAIR,
+      has_transform = False,
+      id = id,
+      num_axes = vertices.shape[1],
+      vertex_data_type = TO_DATATYPE[vertices.dtype],
+      voxel_centered = bool(voxel_centered),
+    )
+    return OstdSkeleton([  
+      OstdSkeletonPart(header, vertices=vertices, edges=edges)
+    ])
+
   def to_bytes(self) -> bytes:
-    pass
+    return b''.join([
+      part.to_bytes()
+      for part in self.parts
+    ])
 
   @classmethod
   def from_bytes(kls, binary:bytes) -> "OstdSkeleton":

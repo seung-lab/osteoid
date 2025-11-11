@@ -82,7 +82,7 @@ class OstdHeader:
     graph_type:GraphType = GraphType.GRAPH,
     has_transform:bool = True,
     id:Optional[int] = None,
-    num_axes:Literal[2,3] = 3,
+    num_axes:int = 3,
     num_components:int = np.iinfo(np.uint32).max,
     length_unit:Union[str, tuple[SIPrefixType, IntEnum]] = (SIPrefixType.NANO, LengthType.METER),
     physical_path_length:float = float('NaN'),
