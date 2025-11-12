@@ -20,7 +20,8 @@ from .types import (
   TO_DATATYPE, 
   FROM_DATATYPE,
   TO_AXIS_PERMUTATION,
-  QUANTITY_TYPE,
+  TO_QUANTITY_TYPE,
+  FROM_QUANTITY_TYPE,
 )
 from .header import OstdHeader, OstdAttribute, OstdTransform, OstdTransformSection
 from .skeleton import OstdSkeleton
