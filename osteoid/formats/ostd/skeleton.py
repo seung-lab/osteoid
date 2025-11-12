@@ -196,9 +196,6 @@ class OstdSkeletonProperties:
       return val()
     return val
 
-  def __setattr__(self, key:str, val:Any):
-    self._props[key] = val
-
 # represents a full skeleton including
 # multiple parts
 class OstdSkeleton:
