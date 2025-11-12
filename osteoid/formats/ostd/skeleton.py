@@ -309,6 +309,7 @@ class OstdSkeleton:
     spaces:list = [],
     coordinate_frame_orientation:str = "+X+Y+Z",
     voxel_centered:bool = True,
+    attributes:dict[str,npt.NDArray[np.generic]] = {},
   ):
     header = OstdHeader(
       Nv = vertices.shape[0],
@@ -337,6 +338,7 @@ class OstdSkeleton:
         vertices=vertices, 
         edges=edges,
         spaces=spaces,
+        attributes=attributes,
       )
     ])
 
