@@ -248,7 +248,8 @@ class OstdSkeleton:
 
   @property
   def vertices(self) -> npt.NDArray[Any]:
-    master_si_prefix, master_unit = self.parts[0].header.length_unit
+    master_unit = self.parts[0].header.length_unit
+    master_si_prefix, master_base_unit = self.parts[0].header.length_unit
     master_si_value = SI_PREFIX_VALUE[master_si_prefix]
 
     verts = []
@@ -259,22 +260,20 @@ class OstdSkeleton:
 
       si_prefix, base_unit = part.header.length_unit
       factor = (master_si_value / SI_PREFIX_VALUE[si_prefix])
-      factor *= length_conversion_factor(base_unit, master_unit)
+      factor *= length_conversion_factor(base_unit, master_base_unit)
 
-      if isinstance(part.vertices, np.floating):
-        verts.append(
-          part.vertices * factor
-        )
-      elif factor >= 0:
+      if np.issubdtype(part.vertices.dtype, np.floating):
         verts.append(
           part.vertices * factor
         )
       else:
+        casted = part.vertices.astype(np.float32)
+        casted *= factor
         verts.append(
-          part.vertices // (1/factor)
+          casted.astype(verts.dtype, copy=False)
         )
 
-    return np.concatenate(verts)
+    return np.concatenate(verts, axis=0)
 
   @property
   def edges(self) -> npt.NDArray[np.uint64]:
