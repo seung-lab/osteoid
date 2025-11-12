@@ -106,8 +106,23 @@ class LengthType(IntEnum):
   STATUTE_MILE = 10
   NAUTICAL_MILE = 11
 
+  _symbols = {
+    0: "vx",
+    1: "m",
+    2: "Å",
+    3: "amu",
+    4: "ly",
+    5: "pc",
+    6: "mil",
+    7: "in",
+    8: "ft",
+    9: "yd",
+    10: "mi",
+    11: "nmi",
+  }
+
   def __str__(self):
-    return LENGTH_SYMBOLS[self.value]
+    return self._symbols[self.value]
 
 LENGTH_CONVERSION_FACTORS = {
   (LengthType.VOXEL, LengthType.METER): float('NaN'),
@@ -147,8 +162,23 @@ class AreaType(IntEnum):
   STATUTE_MILE = 10
   NAUTICAL_MILE = 11
 
+  _symbols = {
+    0: "vx",
+    1: "m",
+    2: "Å",
+    3: "amu",
+    4: "ly",
+    5: "pc",
+    6: "mil",
+    7: "in",
+    8: "ft",
+    9: "yd",
+    10: "mi",
+    11: "nmi",
+  }
+
   def __str__(self):
-    return f"{LENGTH_SYMBOLS[self.value]}^2"
+    return f"{self._symbols[self.value]}^2"
 
 class VolumeType(IntEnum):
   VOXEL = 0
@@ -165,27 +195,26 @@ class VolumeType(IntEnum):
   NAUTICAL_MILE = 11
   LITER = 12
 
+  _symbols = {
+    0: "vx",
+    1: "m",
+    2: "Å",
+    3: "amu",
+    4: "ly",
+    5: "pc",
+    6: "mil",
+    7: "in",
+    8: "ft",
+    9: "yd",
+    10: "mi",
+    11: "nmi",
+    12: "L",
+  }
+
   def __str__(self):
-    if self.value == self.LITER:
+    if self.value == 12:
       return "L"
-    return f"{LENGTH_SYMBOLS[self.value]}^3"
-
-LENGTH_SYMBOLS = {
-  LengthType.VOXEL: "vx",
-  LengthType.METER: "m",
-  LengthType.ANGSTROM: "Å",
-  LengthType.ASTRONOMICAL_UNIT: "amu",
-  LengthType.LIGHTYEAR: "ly",
-  LengthType.PARSEC: "pc",
-  LengthType.MIL: "mil",
-  LengthType.INCH: "in",
-  LengthType.FOOT: "ft",
-  LengthType.YARD: "yd",
-  LengthType.STATUTE_MILE: "mi",
-  LengthType.NAUTICAL_MILE: "nmi",
-}
-
-TEMPERATURE_SYMBOLS = {}
+    return f"{self._symbols[self.value]}^3"
 
 class TemperatureType(IntEnum):
   UNKNOWN = 0
@@ -194,18 +223,16 @@ class TemperatureType(IntEnum):
   RANKINE = 3
   KELVIN = 4
 
+  _symbols = {
+    0: "",
+    1: "°C",
+    2: "°F",
+    3: "°R",
+    4: "K",
+  }
+
   def __str__(self):
-    return TEMPERATURE_SYMBOLS[self.value]
-
-TEMPERATURE_SYMBOLS = {
-  TemperatureType.UNKNOWN: "",
-  TemperatureType.CELSIUS: "°C",
-  TemperatureType.FAHRENHEIT: "°F",
-  TemperatureType.RANKINE: "°R",
-  TemperatureType.KELVIN: "K",
-}
-
-TIME_SYMBOLS = {}
+    return self._symbols[self.value]
 
 class TimeType(IntEnum):
   UNKNOWN = 0
@@ -217,18 +244,19 @@ class TimeType(IntEnum):
   YEAR = 6
   HERTZ = 7
 
-  def __str__(self):
-    return TIME_SYMBOLS[self.value]
+  _symbols = {
+    0: "",
+    1: "s",
+    2: "m",
+    3: "h",
+    4: "d",
+    5: "mo",
+    6: "y",
+    7: "hz",
+  }
 
-TIME_SYMBOLS = {
-  TimeType.UNKNOWN: "",
-  TimeType.SECOND: "s",
-  TimeType.HOUR: "h",
-  TimeType.DAY: "d",
-  TimeType.MONTH: "m",
-  TimeType.YEAR: "y",
-  TimeType.HERTZ: "hz",
-}
+  def __str__(self):
+    return self._symbols[self.value]
 
 class LuminosityType(IntEnum):
   UNKNOWN = 0
@@ -237,6 +265,18 @@ class LuminosityType(IntEnum):
   LUX = 3
   PHOTON = 4
   PHOTONS_PER_SECOND = 5
+
+  _symbols = {
+    0: "",
+    1: "cd",
+    2: "lm",
+    3: "lx",
+    4: "photons",
+    5: "pps",
+  }
+
+  def __str__(self):
+    return self._symbols[self.value]
 
 class ElectricalType(IntEnum):
   UNKNOWN = 0
@@ -248,19 +288,59 @@ class ElectricalType(IntEnum):
   HENRY = 6
   COULOMB = 7
 
+  _symbols = {
+    0: "",
+    1: "V",
+    2: "A",
+    3: "Ω",
+    4: "S",
+    5: "F",
+    6: "H",
+    7: "C",
+  }
+
+  def __str__(self):
+    return self._symbols[self.value]
+
 class MassType(IntEnum):
   UNKNOWN = 0
   GRAM = 1
   DALTON = 2
 
+  _symbols = {
+    0: "",
+    1: "g",
+    2: "da",
+  }
+
+  def __str__(self):
+    return self._symbols[self.value]
+
 class SubstanceAmount(IntEnum):
   UNKNOWN = 0
   MOLE = 1
+
+  _symbols = {
+    0: "",
+    1: "mol",
+  }
+
+  def __str__(self):
+    return self._symbols[self.value]
 
 class EnergyType(IntEnum):
   UNKNOWN = 0
   JOULE = 1
   WATT = 2
+
+  _symbols = {
+    0: "",
+    1: "J",
+    2: "W",
+  }
+
+  def __str__(self):
+    return self._symbols[self.value]
 
 class CompressionType(IntEnum):
   NONE = 0
