@@ -406,9 +406,9 @@ class OstdAttribute:
 
   def encode_flags(self) -> np.uint16:
     flags = np.uint16(0)
-    flags |= (self.data_type & 0b1111)
-    flags |= (self.compression & 0b1111) << 4
-    flags |= bool(self.attribute_type) << 8
+    flags |= (self.data_type.value & 0b1111)
+    flags |= (self.compression.value & 0b1111) << 4
+    flags |= bool(self.attribute_type.value) << 8
     return flags
 
   def decode_flags(self, flags:int):
