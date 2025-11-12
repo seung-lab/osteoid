@@ -27,7 +27,8 @@ from .types import (
   TO_DATATYPE, 
   FROM_DATATYPE,
   TO_AXIS_PERMUTATION,
-  QUANTITY_TYPE,
+  TO_QUANTITY_TYPE,
+  FROM_QUANTITY_TYPE,
 )
 
 import uuid
@@ -399,9 +400,40 @@ class OstdAttribute:
 
     name = bytearray(name_width)
     name[:len(self.id)] = self.id
-    dtype = np.uint8(TO_DATATYPE[np.dtype(self.dtype).type])
-    type_field = dtype | (np.uint8(self.num_components) << 4)
-    return b''.join([ name, type_field ])
+    flags = self.encode_flags()
+    units = self.encode_units()
+
+    return b''.join([ 
+      name, 
+      flags.tobytes(),
+      units.tobytes(),
+      int(self.num_components).to_bytes(1, 'little'),
+      int(self.content_length).to_bytes(8, 'little'),
+    ])
+
+  def encode_units(self) -> np.uint16:
+    quantity_type = FROM_QUANTITY_TYPE[type(self.unit[1])]
+    si_prefix_value = self.unit[0].value
+    base_unit_value = self.unit[1].value
+
+    units = np.uint16(0)
+    units |= (quantity_type & 0b111)
+    units |= (si_prefix_value & 0b11111) << 3
+    units |= (base_unit_value & 0b11111) << 8
+    return units
+
+  def decode_units(self, units:int) -> tuple[SIPrefixType, Any]:
+    DimensionTypeClass = TO_QUANTITY_TYPE[int(units & 0b111)]
+    si_prefix = SIPrefixType((units >> 3) & 0b11111)
+    dimension = DimensionTypeClass((units >> (3+5)) & 0b1111)
+    return (si_prefix, dimension)
+
+  def encode_flags(self) -> np.uint16:
+    flags = np.uint16(0)
+    flags |= (self.data_type & 0b1111)
+    flags |= (self.compression & 0b1111) << 4
+    flags |= bool(self.attribute_type) << 8
+    return flags
 
   def decode_flags(self, flags:int):
     offset = 0
@@ -431,10 +463,7 @@ class OstdAttribute:
     offset = name_width + 2
 
     unit_info = int.from_bytes(binary[offset:offset + 2], 'little')
-    DimensionTypeClass = QUANTITY_TYPE[int(unit_info & 0b111)]
-    si_prefix = SIPrefixType((unit_info >> 3) & 0b11111)
-    dimension = DimensionTypeClass((unit_info >> (3+5)) & 0b1111)
-    attr.unit = (si_prefix, dimension)
+    attr.unit = self.decode_units(unit_info)
 
     offset += 2
     attr.num_components = int.from_bytes(binary[offset:offset+1], 'little')
