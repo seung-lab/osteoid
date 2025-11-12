@@ -386,12 +386,15 @@ class Skeleton:
     G.add_edges_from(self.edges)
     return G
 
-  def to_precomputed(self):
+  def to_precomputed(self) -> bytes:
+    """
+    Convert a skeleton into the precomputed bytes format.
+    """
     from . import formats
     return formats.to_precomputed(self)
 
   @classmethod
-  def from_precomputed(kls, skelbuf, segid=None, vertex_attributes=None):
+  def from_precomputed(kls, skelbuf:bytes, segid=None, vertex_attributes=None) -> "Skeleton":
     """
     Convert a buffer into a Skeleton object.
 
@@ -967,7 +970,7 @@ class Skeleton:
     smooth_skel.id = self.id
     return smooth_skel
 
-  def components(self):
+  def components(self) -> list["Skeleton"]:
     """
     Extract connected components from graph. 
     Useful for ensuring that you're working with a single tree.
@@ -1020,7 +1023,7 @@ class Skeleton:
     return formats.from_navis(navis_skel)
 
   @classmethod
-  def from_swc(self, swcstr):
+  def from_swc(self, swcstr:str) -> "Skeleton":
     """
     The SWC format was first defined in 
     
