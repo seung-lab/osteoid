@@ -312,7 +312,7 @@ class OstdTransformSection:
 
   @property
   def nbytes(self):
-    return 1 + OstdTransform.NUM_BYTES * len(spaces)
+    return 1 + OstdTransform.NUM_BYTES * len(self.spaces) + 2
 
   @classmethod
   def from_bytes(kls, binary:bytes) -> "OstdTransformSection":
