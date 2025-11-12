@@ -64,10 +64,8 @@ std::vector<std::pair<T,T>> unique(
 	std::vector<std::pair<T,T>> uniq;
 	uniq.reserve(N / 10);
 
-	if (N >= 2 && input[0] != input[1]) {
-		uniq.push_back(input[N-1]);
-	}
-
+	uniq.push_back(input[0]);
+	
 	for (uint64_t i = 1; i < N; i++) {
 		if (input[i] != input[i-1]) {
 			uniq.push_back(input[i]);
@@ -105,8 +103,14 @@ py::list compute_components_impl(
 
 	auto extract_component = [&](EDGE_T start) -> py::array_t<EDGE_T> {
 		std::vector<std::pair<EDGE_T, EDGE_T>> edge_list;
-		std::vector<EDGE_T> stack = { start };
-		std::vector<EDGE_T> parents = { std::numeric_limits<EDGE_T>::max() };
+		std::vector<EDGE_T> stack = {};
+		std::vector<EDGE_T> parents = {};
+
+		visited[start] = true;
+		for (EDGE_T child : index[start]) {
+			stack.push_back(child);
+			parents.push_back(start);
+		}
 
 		while (stack.size()) {
 			EDGE_T node = stack.back();
@@ -140,8 +144,8 @@ py::list compute_components_impl(
 			}
 		}
 
-		if (edge_list.size() <= 1) {
-			return py::array(py::dtype("uint32"), {0, 2});
+		if (edge_list.size() == 0) {
+			return py::array(py::dtype("uint64"), {0, 2});
 		}
 
 		auto uniq = unique<EDGE_T>(edge_list);
