@@ -181,6 +181,9 @@ class OstdSkeletonProperties:
   def __init__(self):
     self._props = {}
 
+  def __list__(self):
+    return list(self._props.keys())
+
   def __getattr__(self, key:str):
     if key not in self._props:
       raise AttributeError(f"skeleton property has no attribute \"{key}\"")
