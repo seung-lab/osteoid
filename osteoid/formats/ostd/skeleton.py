@@ -306,6 +306,7 @@ class OstdSkeleton:
     vertices:npt.NDArray[np.generic], 
     edges:npt.NDArray[np.unsignedinteger],
     id:Optional[int] = None,
+    spaces:list = [],
     coordinate_frame_orientation:str = "+X+Y+Z",
     voxel_centered:bool = True,
   ):
@@ -322,8 +323,21 @@ class OstdSkeleton:
       vertex_data_type = TO_DATATYPE[np.dtype(vertices.dtype).type],
       voxel_centered = bool(voxel_centered),
     )
+
+    spaces = OstdTransformSection([
+        OstdTransform(space=transform[0], transform=transform[1])
+        if isinstance(transform, tuple)
+        else OstdTransform(space=SpaceType.GENERIC, transform=transform)
+      for transform in spaces
+    ])
+
     return OstdSkeleton([  
-      OstdSkeletonPart(header, vertices=vertices, edges=edges)
+      OstdSkeletonPart(
+        header=header, 
+        vertices=vertices, 
+        edges=edges,
+        spaces=spaces,
+      )
     ])
 
   def to_bytes(self) -> bytes:
