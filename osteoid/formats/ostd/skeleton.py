@@ -252,7 +252,6 @@ class OstdSkeleton:
   def load(kls, filename:str) -> "OstdSkeleton":
     pass
 
-
   @classmethod
   def create(kls, 
     vertices:npt.NDArray[np.generic], 

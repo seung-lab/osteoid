@@ -11,7 +11,6 @@ from .types import (
   AxisPermutationType,
   CoordinateFrame,
   CompressionType,
-  CurrentSpaceType,
   DataType,
   EdgeRepresentationType,
   ElectricalType,

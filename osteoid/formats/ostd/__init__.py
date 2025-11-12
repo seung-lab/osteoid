@@ -5,7 +5,6 @@ from .types import (
   AttributeType,
   AxisPermutationType,
   CompressionType,
-  CurrentSpaceType,
   DataType,
   EdgeRepresentationType,
   ElectricalType,
