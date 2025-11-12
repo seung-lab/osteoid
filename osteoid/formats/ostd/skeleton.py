@@ -149,12 +149,9 @@ class OstdSkeleton:
   def __init__(self, parts:list[OstdSkeletonPart] = []):
     self.parts = parts
 
-  def is_consistent(self) -> bool:
-    """
-    Checks to see if all parts are in the same orientation,
-    same voxel centering, etc.
-    """
-    return True
+  @property
+  def id(self):
+    return self.parts[0].header.id
 
   @property
   def num_vertices(self) -> int:
@@ -208,12 +205,12 @@ class OstdSkeleton:
 
     verts = []
     for part in self.parts:
-      if part.header.unit == master_unit:
+      if part.header.length_unit == master_unit:
         verts.append(part.vertices)
         continue
 
-      si_prefix, base_unit = part.header.unit
-      factor = (master_value / SI_PREFIX_VALUE[si_prefix])
+      si_prefix, base_unit = part.header.length_unit
+      factor = (master_si_value / SI_PREFIX_VALUE[si_prefix])
       factor *= length_conversion_factor(base_unit, master_unit)
 
       if isinstance(part.vertices, np.floating):
@@ -269,13 +266,13 @@ class OstdSkeleton:
       Nv = vertices.shape[0],
       Ne = edges.shape[0],
       coordinate_frame_orientation = coordinate_frame_orientation,
-      edge_data_type = TO_DATATYPE[edges.dtype],
+      edge_data_type = TO_DATATYPE[np.dtype(edges.dtype).type],
       edge_compression = CompressionType.NONE,
       edge_representation = EdgeRepresentationType.PAIR,
       has_transform = False,
       id = id,
       num_axes = vertices.shape[1],
-      vertex_data_type = TO_DATATYPE[vertices.dtype],
+      vertex_data_type = TO_DATATYPE[np.dtype(vertices.dtype).type],
       voxel_centered = bool(voxel_centered),
     )
     return OstdSkeleton([  
