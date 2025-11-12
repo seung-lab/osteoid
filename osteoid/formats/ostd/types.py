@@ -106,23 +106,22 @@ class LengthType(IntEnum):
   STATUTE_MILE = 10
   NAUTICAL_MILE = 11
 
-  _symbols = {
-    0: "vx",
-    1: "m",
-    2: "Å",
-    3: "amu",
-    4: "ly",
-    5: "pc",
-    6: "mil",
-    7: "in",
-    8: "ft",
-    9: "yd",
-    10: "mi",
-    11: "nmi",
-  }
+LENGTH_SYMBOLS = {
+  LengthType.VOXEL: "vx",
+  LengthType.METER: "m",
+  LengthType.ANGSTROM: "Å",
+  LengthType.ASTRONOMICAL_UNIT: "amu",
+  LengthType.LIGHTYEAR: "ly",
+  LengthType.PARSEC: "pc",
+  LengthType.MIL: "mil",
+  LengthType.INCH: "in",
+  LengthType.FOOT: "ft",
+  LengthType.YARD: "yd",
+  LengthType.STATUTE_MILE: "mi",
+  LengthType.NAUTICAL_MILE: "nmi",
+}
 
-  def __str__(self):
-    return self._symbols[self.value]
+LengthType.__str__ = lambda self: LENGTH_SYMBOLS[self]
 
 LENGTH_CONVERSION_FACTORS = {
   (LengthType.VOXEL, LengthType.METER): float('NaN'),
@@ -162,23 +161,7 @@ class AreaType(IntEnum):
   STATUTE_MILE = 10
   NAUTICAL_MILE = 11
 
-  _symbols = {
-    0: "vx",
-    1: "m",
-    2: "Å",
-    3: "amu",
-    4: "ly",
-    5: "pc",
-    6: "mil",
-    7: "in",
-    8: "ft",
-    9: "yd",
-    10: "mi",
-    11: "nmi",
-  }
-
-  def __str__(self):
-    return f"{self._symbols[self.value]}^2"
+AreaType.__str__ = lambda self: f"{LENGTH_SYMBOLS[self]}^2"
 
 class VolumeType(IntEnum):
   VOXEL = 0
@@ -195,26 +178,10 @@ class VolumeType(IntEnum):
   NAUTICAL_MILE = 11
   LITER = 12
 
-  _symbols = {
-    0: "vx",
-    1: "m",
-    2: "Å",
-    3: "amu",
-    4: "ly",
-    5: "pc",
-    6: "mil",
-    7: "in",
-    8: "ft",
-    9: "yd",
-    10: "mi",
-    11: "nmi",
-    12: "L",
-  }
 
-  def __str__(self):
-    if self.value == 12:
-      return "L"
-    return f"{self._symbols[self.value]}^3"
+VOLUME_SYMBOLS = {**LENGTH_SYMBOLS, VolumeType.LITER: "L"}
+VolumeType.__str__ = lambda self: "L" if self == VolumeType.LITER else f"{LENGTH_SYMBOLS[self]}^3"
+
 
 class TemperatureType(IntEnum):
   UNKNOWN = 0
@@ -223,16 +190,15 @@ class TemperatureType(IntEnum):
   RANKINE = 3
   KELVIN = 4
 
-  _symbols = {
-    0: "",
-    1: "°C",
-    2: "°F",
-    3: "°R",
-    4: "K",
-  }
+TEMPERATURE_SYMBOLS = {
+  TemperatureType.UNKNOWN: "",
+  TemperatureType.CELSIUS: "°C",
+  TemperatureType.FAHRENHEIT: "°F",
+  TemperatureType.RANKINE: "°R",
+  TemperatureType.KELVIN: "K",
+}
 
-  def __str__(self):
-    return self._symbols[self.value]
+TemperatureType.__str__ = lambda self: TEMPERATURE_SYMBOLS[self]
 
 class TimeType(IntEnum):
   UNKNOWN = 0
@@ -244,103 +210,98 @@ class TimeType(IntEnum):
   YEAR = 6
   HERTZ = 7
 
-  _symbols = {
-    0: "",
-    1: "s",
-    2: "m",
-    3: "h",
-    4: "d",
-    5: "mo",
-    6: "y",
-    7: "hz",
-  }
+TIME_SYMBOLS = {
+  TimeType.UNKNOWN: "",
+  TimeType.SECOND: "s",
+  TimeType.MINUTE: "min",
+  TimeType.HOUR: "h",
+  TimeType.DAY: "d",
+  TimeType.MONTH: "mo",
+  TimeType.YEAR: "y",
+  TimeType.HERTZ: "Hz",
+}
 
-  def __str__(self):
-    return self._symbols[self.value]
+TimeType.__str__ = lambda self: TIME_SYMBOLS[self]
 
 class LuminosityType(IntEnum):
-  UNKNOWN = 0
-  CANDELA = 1
-  LUMEN = 2
-  LUX = 3
-  PHOTON = 4
-  PHOTONS_PER_SECOND = 5
+    UNKNOWN = 0
+    CANDELA = 1
+    LUMEN = 2
+    LUX = 3
+    PHOTON = 4
+    PHOTONS_PER_SECOND = 5
 
-  _symbols = {
-    0: "",
-    1: "cd",
-    2: "lm",
-    3: "lx",
-    4: "photons",
-    5: "pps",
-  }
+LUMINOSITY_SYMBOLS = {
+    LuminosityType.UNKNOWN: "",
+    LuminosityType.CANDELA: "cd",
+    LuminosityType.LUMEN: "lm",
+    LuminosityType.LUX: "lx",
+    LuminosityType.PHOTON: "photons",
+    LuminosityType.PHOTONS_PER_SECOND: "pps",
+}
 
-  def __str__(self):
-    return self._symbols[self.value]
+LuminosityType.__str__ = lambda self: LUMINOSITY_SYMBOLS[self]
+
 
 class ElectricalType(IntEnum):
-  UNKNOWN = 0
-  VOLT = 1
-  AMPERE = 2
-  OHM = 3
-  SIEMEN = 4
-  FARAD = 5
-  HENRY = 6
-  COULOMB = 7
+    UNKNOWN = 0
+    VOLT = 1
+    AMPERE = 2
+    OHM = 3
+    SIEMEN = 4
+    FARAD = 5
+    HENRY = 6
+    COULOMB = 7
 
-  _symbols = {
-    0: "",
-    1: "V",
-    2: "A",
-    3: "Ω",
-    4: "S",
-    5: "F",
-    6: "H",
-    7: "C",
-  }
+ELECTRICAL_SYMBOLS = {
+    ElectricalType.UNKNOWN: "",
+    ElectricalType.VOLT: "V",
+    ElectricalType.AMPERE: "A",
+    ElectricalType.OHM: "Ω",
+    ElectricalType.SIEMEN: "S",
+    ElectricalType.FARAD: "F",
+    ElectricalType.HENRY: "H",
+    ElectricalType.COULOMB: "C",
+}
 
-  def __str__(self):
-    return self._symbols[self.value]
+ElectricalType.__str__ = lambda self: ELECTRICAL_SYMBOLS[self]
 
 class MassType(IntEnum):
-  UNKNOWN = 0
-  GRAM = 1
-  DALTON = 2
+    UNKNOWN = 0
+    GRAM = 1
+    DALTON = 2
 
-  _symbols = {
-    0: "",
-    1: "g",
-    2: "da",
-  }
+MASS_SYMBOLS = {
+    MassType.UNKNOWN: "",
+    MassType.GRAM: "g",
+    MassType.DALTON: "da",
+}
 
-  def __str__(self):
-    return self._symbols[self.value]
+MassType.__str__ = lambda self: MASS_SYMBOLS[self]
 
 class SubstanceAmount(IntEnum):
-  UNKNOWN = 0
-  MOLE = 1
+    UNKNOWN = 0
+    MOLE = 1
 
-  _symbols = {
-    0: "",
-    1: "mol",
-  }
+SUBSTANCE_AMOUNT_SYMBOLS = {
+    SubstanceAmount.UNKNOWN: "",
+    SubstanceAmount.MOLE: "mol",
+}
 
-  def __str__(self):
-    return self._symbols[self.value]
+SubstanceAmount.__str__ = lambda self: SUBSTANCE_AMOUNT_SYMBOLS[self]
 
 class EnergyType(IntEnum):
-  UNKNOWN = 0
-  JOULE = 1
-  WATT = 2
+    UNKNOWN = 0
+    JOULE = 1
+    WATT = 2
 
-  _symbols = {
-    0: "",
-    1: "J",
-    2: "W",
-  }
+ENERGY_SYMBOLS = {
+    EnergyType.UNKNOWN: "",
+    EnergyType.JOULE: "J",
+    EnergyType.WATT: "W",
+}
 
-  def __str__(self):
-    return self._symbols[self.value]
+EnergyType.__str__ = lambda self: ENERGY_SYMBOLS[self]
 
 class CompressionType(IntEnum):
   NONE = 0
