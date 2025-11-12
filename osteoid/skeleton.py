@@ -1026,7 +1026,7 @@ class Skeleton:
 
   @classmethod
   def from_ostd(self, binary:bytes) -> "Skeleton":
-    oskel = formats.from_ostd(binary)
+    oskel = formats.ostd.OstdSkeleton.from_bytes(binary)
     return Skeleton(
       vertices=oskel.vertices,
       edges=oskel.edges,
@@ -1035,6 +1035,21 @@ class Skeleton:
       radii=(oskel.a.radius if "radius" in oskel.a else None),
       vertex_types=(oskel.a.vertex_types if "vertex_types" in oskel.a else None),
     )
+
+  def to_ostd(self, unit:str = "nm", coordinate_frame:str = "+X-Y-Z") -> bytes:
+    transform = self.transform
+    ones = np.ones(4, dtype=transform.dtype)
+    transform = np.hstack(transform, ones)
+
+    return formats.ostd.OstdSkeleton.create(
+      id=self.id,
+      vertices=self.vertices,
+      edges=self.edges,
+      spaces=[ (formats.ostd.SpaceType.ALIGNED, transform) ],
+      length_unit=unit,
+      coordinate_frame_orientation=coordinate_frame,
+      voxel_centered=True,
+    ).to_bytes()
 
   @classmethod
   def from_swc(self, swcstr:str) -> "Skeleton":
