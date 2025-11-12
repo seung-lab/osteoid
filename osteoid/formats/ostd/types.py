@@ -128,13 +128,8 @@ def length_conversion_factor(unit1:LengthType, unit2:LengthType) -> float:
   if unit1 == unit2:
     return 1.0
 
-  f1 = [unit1, SIPrefixType.METER]
-  f1.sort()
-  u1_meters = LENGTH_CONVERSION_FACTORS[tuple(f1)]
-
-  f2 = [unit2, SIPrefixType.METER]
-  f2.sort()
-  u2_meters = LENGTH_CONVERSION_FACTORS[tuple(f2)]
+  u1_meters = LENGTH_CONVERSION_FACTORS[(unit1, LengthType.METER)]
+  u2_meters = LENGTH_CONVERSION_FACTORS[(unit2, LengthType.METER)]
 
   return u2_meters / u1_meters
 
@@ -391,7 +386,7 @@ TO_AXIS_PERMUTATION = {
   'XYZ': AxisPermutationType.XYZ,
   'XZY': AxisPermutationType.XZY,
   'YXZ': AxisPermutationType.YXZ,
-  'YXZ': AxisPermutationType.YZX,
+  'YZX': AxisPermutationType.YZX,
   'ZXY': AxisPermutationType.ZXY,
   'ZYX': AxisPermutationType.ZYX,
   'XY': AxisPermutationType.XY,
@@ -431,9 +426,6 @@ TO_QUANTITY_TYPE = {
   9: EnergyType,
 }
 FROM_QUANTITY_TYPE = { v:k for v,k in TO_QUANTITY_TYPE.items() }
-
-def human_readable(prefix:SIPrefixType, unit:IntEnum) -> str:
-  return f"{prefix}{unit}"
 
 TO_LENGTH_UNIT = {
   "vx": (SIPrefixType.NONE, LengthType.VOXEL),
