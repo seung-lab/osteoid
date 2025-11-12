@@ -90,7 +90,7 @@ class OstdSkeletonPart:
       vox_to_dst = self.spaces[idx].transform
       total_transform = total_transform @ vox_to_dst
 
-    if not np.all(total_transform == identity):
+    if not np.allclose(total_transform, identity):
       ones = np.ones((verts.shape[0], 1), dtype=verts.dtype)
       verts = np.hstack([verts, ones])
       del ones
@@ -110,7 +110,7 @@ class OstdSkeletonPart:
       spaces = OstdTransformSection.from_bytes(
         binary[off:off + 1 + 65 * 255]
       )
-      off += transform.nbytes
+      off += spaces.nbytes
     else:
       spaces = OstdTransformSection([ 
         OstdTransform(SpaceType.GENERIC, np.eye(4,4, dtype=np.float32))
@@ -196,7 +196,7 @@ class OstdSkeleton:
 
   def change_space(self, idx:int):
     for part in self.parts:
-      if not header.has_transform and idx != 0:
+      if not part.header.has_transform and idx != 0:
         raise ValueError("Skeleton part does not have a transform section in its binary.")
       part.change_space(idx)
 
@@ -215,7 +215,7 @@ class OstdSkeleton:
 
   @property
   def unit(self) -> tuple[SIPrefixType, LengthType]:
-    if len(self.parts[0]) == 0:
+    if len(self.parts) == 0:
       return (SIPrefixType.NONE, LengthType.VOXEL)
     return self.parts[0].header.length_unit
 
@@ -270,7 +270,7 @@ class OstdSkeleton:
         casted = part.vertices.astype(np.float32)
         casted *= factor
         verts.append(
-          casted.astype(verts.dtype, copy=False)
+          casted.astype(part.vertices.dtype, copy=False)
         )
 
     return np.concatenate(verts, axis=0)
@@ -282,7 +282,7 @@ class OstdSkeleton:
 
     offset = 0
     edges = []
-    for part in parts:
+    for part in self.parts:
       edges.append(part.edges + offset)
       offset += part.header.Nv
 
@@ -292,7 +292,7 @@ class OstdSkeleton:
     return len(self.parts) > 1
 
   def append(self, skel:"OstdSkeleton"):
-    self.parts.append(skel)
+    self.parts.extend(skel.parts)
 
   def save(self, filename:str):
     pass
