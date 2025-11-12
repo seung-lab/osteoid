@@ -179,13 +179,13 @@ class OstdSkeletonPart:
 
 class OstdSkeletonProperties:
   def __init__(self):
-    self.props = {}
+    self._props = {}
 
   def __getattr__(self, key:str):
-    if key not in self.props:
+    if key not in self._props:
       raise AttributeError(f"skeleton property has no attribute \"{key}\"")
 
-    val = self.props[key]
+    val = self._props[key]
     if callable(val):
       return val()
     return val
@@ -391,8 +391,7 @@ class OstdSkeleton:
       return np.concatenate(( part.attributes[name][1] for part in skel.parts ))
 
     for name in parts[0].attributes:
-      prop = property(fget=partial(getattribute, skel, name))
-      setattr(skel, name, prop)
+      skel.a._props["name"] = partial(getattribute, skel, name)
 
     return skel
 
