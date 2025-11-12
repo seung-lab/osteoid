@@ -184,9 +184,12 @@ class OstdSkeletonProperties:
   def __list__(self):
     return list(self._props.keys())
 
-  def __getattr__(self, key:str):
+  def __contains__(self, key:str) -> bool:
+    return key in self._props
+
+  def __getattr__(self, key:str) -> np.ndarray:
     if key not in self._props:
-      raise AttributeError(f"skeleton property has no attribute \"{key}\"")
+      raise AttributeError(f"skeleton has no attribute \"{key}\"")
 
     val = self._props[key]
     if callable(val):
