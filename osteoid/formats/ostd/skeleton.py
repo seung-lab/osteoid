@@ -194,6 +194,12 @@ class OstdSkeleton:
   def voxel_centered(self):
     return self.parts[0].header.voxel_centered
 
+  def change_space(self, idx:int):
+    for part in self.parts:
+      if not header.has_transform and idx != 0:
+        raise ValueError("Skeleton part does not have a transform section in its binary.")
+      part.change_space(idx)
+
   @property
   def num_vertices(self) -> int:
     return sum(( part.header.Nv for part in self.parts ))
