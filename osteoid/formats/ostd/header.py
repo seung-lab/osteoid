@@ -372,10 +372,10 @@ class OstdAttribute:
 
   def to_bytes(self, name_width:int):
     if self.num_components >= 16:
-      raise ValueError(f"Only 15 components supported per an attribute. Got {self.num_components} for {self.id}.")
+      raise ValueError(f"Only 15 components supported per an attribute. Got {self.num_components} for {self.name}.")
 
     name = bytearray(name_width)
-    name[:len(self.id)] = self.id
+    name[:len(self.name)] = self.name
     flags = self.encode_flags()
     units = self.encode_units()
 
@@ -453,7 +453,7 @@ class OstdAttributeSection:
   attributes:list[OstdAttribute]
 
   def to_bytes(self) -> bytes:
-    name_width = max([ attr.name for attr in self.attributes ])
+    name_width = max([ len(attr.name) for attr in self.attributes ])
 
     header = [
       len(self.attributes).to_bytes(1, 'little'),
