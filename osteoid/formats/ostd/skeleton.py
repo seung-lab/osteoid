@@ -9,6 +9,8 @@ from enum import IntEnum
 import numpy as np
 import numpy.typing as npt
 
+from ... import lib
+
 from .header import (
   OstdAttribute,
   OstdAttributeSection,
@@ -46,22 +48,22 @@ class OstdSkeletonPart:
 
   def to_bytes(self) -> bytes:
     vertex_binary = self.vertices.tobytes("C")
-    vertex_binary += lib.crc32c(vertex_binary)
+    vertex_binary += lib.crc32c(vertex_binary).to_bytes(4, 'little')
 
     edge_binary = self.edges.tobytes("C")
-    edge_binary += lib.crc32c(edge_binary)
+    edge_binary += lib.crc32c(edge_binary).to_bytes(4, 'little')
 
     self.header.vertex_bytes = len(vertex_binary)
     self.header.edge_bytes = len(edge_binary)
     self.header.total_bytes = (
       OstdHeader.HEADER_BYTES + 
-      header.vertex_bytes + 
-      header.edge_bytes + 
-      header.spatial_index_bytes +
-      header.attribute_header_bytes
+      self.header.vertex_bytes + 
+      self.header.edge_bytes + 
+      self.header.spatial_index_bytes +
+      self.header.attribute_header_bytes
     )
     return b''.join([
-      header.to_bytes(),
+      self.header.to_bytes(),
       vertex_binary,
       edge_binary,
     ])
@@ -79,7 +81,7 @@ class OstdSkeletonPart:
       off += transform.nbytes
     else:
       spaces = OstdTransformSection([ 
-        OstdTransform(SpaceType.VOXEL, np.eye(4,4, dtype=np.float32))
+        OstdTransform(SpaceType.GENERIC, np.eye(4,4, dtype=np.float32))
       ])
       off += 0
 
@@ -152,6 +154,14 @@ class OstdSkeleton:
   @property
   def id(self):
     return self.parts[0].header.id
+
+  @property
+  def coordinate_frame_orientation(self):
+    return self.parts[0].header.coordinate_frame_orientation
+
+  @property
+  def voxel_centered(self):
+    return self.parts[0].header.voxel_centered
 
   @property
   def num_vertices(self) -> int:

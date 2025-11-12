@@ -330,6 +330,59 @@ class CoordinateFrame:
   sign_z:bool
   permutation:AxisPermutationType
 
+  def __str__(self) -> str:
+    def sgn(x):
+      return "+" if not x else "-"
+
+    signs = {
+      'X': sgn(self.sign_x),
+      'Y': sgn(self.sign_y),
+      'Z': sgn(self.sign_z),
+    }
+
+    axes = FROM_AXIS_PERMUTATION[self.permutation]
+    out = ""
+    for i in range(len(axes)):
+      out += f"{signs[axes[i]]}{axes[i]}"
+    return out
+
+  @classmethod
+  def parse(kls, orientation:str) -> "CoordinateFrame":
+    if len(orientation) > 6:
+      raise ValueError(f"Unable to parse orientation: {orientation[:100]}")
+
+    orientation = orientation.upper()
+    normalized = orientation.replace('+', '').replace('-', '')
+
+    if not (2 <= len(normalized) <= 3):
+      raise ValueError(f"Unable to parse orientation: {normalized}")
+
+    POSITIVE = 0
+    NEGATIVE = 1
+
+    signs = [ POSITIVE, POSITIVE, POSITIVE ]
+    mapping = { "X": 0, "Y": 1, "Z": 2 }
+
+    for i in range(len(orientation) - 1):
+      if orientation[i] == "-":
+        signs[mapping[orientation[i+1]]] = NEGATIVE
+
+    permutation = TO_AXIS_PERMUTATION[normalized]
+
+    return CoordinateFrame(*signs, permutation)
+
+  def __eq__(self, other) -> bool:
+    if isinstance(other, str):
+      return str(self) == other.upper()
+
+    return (
+      self.sign_x == other.sign_x and
+      self.sign_y == other.sign_y and
+      self.sign_z == other.sign_z and
+      self.permutation == other.permutation
+    )
+
+
 class AttributeType(IntEnum):
   VERTEX = 0
   EDGE = 1
@@ -343,6 +396,9 @@ TO_AXIS_PERMUTATION = {
   'ZYX': AxisPermutationType.ZYX,
   'XY': AxisPermutationType.XY,
   'YX': AxisPermutationType.YX,
+}
+FROM_AXIS_PERMUTATION = {
+  v:k for k,v in TO_AXIS_PERMUTATION.items()
 }
 
 TO_DATATYPE = {

@@ -37,30 +37,6 @@ import struct
 import numpy as np
 import numpy.typing as npt
 
-def parse_coordinate_frame_orientation(orientation:str) -> AxisPermutationType:
-  if len(orientation) > 6:
-    raise ValueError(f"Unable to parse orientation: {orientation[:100]}")
-
-  orientation = orientation.upper()
-  normalized = orientation.replace('+', '').replace('-', '')
-
-  if not (2 <= len(normalized) <= 3):
-    raise ValueError(f"Unable to parse orientation: {normalized}")
-
-  POSITIVE = 0
-  NEGATIVE = 1
-
-  signs = [ POSITIVE, POSITIVE, POSITIVE ]
-  mapping = { "X": 0, "Y": 1, "Z": 2 }
-
-  for i in range(len(orientation) - 1):
-    if orientation[i] == "-":
-      signs[mapping[orientation[i+1]]] = NEGATIVE
-
-  permutation = TO_AXIS_PERMUTATION[normalized]
-
-  return CoordinateFrame(*signs, permutation)
-
 class OstdHeader:
   MAGIC = b'ostd'
   FORMAT_VERSION = 0
@@ -72,7 +48,7 @@ class OstdHeader:
     Ne:int,
     append_mode:bool = False,
     attribute_header_bytes:int = 0,
-    coordinate_frame_orientation:str = '+X+Y+Z',
+    coordinate_frame_orientation:Union[str, CoordinateFrame] = '+X+Y+Z',
     crc16:Optional[int] = None,
     edge_data_type:DataType = DataType.U32,
     edge_compression:CompressionType = CompressionType.NONE,
@@ -110,7 +86,7 @@ class OstdHeader:
       self.length_unit = length_unit
 
     if isinstance(coordinate_frame_orientation, str):
-      self.coordinate_frame_orientation = parse_coordinate_frame_orientation(coordinate_frame_orientation)
+      self.coordinate_frame_orientation = CoordinateFrame.parse(coordinate_frame_orientation)
     else:
       self.coordinate_frame_orientation = coordinate_frame_orientation
 
