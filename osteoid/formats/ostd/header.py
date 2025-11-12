@@ -484,6 +484,6 @@ class OstdAttributeSection:
     if stored_crc16 != computed_crc16:
       raise ValueError(f"Attribute header corruption detected. Stored CRC16: {stored_crc16}, Computed CRC16: {computed_crc16}")
 
-    return OstdTransformSection(name_width, attrs)
+    return OstdAttributeSection(attrs)
 
 
