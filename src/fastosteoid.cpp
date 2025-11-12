@@ -12,29 +12,9 @@
 namespace py = pybind11;
 
 template <typename T>
-py::array to_numpy(
-	T* output,
-	const uint64_t sx, const uint64_t sy
+py::array_t<T> pairs_to_numpy(
+	const std::vector<std::pair<T, T>>& pairs
 ) {
-	py::capsule capsule(output, [](void* ptr) {
-		if (ptr) {
-			delete[] static_cast<T*>(ptr);
-		}
-	});
-
-	uint64_t width = sizeof(T);
-
-	// C order
-	return py::array_t<T>(
-		{sx,sy},
-		{sy * width, width},
-		output,
-		capsule
-	);
-}
-
-template <typename T>
-py::array_t<T> pairs_to_numpy(const std::vector<std::pair<T, T>>& pairs) {
     size_t n = pairs.size();
 
     // Create an uninitialized NumPy array of shape (n, 2)
