@@ -94,3 +94,50 @@ def test_crc_mismatch_detection(sample_transform):
     data[-1] ^= 0xFF  # corrupt CRC
     with pytest.raises(ValueError, match="Header corruption detected"):
         OstdTransformSection.from_bytes(bytes(data))
+
+
+
+@pytest.fixture
+def sample_skeleton():
+    vertices = np.array([
+        [0.0, 0.0, 0.0],
+        [1.0, 0.0, 0.0],
+        [1.0, 1.0, 0.0],
+    ], dtype=np.float32)
+
+    edges = np.array([
+        [0, 1],
+        [1, 2],
+    ], dtype=np.uint64)
+
+    return OstdSkeleton.create(vertices, edges, id=42, coordinate_frame_orientation="+X+Y+Z", voxel_centered=True)
+
+def test_create_properties(sample_skeleton):
+    skel = sample_skeleton
+    assert skel.vertices.shape == (3, 3)
+    assert skel.vertices.dtype == np.float32
+    assert skel.edges.shape == (2, 2)
+    assert skel.edges.dtype == np.uint64
+    assert skel.id == 42
+    assert skel.coordinate_frame_orientation == "+X+Y+Z"
+    assert skel.voxel_centered is True
+
+def test_serialization_roundtrip(sample_skeleton):
+    skel = sample_skeleton
+    data = skel.to_bytes()
+    restored = OstdSkeleton.from_bytes(data)
+
+    np.testing.assert_array_equal(restored.vertices, skel.vertices)
+    np.testing.assert_array_equal(restored.edges, skel.edges)
+    assert restored.id == skel.id
+    assert restored.coordinate_frame_orientation == skel.coordinate_frame_orientation
+    assert restored.voxel_centered == skel.voxel_centered
+
+def test_serialization_determinism(sample_skeleton):
+    data1 = sample_skeleton.to_bytes()
+    data2 = sample_skeleton.to_bytes()
+    assert data1 == data2
+
+def test_from_bytes_invalid():
+    with pytest.raises(Exception):
+        OstdSkeleton.from_bytes(b"invalid_data")
