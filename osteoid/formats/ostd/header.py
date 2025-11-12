@@ -461,7 +461,7 @@ class OstdAttributeSection:
     ]
     header += [ attr.to_bytes(name_width) for attr in self.attributes ]
     binary = b''.join(header)
-    binary += lib.crc16(binary)
+    binary += lib.crc16(binary).to_bytes(2, 'little')
     return binary
 
   @classmethod
