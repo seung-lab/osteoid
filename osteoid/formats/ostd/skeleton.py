@@ -1,4 +1,7 @@
+from typing import Optional, Any
+
 from collections import OrderedDict
+from dataclasses import dataclass
 from functools import partial
 
 from enum import IntEnum
@@ -19,6 +22,7 @@ from .types import (
   AttributeType,
   CompressionType, 
   EdgeRepresentationType,
+  LengthType,
   SIPrefixType,
   SpaceType,
   length_conversion_factor,
@@ -31,10 +35,10 @@ from .types import (
 @dataclass
 class OstdSkeletonPart:
   header:OstdHeader
-  spaces:Optional[OstdTransformSection] = None
-  spatial_index:Optional[OstdSpatialIndex] = None
   vertices:npt.NDArray[np.generic]
   edges:npt.NDArray[np.unsignedinteger]
+  spaces:Optional[OstdTransformSection] = None
+  spatial_index:Optional[OstdSpatialIndex] = None
   attributes:Optional[
     OrderedDict[str,tuple[tuple[SIPrefixType, IntEnum], npt.NDArray[np.generic]]]
   ] = None
@@ -227,7 +231,7 @@ class OstdSkeleton:
     return np.concatenate(verts)
 
   @property
-  def edges(self) -> np.NDArray[np.uint64]:
+  def edges(self) -> npt.NDArray[np.uint64]:
     if len(self.parts) <= 1:
       return self.parts[0].edges
 

@@ -4,6 +4,7 @@ import numpy as np
 # Assuming these enums and types are available from your module
 from osteoid.formats.ostd import (
     OstdHeader,
+    OstdSkeleton,
     OstdTransformSection,
     OstdTransform,
     DataType,
@@ -95,8 +96,6 @@ def test_crc_mismatch_detection(sample_transform):
     with pytest.raises(ValueError, match="Header corruption detected"):
         OstdTransformSection.from_bytes(bytes(data))
 
-
-
 @pytest.fixture
 def sample_skeleton():
     vertices = np.array([
@@ -110,7 +109,12 @@ def sample_skeleton():
         [1, 2],
     ], dtype=np.uint64)
 
-    return OstdSkeleton.create(vertices, edges, id=42, coordinate_frame_orientation="+X+Y+Z", voxel_centered=True)
+    return OstdSkeleton.create(
+        vertices, edges, 
+        id=42,
+        coordinate_frame_orientation="+X+Y+Z",
+        voxel_centered=True
+    )
 
 def test_create_properties(sample_skeleton):
     skel = sample_skeleton
