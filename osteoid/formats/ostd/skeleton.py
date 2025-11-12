@@ -225,7 +225,8 @@ class OstdSkeleton:
 
   @property
   def physical_length(self) -> float:
-    master_si_unit, master_base_unit = self.parts[0].header.length_unit
+    master_unit = self.parts[0].header.length_unit
+    master_si_unit, master_base_unit = master_unit
     master_si_value = SI_PREFIX_VALUE[master_si_unit]
 
     physical_length = 0
@@ -234,11 +235,11 @@ class OstdSkeleton:
         # NB: Would be possible to compute this on demand....
         raise ValueError("NaN encountered in physical length reporting.")
 
-      if part.header.unit == master_unit:
+      if part.header.length_unit == master_unit:
         physical_length += part.header.physical_length
         continue
 
-      si_unit, base_unit = part.header.unit
+      si_unit, base_unit = part.header.length_unit
       si_conversion = (master_si_value / SI_PREFIX_VALUE[si_unit])
       base_conversion = length_conversion_factor(base_unit, master_base_unit)
       physical_length += part.header.physical_length * (si_conversion * base_conversion)
