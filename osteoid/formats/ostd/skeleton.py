@@ -76,12 +76,9 @@ class OstdSkeletonPart:
       return
 
     verts = self.vertices
-    
-    ones = np.ones((verts.shape[0], 1), dtype=verts.dtype)
-    verts = np.hstack([verts, ones])
-
     src_space = self.header.space
-    total_transform = np.eye(4, dtype=verts.dtype)
+    identity = np.eye(4, dtype=verts.dtype)
+    total_transform = identity
 
     if src_space != 0:
       # transform from src space to voxels
@@ -93,9 +90,14 @@ class OstdSkeletonPart:
       vox_to_dst = self.spaces[idx].transform
       total_transform = total_transform @ vox_to_dst
 
-    verts = verts @ total_transform.T
-    verts[:, :3] /= verts[:, 3:4]
-    self.vertices = verts[:, :3]
+    if not np.all(total_transform == identity):
+      ones = np.ones((verts.shape[0], 1), dtype=verts.dtype)
+      verts = np.hstack([verts, ones])
+      del ones
+      verts = verts @ total_transform.T
+      verts[:, :3] /= verts[:, 3:4]
+      self.vertices = verts[:, :3]
+
     self.header.space = idx
 
   @classmethod
