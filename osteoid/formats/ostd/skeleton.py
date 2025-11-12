@@ -68,6 +68,36 @@ class OstdSkeletonPart:
       edge_binary,
     ])
 
+  def change_space(self, idx:int):
+    if idx < 0 or idx >= len(self.spaces.spaces) or idx > 255:
+      raise ValueError(f"No transform exists for this space index. {idx} (max: {len(self.spaces.spaces)})")
+
+    if idx == self.header.space:
+      return
+
+    verts = self.vertices
+    
+    ones = np.ones((verts.shape[0], 1), dtype=verts.dtype)
+    verts = np.hstack([verts, ones])
+
+    src_space = self.header.space
+    total_transform = np.eye(4, dtype=verts.dtype)
+
+    if src_space != 0:
+      # transform from src space to voxels
+      src_to_vox = np.linalg.inv(self.spaces[src_space].transform)
+      total_transform = total_transform @ src_to_vox
+
+    if idx != 0:
+      # transform from voxels to target space
+      vox_to_dst = self.spaces[idx].transform
+      total_transform = total_transform @ vox_to_dst
+
+    verts = verts @ total_transform.T
+    verts[:, :3] /= verts[:, 3:4]
+    self.vertices = verts[:, :3]
+    self.header.space = idx
+
   @classmethod
   def from_bytes(kls, binary:bytes, offset:int = 0) -> "OstdSkeletonPart":
     header = OstdHeader.from_bytes(binary, offset=offset)
