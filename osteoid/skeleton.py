@@ -1032,8 +1032,8 @@ class Skeleton:
       edges=oskel.edges,
       transform=oskel.transforms[0][:,:3],
       segid=oskel.id,
-      radii=oskel.a.radius(),
-      vertex_types=oskel.vertex_types(),
+      radii=(oskel.a.radius if "radius" in oskel.a else None),
+      vertex_types=(oskel.a.vertex_types if "vertex_types" in oskel.a else None),
     )
 
   @classmethod
