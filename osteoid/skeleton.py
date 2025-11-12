@@ -1025,6 +1025,18 @@ class Skeleton:
     )
 
   @classmethod
+  def from_ostd(self, binary:bytes) -> "Skeleton":
+    oskel = formats.from_ostd(binary)
+    return Skeleton(
+      vertices=oskel.vertices,
+      edges=oskel.edges,
+      transform=oskel.transforms[0][:,:3],
+      segid=oskel.id,
+      radii=oskel.a.radius(),
+      vertex_types=oskel.vertex_types(),
+    )
+
+  @classmethod
   def from_swc(self, swcstr:str) -> "Skeleton":
     """
     The SWC format was first defined in 

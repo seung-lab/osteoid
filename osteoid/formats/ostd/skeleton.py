@@ -30,6 +30,7 @@ from .types import (
   length_conversion_factor,
   TO_DATATYPE,
   SI_PREFIX_VALUE,
+  TO_LENGTH_UNIT,
   FROM_LENGTH_UNIT,
 )
 
@@ -87,7 +88,7 @@ class OstdSkeletonPart:
 
     if idx != 0:
       # transform from voxels to target space
-      vox_to_dst = self.spaces[idx].transform
+      vox_to_dst = self.spaces[idx - 1].transform
       total_transform = total_transform @ vox_to_dst
 
     if not np.allclose(total_transform, identity):
@@ -176,15 +177,37 @@ class OstdSkeletonPart:
       attributes=attributes,
     )
 
+class OstdSkeletonProperties:
+  def __init__(self):
+    self.props = {}
+
+  def __getattr__(self, key:str):
+    if key not in self.props:
+      raise AttributeError(f"skeleton property has no attribute \"{key}\"")
+
+    val = self.props[key]
+    if callable(val):
+      return val()
+    return val
+
 # represents a full skeleton including
 # multiple parts
 class OstdSkeleton:
   def __init__(self, parts:list[OstdSkeletonPart] = []):
     self.parts = parts
+    self.a = OstdSkeletonProperties()
 
   @property
-  def id(self):
+  def id(self) -> int:
     return self.parts[0].header.id
+
+  @property
+  def spaces(self):
+    return self.parts[0].spaces
+
+  @property
+  def transforms(self):
+    return [ space.transform for space in self.parts[0].spaces ]
 
   @property
   def coordinate_frame_orientation(self):
@@ -305,6 +328,7 @@ class OstdSkeleton:
   def create(kls, 
     vertices:npt.NDArray[np.generic], 
     edges:npt.NDArray[np.unsignedinteger],
+    length_unit:str = "nm",
     id:Optional[int] = None,
     spaces:list = [],
     coordinate_frame_orientation:str = "+X+Y+Z",
@@ -320,6 +344,7 @@ class OstdSkeleton:
       edge_representation = EdgeRepresentationType.PAIR,
       has_transform = False,
       id = id,
+      length_unit = TO_LENGTH_UNIT[length_unit.lower()],
       num_axes = vertices.shape[1],
       vertex_data_type = TO_DATATYPE[np.dtype(vertices.dtype).type],
       voxel_centered = bool(voxel_centered),
