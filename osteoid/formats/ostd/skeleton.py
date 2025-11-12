@@ -95,27 +95,26 @@ class OstdSkeletonPart:
     if header.edge_compression != CompressionType.NONE:
       raise ValueError(f"Compression not yet supported.")
 
-    vertex_bytes = binary[off:off+header.vertex_bytes]
-    off += header.vertex_bytes
-
     vertices = np.frombuffer(
-      vertex_bytes, 
+      binary,
+      offset=off,
       count=(header.Nv * header.num_axes),
       dtype=header.vertex_dtype,
     ).reshape((header.Nv, header.num_axes), order="C")
-    del vertex_bytes
+
+    off += header.vertex_bytes
 
     if header.edge_representation != EdgeRepresentationType.PAIR:
       raise ValueError("Only edge lists are currently supported.")
 
-    edge_bytes = binary[off:off+header.edge_bytes]
-    off += header.edge_bytes
-
     edges = np.frombuffer(
-      edge_bytes, 
-      count=header.Ne, 
+      binary, 
+      offset=off,
+      count=header.Ne * 2, 
       dtype=header.edge_dtype
     ).reshape((header.Ne, 2), order="C")
+
+    off += header.edge_bytes
 
     attribute_header = None
     attributes = OrderedDict()
