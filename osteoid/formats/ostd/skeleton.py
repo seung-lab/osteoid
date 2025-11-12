@@ -26,6 +26,7 @@ from .types import (
   SIPrefixType,
   SpaceType,
   length_conversion_factor,
+  TO_DATATYPE,
   SI_PREFIX_VALUE,
   FROM_LENGTH_UNIT,
 )
@@ -144,9 +145,9 @@ class OstdSkeletonPart:
 
 # represents a full skeleton including
 # multiple parts
-@dataclass
 class OstdSkeleton:
-  parts:list[OstdSkeletonPart] = []
+  def __init__(self, parts:list[OstdSkeletonPart] = []):
+    self.parts = parts
 
   def is_consistent(self) -> bool:
     """
