@@ -398,7 +398,8 @@ class OstdAttribute:
     units |= (base_unit_value & 0b11111) << 8
     return units
 
-  def decode_units(self, units:int) -> tuple[SIPrefixType, Any]:
+  @classmethod
+  def decode_units(kls, units:int) -> tuple[SIPrefixType, Any]:
     DimensionTypeClass = TO_QUANTITY_TYPE[int(units & 0b111)]
     si_prefix = SIPrefixType((units >> 3) & 0b11111)
     dimension = DimensionTypeClass((units >> (3+5)) & 0b1111)
@@ -425,7 +426,7 @@ class OstdAttribute:
     self.attribute_type = AttributeType(read_int(1))
 
   @classmethod
-  def from_bytes(self, binary:bytes, name_width:int) -> "OstdAttribute":
+  def from_bytes(kls, binary:bytes, name_width:int) -> "OstdAttribute":
 
     attr = OstdAttribute()
 
@@ -439,7 +440,7 @@ class OstdAttribute:
     offset = name_width + 2
 
     unit_info = int.from_bytes(binary[offset:offset + 2], 'little')
-    attr.unit = self.decode_units(unit_info)
+    attr.unit = OstdAttribute.decode_units(unit_info)
 
     offset += 2
     attr.num_components = int.from_bytes(binary[offset:offset+1], 'little')
