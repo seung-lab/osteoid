@@ -93,7 +93,7 @@ def test_crc_mismatch_detection(sample_transform):
     section = OstdTransformSection(spaces=[sample_transform])
     data = bytearray(section.to_bytes())
     data[-1] ^= 0xFF  # corrupt CRC
-    with pytest.raises(ValueError, match="Header corruption detected"):
+    with pytest.raises(ValueError, match="Transform header corruption detected"):
         OstdTransformSection.from_bytes(bytes(data))
 
 @pytest.fixture
