@@ -362,7 +362,7 @@ TO_DATATYPE = {
 }
 FROM_DATATYPE = { v:k for k,v in TO_DATATYPE.items() }
 
-QUANTITY_TYPE = {
+TO_QUANTITY_TYPE = {
   0: LengthType,
   1: AreaType,
   2: VolumeType,
@@ -374,6 +374,7 @@ QUANTITY_TYPE = {
   8: SubstanceAmount,
   9: EnergyType,
 }
+FROM_QUANTITY_TYPE = { v:k for v,k in TO_QUANTITY_TYPE.items() }
 
 def human_readable(prefix:SIPrefixType, unit:IntEnum) -> str:
   return f"{prefix}{unit}"
