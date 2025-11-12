@@ -34,71 +34,83 @@ py::array to_numpy(
 }
 
 template <typename T>
-std::tuple<T*, uint64_t> unique(T* input, uint64_t N) {
-	if (N == 0) {
-		return std::make_tuple(new T[0](), 0);
+py::array_t<T> pairs_to_numpy(const std::vector<std::pair<T, T>>& pairs) {
+    size_t n = pairs.size();
+
+    // Create an uninitialized NumPy array of shape (n, 2)
+    py::array_t<T> arr({n, size_t(2)});
+    auto buf = arr.template mutable_unchecked<2>();
+
+    for (size_t i = 0; i < n; ++i) {
+        buf(i, 0) = pairs[i].first;
+        buf(i, 1) = pairs[i].second;
+    }
+
+    return arr;
+}
+
+template <typename T>
+std::vector<std::pair<T,T>> unique(
+	std::vector<std::pair<T,T>>& input
+) {
+	if (input.size() == 0) {
+		return std::vector<std::pair<T,T>>();
 	}
 
-	std::sort(input, input + N);
+	std::sort(input.begin(), input.end());
+	
+	const uint64_t N = input.size();
 
-	uint64_t uniq = (N > 0) ? 1 : 0;
+	std::vector<std::pair<T,T>> uniq;
+	uniq.reserve(N / 10);
+
+	if (N >= 2 && input[0] != input[1]) {
+		uniq.push_back(input[N-1]);
+	}
+
 	for (uint64_t i = 1; i < N; i++) {
 		if (input[i] != input[i-1]) {
-			uniq++;
+			uniq.push_back(input[i]);
 		}
 	}
 
-	T* uniq_data = new T[uniq];
-	uniq_data[0] = input[0];
-	uint64_t j = 1;
-	for (uint64_t i = 1; i < N; i++) {
-		if (input[i] != input[i-1]) {
-			uniq_data[j] = input[i];
-			j++;
-		}
-	}
-
-	return std::make_tuple(uniq_data, j);
+	return uniq;
 }
 
-uint64_t make_edge(const uint32_t lower, const uint32_t upper) {
-	return static_cast<uint64_t>(lower) | (static_cast<uint64_t>(upper) << 32);
-}
-
-
-py::list compute_components(
-	const py::array_t<uint32_t> &edges_arr,
+template <typename EDGE_T>
+py::list compute_components_impl(
+	const py::array_t<EDGE_T> &edges_arr,
 	const uint64_t Nv
 ) {
 	const uint64_t Ne = edges_arr.size() >> 1;
 
     py::buffer_info buf = edges_arr.request();
 
-    if (buf.ndim != 2 || buf.strides[1] != sizeof(uint32_t)) {
+    if (buf.ndim != 2 || buf.strides[1] != sizeof(EDGE_T)) {
         throw std::runtime_error("Array must be 2D and C-contiguous");
     }
 
-    uint32_t* edges = static_cast<uint32_t*>(buf.ptr);
+    EDGE_T* edges = static_cast<EDGE_T*>(buf.ptr);
 
 	std::vector<bool> visited(Nv);
-	std::vector< ankerl::unordered_dense::set<uint32_t> > index(Nv);
+	std::vector< ankerl::unordered_dense::set<EDGE_T> > index(Nv);
 
 	for (size_t i = 0; i < 2 * Ne; i += 2) {
-		uint32_t e1 = edges[i];
-		uint32_t e2 = edges[i+1];
+		EDGE_T e1 = edges[i];
+		EDGE_T e2 = edges[i+1];
 
 		index[e1].insert(e2);
 		index[e2].insert(e1);
 	}
 
-	auto extract_component = [&](uint32_t start){
-		std::vector<uint64_t> edge_list;
-		std::vector<uint32_t> stack = { start };
-		std::vector<uint32_t> parents = { std::numeric_limits<uint32_t>::max() };
+	auto extract_component = [&](EDGE_T start) -> py::array_t<EDGE_T> {
+		std::vector<std::pair<EDGE_T, EDGE_T>> edge_list;
+		std::vector<EDGE_T> stack = { start };
+		std::vector<EDGE_T> parents = { std::numeric_limits<EDGE_T>::max() };
 
 		while (stack.size()) {
-			uint32_t node = stack.back();
-			uint32_t parent = parents.back();
+			EDGE_T node = stack.back();
+			EDGE_T parent = parents.back();
  
 			stack.pop_back();
 			parents.pop_back();
@@ -107,10 +119,10 @@ py::list compute_components(
 				continue;
 			}
 			else if (node < parent) {
-				edge_list.push_back(make_edge(node, parent));
+				edge_list.emplace_back(node, parent);
 			}
 			else {
-				edge_list.push_back(make_edge(parent, node));
+				edge_list.emplace_back(parent, node);
 			}
 
 			// check visited after because you can visit a node 
@@ -122,7 +134,7 @@ py::list compute_components(
 
 			visited[node] = true;
 
-			for (uint32_t child : index[node]) {
+			for (EDGE_T child : index[node]) {
 				stack.push_back(child);
 				parents.push_back(node);
 			}
@@ -132,17 +144,13 @@ py::list compute_components(
 			return py::array(py::dtype("uint32"), {0, 2});
 		}
 
-		auto [uniq_data, num_uniq] = unique<uint64_t>(
-			reinterpret_cast<uint64_t*>(edge_list.data() + 1), edge_list.size() - 1
-		);
-
-		uint32_t* uniq_pairs = reinterpret_cast<uint32_t*>(uniq_data);
-		return to_numpy<uint32_t>(uniq_pairs, num_uniq, 2);
+		auto uniq = unique<EDGE_T>(edge_list);
+		return pairs_to_numpy<EDGE_T>(uniq);
 	};
 
 	py::list forest;
 	for (size_t i = 0; i < Ne * 2; i += 2) {
-		uint32_t edge = edges[i];
+		EDGE_T edge = edges[i];
 
 		if (visited[edge]) {
 			continue;
@@ -154,6 +162,32 @@ py::list compute_components(
 	}
 
 	return forest;
+}
+
+py::list compute_components(
+	const py::array &edges_arr,
+	const uint64_t Nv
+) {
+    py::buffer_info buf = edges_arr.request();
+
+    if (buf.ndim != 2 || buf.strides[1] != sizeof(uint32_t)) {
+        throw std::runtime_error("Array must be 2D and C-contiguous");
+    }
+
+    int data_width = edges_arr.dtype().itemsize();
+
+    if (data_width == 1) {
+    	return compute_components_impl<uint8_t>(edges_arr, Nv);
+    }
+    else if (data_width == 2) {
+    	return compute_components_impl<uint16_t>(edges_arr, Nv);
+    }
+    else if (data_width == 4) {
+    	return compute_components_impl<uint32_t>(edges_arr, Nv);
+    }
+    else {
+    	return compute_components_impl<uint64_t>(edges_arr, Nv);
+    }
 }
 
 PYBIND11_MODULE(fastosteoid, m) {
