@@ -313,13 +313,6 @@ class SpaceType(IntEnum):
   MODEL = 10
   CAMERA = 11
 
-@dataclass
-class CoordinateFrame:
-  sign_x:bool
-  sign_y:bool
-  sign_z:bool
-  permutation:AxisPermutationType
-
 class AxisPermutationType(IntEnum):
   XYZ = 0
   XZY = 1
@@ -329,6 +322,13 @@ class AxisPermutationType(IntEnum):
   ZYX = 5
   XY = 6
   YX = 7
+
+@dataclass
+class CoordinateFrame:
+  sign_x:bool
+  sign_y:bool
+  sign_z:bool
+  permutation:AxisPermutationType
 
 class AttributeType(IntEnum):
   VERTEX = 0
