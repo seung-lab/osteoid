@@ -1,6 +1,5 @@
 from typing import Optional, Any
 
-from io import BytesIO
 import struct
 
 import numpy as np
