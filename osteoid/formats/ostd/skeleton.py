@@ -516,10 +516,10 @@ class OstdSkeleton:
       return skel
 
     def getattribute(skel:OstdSkeleton, name:str) -> np.ndarray:
-      return np.concatenate(( part.attributes[name][1] for part in skel.parts ))
+      return np.concatenate([ part.attributes[name][1] for part in skel.parts ])
 
     for name in parts[0].attributes:
-      skel.a._props["name"] = partial(getattribute, skel, name)
+      skel.a._props[name] = partial(getattribute, skel, name)
 
     return skel
 
