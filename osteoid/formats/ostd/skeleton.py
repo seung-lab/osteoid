@@ -96,10 +96,16 @@ class OstdSkeletonPart:
     return self.header.cable_length
 
   def num_components(self) -> int:
-    if self.header.num_components < np.iinfo(self.header.edge_dtype).max:
+    sentinel = np.iinfo(np.uint32).max
+
+    if self.header.num_components < sentinel:
       return self.header.num_components
 
     forest = fastosteoid.compute_components(self.edges, self.header.Nv)
+
+    if len(forest) >= sentinel:
+      raise ValueError("Number of components exceeds maximum representable value.")
+
     self.header.num_components = len(forest)
     return len(forest)
 
