@@ -61,7 +61,7 @@ class OstdHeader:
     num_axes:int = 3,
     num_components:int = np.iinfo(np.uint32).max,
     length_unit:Union[str, tuple[SIPrefixType, IntEnum]] = (SIPrefixType.NANO, LengthType.METER),
-    physical_path_length:float = float('NaN'),
+    cable_length:float = float('NaN'),
     space:int = 0,
     spatial_index_bytes:int = 0,
     total_bytes:int = 0,
@@ -96,7 +96,7 @@ class OstdHeader:
     self.has_transform = bool(has_transform)
     self.num_axes = num_axes
     self.num_components = int(num_components)
-    self.physical_path_length = float(physical_path_length)
+    self.cable_length = float(cable_length)
 
     self.vertex_bytes = vertex_bytes
     self.edge_bytes = edge_bytes
@@ -207,7 +207,7 @@ class OstdHeader:
     hb = OstdHeader.HEADER_BYTES
     stored_crc16 = int.from_bytes(binary[offset+hb-2:offset+hb], 'little')
     computed_crc16 = lib.crc16(binary[offset+len(OstdHeader.MAGIC):offset+hb-2])
-    print(stored_crc16, computed_crc16)
+    
     if stored_crc16 != computed_crc16:
       raise ValueError(f"Header corruption detected. Stored CRC16: {stored_crc16}, Computed CRC16: {computed_crc16}")
 
@@ -241,7 +241,7 @@ class OstdHeader:
     spatial_index_bytes = read_int(4)
     attribute_header_bytes = read_int(4)
     num_components = read_int(4)
-    physical_path_length = read_float()
+    cable_length = read_float()
     current_space = read_int(1)
     crc16 = read_int(2)
 
@@ -254,7 +254,7 @@ class OstdHeader:
       spatial_index_bytes=spatial_index_bytes,
       attribute_header_bytes=attribute_header_bytes,
       num_components=num_components,
-      physical_path_length=physical_path_length,
+      cable_length=cable_length,
       space=current_space,
       format_version=format_version,
       crc16=crc16,
@@ -276,7 +276,7 @@ class OstdHeader:
       int(self.spatial_index_bytes).to_bytes(4, 'little'),
       int(self.attribute_header_bytes).to_bytes(4, 'little'),
       int(self.num_components).to_bytes(4, 'little'),
-      struct.pack('<f', self.physical_path_length),
+      struct.pack('<f', self.cable_length),
       int(self.space).to_bytes(1),
     ])
     header_crc16 = lib.crc16(header)

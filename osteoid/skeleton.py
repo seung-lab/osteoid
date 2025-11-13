@@ -1045,7 +1045,7 @@ class Skeleton:
       id=self.id,
       vertices=self.vertices,
       edges=self.edges,
-      spaces=[ (formats.ostd.SpaceType.ALIGNED, transform) ],
+      spaces=[ (formats.ostd.SpaceType.PHYSICAL, transform) ],
       length_unit=unit,
       coordinate_frame_orientation=coordinate_frame,
       voxel_centered=True,

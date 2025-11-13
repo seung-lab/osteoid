@@ -8,41 +8,41 @@
 #include <vector>
 #include <limits>
 
-#include "builtins.hpp"
+// #include "builtins.hpp"
 #include "unordered_dense.hpp"
 
 namespace py = pybind11;
 
-uint64_t c_eytzinger_binary_search(uint64_t x, uint64_t* array, size_t N) {
-    // int64_t block_size = 8; // two cache lines 64 * 2 / 8
-    uint64_t k = 1;
-    while (k <= (uint64_t)N) {
-        // __builtin_prefetch(array + k * block_size);
-        // multiply by 2 b/c index is [label, pos, label, pos]
-        k = 2 * k + (array[(k - 1) << 1] < x); 
-    }
-    k >>= mb_ffs(~k);
-    k -= 1;
+// uint64_t c_eytzinger_binary_search(uint64_t x, uint64_t* array, size_t N) {
+//     // int64_t block_size = 8; // two cache lines 64 * 2 / 8
+//     uint64_t k = 1;
+//     while (k <= (uint64_t)N) {
+//         // __builtin_prefetch(array + k * block_size);
+//         // multiply by 2 b/c index is [label, pos, label, pos]
+//         k = 2 * k + (array[(k - 1) << 1] < x); 
+//     }
+//     k >>= mb_ffs(~k);
+//     k -= 1;
 
-    if (k >= 0 && array[k << 1] == x) {
-        return k;
-    }
+//     if (k >= 0 && array[k << 1] == x) {
+//         return k;
+//     }
 
-    return -1;
-}
+//     return -1;
+// }
 
-uint32_t c_eytzinger_sort_indices(
-    uint32_t* array, uint32_t n, 
-    uint32_t i /*=0*/, uint32_t k /*=1*/
-) {
-    if (k <= n) {
-        i = c_eytzinger_sort_indices(array, n, i, 2 * k);
-        array[k-1] = i;
-        i++;
-        i = c_eytzinger_sort_indices(array, n, i, 2 * k + 1);
-    }
-    return i;
-}
+// uint32_t c_eytzinger_sort_indices(
+//     uint32_t* array, uint32_t n, 
+//     uint32_t i /*=0*/, uint32_t k /*=1*/
+// ) {
+//     if (k <= n) {
+//         i = c_eytzinger_sort_indices(array, n, i, 2 * k);
+//         array[k-1] = i;
+//         i++;
+//         i = c_eytzinger_sort_indices(array, n, i, 2 * k + 1);
+//     }
+//     return i;
+// }
 
 
 
