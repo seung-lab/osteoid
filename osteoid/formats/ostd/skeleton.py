@@ -329,18 +329,16 @@ class OstdSkeleton:
 
     physical_length = 0
     for part in self.parts:
-      if np.isnan(part.header.cable_length):
-        # NB: Would be possible to compute this on demand....
-        raise ValueError("NaN encountered in physical length reporting.")
+      part_length = part.cable_length()
 
       if part.header.length_unit == master_unit:
-        physical_length += part.header.cable_length
+        physical_length += part_length
         continue
 
       si_unit, base_unit = part.header.length_unit
       si_conversion = (master_si_value / SI_PREFIX_VALUE[si_unit])
       base_conversion = length_conversion_factor(base_unit, master_base_unit)
-      physical_length += part.header.cable_length * (si_conversion * base_conversion)
+      physical_length += part_length * (si_conversion * base_conversion)
 
     return physical_length
 
