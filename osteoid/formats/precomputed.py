@@ -1,5 +1,7 @@
 from typing import Optional, Any
 
+import struct
+
 import numpy as np
 
 def to_precomputed(skeleton:"Skeleton") -> bytes:

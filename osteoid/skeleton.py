@@ -1057,7 +1057,7 @@ class Skeleton:
 
     if "cross_sectional_area" in attributes:
       xs_unit = TO_LENGTH_UNIT[unit]
-      xs_unit = (xs_unit[0], AreaType(xs_unit.value))
+      xs_unit = (xs_unit[0], AreaType(xs_unit[1].value))
       attributes["cross_sectional_area"] = (xs_unit, self.cross_sectional_area)
 
     return formats.ostd.OstdSkeleton.create(
