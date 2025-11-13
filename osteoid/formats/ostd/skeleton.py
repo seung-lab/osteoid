@@ -95,8 +95,7 @@ class OstdSkeletonPart:
       self.header.spatial_index_bytes +
       self.header.vertex_bytes + 
       self.header.edge_bytes + 
-      len(attributes_binary) + 
-      self.header.attribute_header_bytes
+      len(attributes_binary)
     )
 
     return b''.join([
