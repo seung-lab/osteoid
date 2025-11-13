@@ -300,18 +300,19 @@ Note: Only None is currently supported.
 
 ### Physical Unit Type
 
-| Unit Type        | Value |
-|------------------|-------|
-| Length           | 0     |
-| Area             | 1     |
-| Volume           | 2     |
-| Time             | 3     |
-| Mass             | 4     |
-| Temperature      | 5     |
-| Luminosity       | 6     |
-| Electrical       | 7     |
-| Substance Amount | 8     |
-| Energy           | 9     |
+| Unit Type         | Value |
+|-------------------|-------|
+| AreaType          | 0     |    
+| DimensionlessType | 1     |             
+| ElectricalType    | 2     |          
+| EnergyType        | 3     |      
+| LengthType        | 4     |      
+| LuminosityType    | 5     |          
+| MassType          | 6     |    
+| SubstanceAmount   | 7     |           
+| TemperatureType   | 8     |           
+| TimeType          | 9     |    
+| VolumeType        | 10    |      
 
 ### SI Prefix
 
@@ -349,20 +350,21 @@ Note: Only None is currently supported.
 
 4 bits
 
-| Unit                  | Value |
-|-----------------------|-------|
-| voxel (dimensionless) | 0     |
-| meter                 | 1     |
-| angstrom              | 2     | 
-| astronomical unit     | 3     |
-| lightyear             | 4     |
-| parsec                | 5     |
-| mil (1/1000 inch)     | 6     |
-| inch                  | 7     |
-| foot                  | 8     |
-| yard                  | 9     |
-| statute mile          | 10    |
-| nautical mile         | 11    |
+| Unit                   | Value |
+|------------------------|-------|
+| unknown (dimensionless)| 0     |
+| voxel (dimensionless)  | 1     |
+| meter                  | 2     |
+| angstrom               | 3     | 
+| astronomical unit      | 4     |
+| lightyear              | 5     |
+| parsec                 | 6     |
+| mil (1/1000 inch)      | 7     |
+| inch                   | 8     |
+| foot                   | 9     |
+| yard                   | 10    |
+| statute mile           | 11    |
+| nautical mile          | 12    |
 
 ### Area Type
 
@@ -380,7 +382,7 @@ The following values are added in addition.
 
 | Unit                  | Value |
 |-----------------------|-------|
-| liter                 | 12    |
+| liter                 | 13    |
 
 ### Temperature Type
 
@@ -478,13 +480,6 @@ The following values are added in addition.
 This value is advisory and does not control the edge representation. 
 This is because a tree can be represented as an edge list. See edge representation.
 
-### Current Space Type
-
-| Space                 | Value |
-|-----------------------|-------|
-| voxel                 | 0     |
-| transformed           | 1     |
-
 ### Space Type
 
 | Space                        | Value |
@@ -512,3 +507,5 @@ This is because a tree can be represented as an edge list. See edge representati
 | YZX    | 3     |
 | ZXY    | 4     |
 | ZYX    | 5     |
+| XY     | 6     |
+| YX     | 7     |
