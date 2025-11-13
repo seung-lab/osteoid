@@ -1,4 +1,4 @@
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 import copy
 import datetime
 from enum import IntEnum
@@ -1037,18 +1037,38 @@ class Skeleton:
     )
 
   def to_ostd(self, unit:str = "nm", coordinate_frame:str = "+X-Y-Z") -> bytes:
+    from .formats.ostd import OstdSkeleton
+    from .formats.ostd.types import (
+      TO_LENGTH_UNIT, SIPrefixType, 
+      DimensionlessType, LengthType, AreaType,
+    )
     transform = self.transform
     ones = np.ones((1, 4), dtype=transform.dtype)
     transform = np.vstack((transform, ones))
-    
+
+    attributes = OrderedDict([
+      (attr["id"], ((SIPrefixType.NONE, DimensionlessType.UNKNOWN), getattr(self, attr["id"])))
+      for attr in self.extra_attributes
+    ])
+
+    if "radius" in attributes:
+      radius_unit = TO_LENGTH_UNIT[unit]
+      attributes["radius"] = (radius_unit, self.radii)
+
+    if "cross_sectional_area" in attributes:
+      xs_unit = TO_LENGTH_UNIT[unit]
+      xs_unit = (xs_unit[0], AreaType(xs_unit.value))
+      attributes["cross_sectional_area"] = (xs_unit, self.cross_sectional_area)
+
     return formats.ostd.OstdSkeleton.create(
       id=self.id,
-      vertices=self.vertices,
+      vertices=self.voxel_space().vertices,
       edges=self.edges,
       spaces=[ (formats.ostd.SpaceType.PHYSICAL, transform) ],
       length_unit=unit,
       coordinate_frame_orientation=coordinate_frame,
       voxel_centered=True,
+      attributes=attributes,
     ).to_bytes()
 
   @classmethod

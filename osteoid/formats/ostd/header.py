@@ -379,7 +379,7 @@ class OstdAttribute:
       raise ValueError(f"Only 15 components supported per an attribute. Got {self.num_components} for {self.name}.")
 
     name = bytearray(name_width)
-    name[:len(self.name)] = self.name
+    name[:len(self.name)] = self.name.encode('utf8')
     flags = self.encode_flags()
     units = self.encode_units()
 
