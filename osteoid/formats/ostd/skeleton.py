@@ -82,8 +82,11 @@ class OstdSkeletonPart:
     original_space = self.header.space
     self.physical_space()
 
-    v1 = self.vertices[self.edges[:,0]]
-    v2 = self.vertices[self.edges[:,1]]
+    verts = self.vertices
+    edges = self.edges
+
+    v1 = verts[edges[:,0]]
+    v2 = verts[edges[:,1]]
 
     delta = (v2 - v1)
     delta *= delta
