@@ -327,7 +327,7 @@ class OstdSkeleton:
 
   @property
   def transforms(self):
-    return [ space.transform for space in self.parts[0].spaces ]
+    return [ space.transform for space in self.parts[0].spaces.spaces ]
 
   @property
   def coordinate_frame_orientation(self):
