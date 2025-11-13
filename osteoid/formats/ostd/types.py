@@ -93,20 +93,22 @@ SI_PREFIX_VALUE = {
 }
 
 class LengthType(IntEnum):
-  VOXEL = 0
-  METER = 1
-  ANGSTROM = 2
-  ASTRONOMICAL_UNIT = 3
-  LIGHTYEAR = 4
-  PARSEC = 5
-  MIL = 6
-  INCH = 7
-  FOOT = 8
-  YARD = 9
-  STATUTE_MILE = 10
-  NAUTICAL_MILE = 11
+  UNKNOWN = 0
+  VOXEL = 1
+  METER = 2
+  ANGSTROM = 3
+  ASTRONOMICAL_UNIT = 4
+  LIGHTYEAR = 5
+  PARSEC = 6
+  MIL = 7
+  INCH = 8
+  FOOT = 9
+  YARD = 10
+  STATUTE_MILE = 11
+  NAUTICAL_MILE = 12
 
 LENGTH_SYMBOLS = {
+  LengthType.UNKNOWN: "",
   LengthType.VOXEL: "vx",
   LengthType.METER: "m",
   LengthType.ANGSTROM: "Å",
@@ -124,6 +126,7 @@ LENGTH_SYMBOLS = {
 LengthType.__str__ = lambda self: LENGTH_SYMBOLS[self]
 
 LENGTH_CONVERSION_FACTORS = {
+  (LengthType.UNKNOWN, LengthType.METER): float('NaN'),
   (LengthType.VOXEL, LengthType.METER): float('NaN'),
   (LengthType.METER, LengthType.METER): 1.0,
   (LengthType.ANGSTROM, LengthType.METER): 1e-10,
@@ -148,40 +151,40 @@ def length_conversion_factor(unit1:LengthType, unit2:LengthType) -> float:
   return u2_meters / u1_meters
 
 class AreaType(IntEnum):
-  VOXEL = 0
-  METER = 1
-  ANGSTROM = 2
-  ASTRONOMICAL_UNIT = 3
-  LIGHTYEAR = 4
-  PARSEC = 5
-  MIL = 6
-  INCH = 7
-  FOOT = 8
-  YARD = 9
-  STATUTE_MILE = 10
-  NAUTICAL_MILE = 11
+  UNKNOWN = 0
+  VOXEL = 1
+  METER = 2
+  ANGSTROM = 3
+  ASTRONOMICAL_UNIT = 4
+  LIGHTYEAR = 5
+  PARSEC = 6
+  MIL = 7
+  INCH = 8
+  FOOT = 9
+  YARD = 10
+  STATUTE_MILE = 11
+  NAUTICAL_MILE = 12
 
 AreaType.__str__ = lambda self: f"{LENGTH_SYMBOLS[self]}^2"
 
 class VolumeType(IntEnum):
-  VOXEL = 0
-  METER = 1
-  ANGSTROM = 2
-  ASTRONOMICAL_UNIT = 3
-  LIGHTYEAR = 4
-  PARSEC = 5
-  MIL = 6
-  INCH = 7
-  FOOT = 8
-  YARD = 9
-  STATUTE_MILE = 10
-  NAUTICAL_MILE = 11
-  LITER = 12
-
+  UNKNOWN = 0
+  VOXEL = 1
+  METER = 2
+  ANGSTROM = 3
+  ASTRONOMICAL_UNIT = 4
+  LIGHTYEAR = 5
+  PARSEC = 6
+  MIL = 7
+  INCH = 8
+  FOOT = 9
+  YARD = 10
+  STATUTE_MILE = 11
+  NAUTICAL_MILE = 12
+  LITER = 13
 
 VOLUME_SYMBOLS = {**LENGTH_SYMBOLS, VolumeType.LITER: "L"}
 VolumeType.__str__ = lambda self: "L" if self == VolumeType.LITER else f"{LENGTH_SYMBOLS[self]}^3"
-
 
 class TemperatureType(IntEnum):
   UNKNOWN = 0
@@ -454,19 +457,23 @@ TO_DATATYPE = {
 }
 FROM_DATATYPE = { v:k for k,v in TO_DATATYPE.items() }
 
+class DimensionlessType(IntEnum):
+  UNKNOWN = 0
+
 TO_QUANTITY_TYPE = {
-  0: LengthType,
-  1: AreaType,
-  2: VolumeType,
-  3: TemperatureType,
-  4: TimeType,
+  0: AreaType,
+  1: DimensionlessType,
+  2: ElectricalType,
+  3: EnergyType,
+  4: LengthType,
   5: LuminosityType,
   6: MassType,
-  7: ElectricalType,
-  8: SubstanceAmount,
-  9: EnergyType,
+  7: SubstanceAmount,
+  8: TemperatureType,
+  9: TimeType,
+  10: VolumeType,
 }
-FROM_QUANTITY_TYPE = { v:k for v,k in TO_QUANTITY_TYPE.items() }
+FROM_QUANTITY_TYPE = { v:k for k,v in TO_QUANTITY_TYPE.items() }
 
 TO_LENGTH_UNIT = {
   "vx": (SIPrefixType.NONE, LengthType.VOXEL),
