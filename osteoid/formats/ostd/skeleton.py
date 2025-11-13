@@ -9,6 +9,9 @@ from enum import IntEnum
 import numpy as np
 import numpy.typing as npt
 
+import fastremap
+import fastosteoid
+
 from ... import lib
 
 from .header import (
@@ -54,6 +57,9 @@ class OstdSkeletonPart:
     edge_binary = self.edges.tobytes("C")
     edge_binary += lib.crc32c(edge_binary).to_bytes(4, 'little')
 
+    self.header.cable_length = self.cable_length()
+    self.header.num_components = self.num_components()
+
     self.header.vertex_bytes = len(vertex_binary)
     self.header.edge_bytes = len(edge_binary)
     self.header.total_bytes = (
@@ -68,6 +74,34 @@ class OstdSkeletonPart:
       vertex_binary,
       edge_binary,
     ])
+
+  def cable_length(self):
+    if not np.isnan(self.header.cable_length):
+      return self.header.cable_length
+
+    original_space = self.header.space
+    self.physical_space()
+
+    v1 = self.vertices[self.edges[:,0]]
+    v2 = self.vertices[self.edges[:,1]]
+
+    delta = (v2 - v1)
+    delta *= delta
+    dist = np.sum(delta, axis=1)
+    dist = np.sqrt(dist)
+    self.header.cable_length = np.sum(dist)
+
+    self.change_space(original_space)
+
+    return self.header.cable_length
+
+  def num_components(self) -> int:
+    if self.header.num_components < np.iinfo(self.header.edge_dtype).max:
+      return self.header.num_components
+
+    forest = fastosteoid.compute_components(self.edges, self.header.Nv)
+    self.header.num_components = len(forest)
+    return len(forest)
 
   def change_space(self, idx:int):
     if idx < 0 or idx >= len(self.spaces.spaces) or idx > 255:
@@ -100,6 +134,27 @@ class OstdSkeletonPart:
       self.vertices = verts[:, :3]
 
     self.header.space = idx
+
+  def voxel_space(self):
+    self.change_space(0) # 0 is always voxel space
+
+  def physical_space(self):
+    if len(self.spaces.spaces) == 0:
+      return # transform implied to be identity
+
+    self.change_space_by_type(SpaceType.PHYSICAL)
+
+  def change_space_by_type(self, typ:SpaceType):
+    # self.spaces : OstdTransformSection
+    # self.spaces.spaces: list[OstdTransform]
+    # space.space: OstdTransform.space: SpaceType
+
+    for i, space in enumerate(self.spaces.spaces):
+      if space.space == typ:
+        self.change_space(i)
+        return
+
+    raise ValueError(f"{typ} not found in space list.")
 
   @classmethod
   def from_bytes(kls, binary:bytes, offset:int = 0) -> "OstdSkeletonPart":
@@ -253,25 +308,25 @@ class OstdSkeleton:
     return FROM_LENGTH_UNIT[self.unit]
 
   @property
-  def physical_length(self) -> float:
+  def cable_length(self) -> float:
     master_unit = self.parts[0].header.length_unit
     master_si_unit, master_base_unit = master_unit
     master_si_value = SI_PREFIX_VALUE[master_si_unit]
 
     physical_length = 0
     for part in self.parts:
-      if np.isnan(part.header.physical_length):
+      if np.isnan(part.header.cable_length):
         # NB: Would be possible to compute this on demand....
         raise ValueError("NaN encountered in physical length reporting.")
 
       if part.header.length_unit == master_unit:
-        physical_length += part.header.physical_length
+        physical_length += part.header.cable_length
         continue
 
       si_unit, base_unit = part.header.length_unit
       si_conversion = (master_si_value / SI_PREFIX_VALUE[si_unit])
       base_conversion = length_conversion_factor(base_unit, master_base_unit)
-      physical_length += part.header.physical_length * (si_conversion * base_conversion)
+      physical_length += part.header.cable_length * (si_conversion * base_conversion)
 
     return physical_length
 
