@@ -450,7 +450,9 @@ class OstdSkeleton:
 
   @classmethod
   def load(kls, filename:str) -> "OstdSkeleton":
-    pass
+    with open(filename, "rb") as f:
+      binary = f.read()
+    return kls.from_bytes(binary)
 
   @classmethod
   def create(kls, 
