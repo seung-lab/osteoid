@@ -1038,9 +1038,9 @@ class Skeleton:
 
   def to_ostd(self, unit:str = "nm", coordinate_frame:str = "+X-Y-Z") -> bytes:
     transform = self.transform
-    ones = np.ones((transform.shape[0], 1), dtype=transform.dtype)
-    transform = np.hstack((transform, ones))
-
+    ones = np.ones((1, 4), dtype=transform.dtype)
+    transform = np.vstack((transform, ones))
+    
     return formats.ostd.OstdSkeleton.create(
       id=self.id,
       vertices=self.vertices,
