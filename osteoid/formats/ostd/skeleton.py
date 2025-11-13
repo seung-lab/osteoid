@@ -1,6 +1,6 @@
 from typing import Optional, Any
 
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from dataclasses import dataclass
 from functools import partial
 
@@ -336,6 +336,18 @@ class OstdSkeleton:
   @property
   def voxel_centered(self):
     return self.parts[0].header.voxel_centered
+
+  def split_by_id(self) -> dict[int,"OstdSkeleton"]:
+    """
+    If skeleton parts with multiple ids are contained in this file,
+    split them into separate skeletons.
+    """
+    skels = defaultdict(list)
+
+    for part in self.parts:
+      skels[part.id].append(part)
+
+    return { id: OstdSkeleton(parts) for id, parts in skels.items() }
 
   def change_space(self, idx:int):
     for part in self.parts:
