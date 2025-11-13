@@ -79,9 +79,11 @@ class OstdSkeletonPart:
     attributes_binary = b''
     if self.attributes is not None and len(self.attributes) > 0:
       attributes_binary = []
-      for name, (unit, arr) in self.attributes:
+      for name, (unit, arr) in self.attributes.items():
         assert arr.shape[0] == self.header.Nv
-        attributes_binary.append(arr.tobytes("C"))
+        attr_binary = arr.tobytes("C")
+        attr_binary += lib.crc32c(attr_binary).to_bytes(4, 'little')
+        attributes_binary.append(attr_binary)
       attributes_binary.append(attributes_header_binary)
       attributes_binary = b''.join(attributes_binary)
 
@@ -108,7 +110,7 @@ class OstdSkeletonPart:
 
   def _create_attributes_header(self) -> OstdAttributeSection:
     attrs = []
-    for name, (unit, arr) in self.attributes:
+    for name, (unit, arr) in self.attributes.items():
       attr = OstdAttribute(
         name = name,
         attribute_type = AttributeType.VERTEX,
