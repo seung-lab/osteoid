@@ -20,15 +20,15 @@ ostd takes ideas from Precomputed, SWC, Trk, and other formats to compactly repr
 - A header for each serialized object
 - Includes a format version number to enable smooth version upgrades
 - Has 128 bits for an object ID, tagging each object with a UUID4 by default but accepts uint64 ids (important for connectomics)
-- Incorporates a 4x4 transform matrix and tracks which state (voxel or physical) the vertices are in
-- Tracks which physical unit the vertices are in.
+- Incorporates up to 255 4x4 transform matrices and tracks which state (e.g. voxel, physical) the vertices are in
+- Tracks the main physical unit of the vertices.
 - Tracks which orientation the coordinate frame is in.
 - Blocks individually guarded against file corruption by CRCs to enable extraction of remaining good data if one block is damaged
 - Supports representing edges as an edge list, parent pointers, or a path graph, saving space while retaining generality
 - Advisory fields to tell you the number of connected components, path length, and the graph structure
 - (Single-Part) Attributes header is located at the end of the file to enable efficient appending of more vertex attributes on POSIX systems
 - Efficiently support both vertex and edge attributes and tracks physical units.
-- Support optional octree spatial index
+- Support optional spatial index
 - Concatenate multiple ostd files together to append vertices and edges together (inhibits adding more vertex attributes)
 
 ## File Structure
