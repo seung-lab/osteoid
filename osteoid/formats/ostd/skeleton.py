@@ -78,10 +78,10 @@ class OstdSkeletonPart:
 
     attributes_binary = b''
     if self.attributes is not None and len(self.attributes) > 0:
-      attributes_binary = [
-        arr.tobytes("C")
-        for name, (unit, arr) in self.attributes
-      ]
+      attributes_binary = []
+      for name, (unit, arr) in self.attributes:
+        assert arr.shape[0] == self.header.Nv
+        attributes_binary.append(arr.tobytes("C"))
       attributes_binary.append(attributes_header_binary)
       attributes_binary = b''.join(attributes_binary)
 
