@@ -1,18 +1,21 @@
 from .skeleton import Skeleton
 
 def load(filename:str) -> Skeleton:
-	if filename.endswith("swc"):
-		with open(filename, "rt") as f:
-			data = f.read()
-		return Skeleton.from_swc(data)
-
-	with open(filename, "rb") as f:
+	with open(filename, "rt") as f:
 		data = f.read()
-	return Skeleton.from_precomputed(data)
+
+	if filename.endswith("swc"):
+		return Skeleton.from_swc(data)
+	elif filename.endswith("ostd"):
+		return Skeleton.from_ostd(data)
+	else:
+		return Skeleton.from_precomputed(data)
 
 def save(filename:str, skel:Skeleton):
 	if filename.endswith("swc"):
 		binary = skel.to_swc()
+	elif filename.endswith("ostd"):
+		binary = skel.to_ostd()
 	else:
 		binary = skel.to_precomputed()
 
