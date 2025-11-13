@@ -294,9 +294,9 @@ class OstdTransform:
   NUM_BYTES = 65
 
   @classmethod
-  def from_bytes(kls, binary:bytes) -> "OstdTransform":
-    space = SpaceType(binary[0])
-    transform = np.frombuffer(binary, offset=1, count=4*4, dtype=np.float32)
+  def from_bytes(kls, binary:bytes, offset:int = 0) -> "OstdTransform":
+    space = SpaceType(binary[offset])
+    transform = np.frombuffer(binary, offset=(offset+1), count=4*4, dtype=np.float32)
     transform = transform.reshape((4,4), order='C')
     return OstdTransform(space, transform)
 
@@ -321,7 +321,7 @@ class OstdTransformSection:
     for i in range(num_spaces):
       offset = (i * OstdTransform.NUM_BYTES) + 1
       spaces.append(
-        OstdTransform.from_bytes(binary[offset:offset + OstdTransform.NUM_BYTES])
+        OstdTransform.from_bytes(binary, offset=offset)
       )
 
     stored_crc16 = int.from_bytes(binary[-2:], 'little')
