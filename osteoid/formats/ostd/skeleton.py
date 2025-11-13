@@ -60,6 +60,22 @@ class OstdSkeletonPart:
     self.header.cable_length = self.cable_length()
     self.header.num_components = self.num_components()
 
+    self.header.has_transform = False
+    transform_binary = b''
+    if spaces is not None and len(spaces.spaces):
+      transform_binary = spaces.to_bytes()
+
+    spatial_index_binary = b''
+    if self.spatial_index_bytes > 0:
+      spatial_index_binary = spatial_index.to_bytes()
+
+
+    self.header.attribute_header_bytes = 0
+    attributes_header_binary = b''
+    if self.attributes is not None:
+      attributes_header_binary = self._create_attributes_header()
+      self.header.attribute_header_bytes = len(attributes_header_binary)
+
     self.header.vertex_bytes = len(vertex_binary)
     self.header.edge_bytes = len(edge_binary)
     self.header.total_bytes = (
@@ -69,11 +85,39 @@ class OstdSkeletonPart:
       self.header.spatial_index_bytes +
       self.header.attribute_header_bytes
     )
+
+    attributes_binary = b''
+    if self.attributes is not None and len(self.attributes) > 0:
+      attributes_binary = [
+        arr.tobytes("C")
+        for name, (unit, arr) in self.attributes
+      ]
+      attributes_binary.append(attributes_header_binary)
+      attributes_binary = b''.join(attributes_binary)
+
     return b''.join([
       self.header.to_bytes(),
+      transform_binary,
+      spatial_index_binary,
       vertex_binary,
       edge_binary,
+      attributes_binary,
     ])
+
+  def _create_attributes_header(self) -> OstdAttributeSection:
+    attrs = []
+    for name, (unit, arr) in self.attributes:
+      attr = OstdAttribute(
+        name = name,
+        attribute_type = AttributeType.VERTEX,
+        data_type = TO_DATATYPE[np.dtype(arr.dtype).type],
+        compression = CompressionType.NONE,
+        unit = unit,
+        num_components = (1 if arr.ndim == 1 else arr.shape[1]),
+        content_length = arr.nbytes,
+      )
+      attrs.append(attr)
+    return OstdAttributeSection(attrs)
 
   def cable_length(self):
     if not np.isnan(self.header.cable_length):
