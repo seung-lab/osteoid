@@ -153,6 +153,11 @@ class OstdSkeletonPart:
 
     self.change_space_by_type(SpaceType.PHYSICAL)
 
+  def current_space_type(self) -> SpaceType:
+    if self.header.space == 0:
+      return SpaceType.VOXEL
+    return self.spaces[self.header.space].space
+
   def change_space_by_type(self, typ:SpaceType):
     # self.spaces : OstdTransformSection
     # self.spaces.spaces: list[OstdTransform]
@@ -345,8 +350,12 @@ class OstdSkeleton:
     master_si_prefix, master_base_unit = self.parts[0].header.length_unit
     master_si_value = SI_PREFIX_VALUE[master_si_prefix]
 
+    master_space = self.parts[0].header.space
+
     verts = []
     for part in self.parts:
+      part.change_space(master_space)
+
       if part.header.length_unit == master_unit:
         verts.append(part.vertices)
         continue
