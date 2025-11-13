@@ -1,11 +1,11 @@
 from .skeleton import Skeleton
 
 def load(filename:str) -> Skeleton:
-	with open(filename, "rt") as f:
+	with open(filename, "rb") as f:
 		data = f.read()
 
 	if filename.endswith("swc"):
-		return Skeleton.from_swc(data)
+		return Skeleton.from_swc(data.decode("utf8"))
 	elif filename.endswith("ostd"):
 		return Skeleton.from_ostd(data)
 	else:
