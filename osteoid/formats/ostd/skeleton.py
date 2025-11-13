@@ -298,6 +298,12 @@ class OstdSkeleton:
         raise ValueError("Skeleton part does not have a transform section in its binary.")
       part.change_space(idx)
 
+  def change_space_by_type(self, stype:SpaceType):
+    for part in self.parts:
+      if not part.header.has_transform and idx != 0:
+        raise ValueError("Skeleton part does not have a transform section in its binary.")
+      part.change_space_by_type(stype)
+
   @property
   def num_vertices(self) -> int:
     return sum(( part.header.Nv for part in self.parts ))
