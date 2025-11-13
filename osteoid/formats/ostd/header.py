@@ -301,9 +301,11 @@ class OstdTransform:
     return OstdTransform(space, transform)
 
   def to_bytes(self) -> bytes:
+    assert self.transform.shape == (4,4)
+
     return b''.join([
       int(self.space).to_bytes(1, 'little'),
-      self.transform.tobytes('C')
+      self.transform.astype(np.float32, copy=False).tobytes('C')
     ])
 
 @dataclass
@@ -315,17 +317,19 @@ class OstdTransformSection:
     return 1 + OstdTransform.NUM_BYTES * len(self.spaces) + 2
 
   @classmethod
-  def from_bytes(kls, binary:bytes) -> "OstdTransformSection":
-    num_spaces = int.from_bytes(binary[0:1], 'little')
+  def from_bytes(kls, binary:bytes, offset:int = 0) -> "OstdTransformSection":
+    num_spaces = int(binary[offset])
+
     spaces = []
     for i in range(num_spaces):
-      offset = (i * OstdTransform.NUM_BYTES) + 1
+      xform_offset = offset + (i * OstdTransform.NUM_BYTES) + 1
       spaces.append(
-        OstdTransform.from_bytes(binary, offset=offset)
+        OstdTransform.from_bytes(binary, offset=xform_offset)
       )
 
-    stored_crc16 = int.from_bytes(binary[-2:], 'little')
-    computed_crc16 = lib.crc16(binary[:-2])
+    crc_offset = offset + num_spaces * OstdTransform.NUM_BYTES + 1
+    stored_crc16 = int.from_bytes(binary[crc_offset:crc_offset+2], 'little')
+    computed_crc16 = lib.crc16(binary[offset:crc_offset])
     if stored_crc16 != computed_crc16:
       raise ValueError(f"Transform header corruption detected. Stored CRC16: {stored_crc16}, Computed CRC16: {computed_crc16}")
 
