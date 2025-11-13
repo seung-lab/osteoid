@@ -446,7 +446,8 @@ class OstdSkeleton:
     self.parts.extend(skel.parts)
 
   def save(self, filename:str):
-    pass
+    with open(filename, "wb") as f:
+      f.write(self.to_bytes())
 
   @classmethod
   def load(kls, filename:str) -> "OstdSkeleton":
