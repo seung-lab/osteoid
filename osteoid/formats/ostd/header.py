@@ -188,7 +188,7 @@ class OstdHeader:
     self.edge_representation = EdgeRepresentationType(read_int(2))
 
   @classmethod
-  def validate_header(kls, binary:bytes, offset:int = 0):
+  def validate_header(kls, binary:bytes, offset:int = 0, skip_total_length_check:bool = False):
     if len(binary) - offset < OstdHeader.HEADER_BYTES:
       raise ValueError(f"buffer is too short to be an osteoid file. buffer: {len(binary) - offset} bytes, needed at least: {OstdHeader.HEADER_BYTES} bytes")
 
@@ -200,9 +200,10 @@ class OstdHeader:
     if format_version > OstdHeader.FORMAT_VERSION:
       raise ValueError(f"format version in buffer exceeded maximum supported version. Got: {format_version} Maximum Supported Version: {OstdHeader.FORMAT_VERSION}")
 
-    total_bytes = int.from_bytes(binary[offset+5:offset+13], 'little')
-    if len(binary) - offset < total_bytes:
-      raise ValueError(f"Stream contained too few bytes. Got: {len(binary) - offset} Expected: {total_bytes}")
+    if not skip_total_length_check:
+      total_bytes = int.from_bytes(binary[offset+5:offset+13], 'little')
+      if len(binary) - offset < total_bytes:
+        raise ValueError(f"Stream contained too few bytes. Got: {len(binary) - offset} Expected: {total_bytes}")
 
     hb = OstdHeader.HEADER_BYTES
     stored_crc16 = int.from_bytes(binary[offset+hb-2:offset+hb], 'little')
@@ -212,8 +213,13 @@ class OstdHeader:
       raise ValueError(f"Header corruption detected. Stored CRC16: {stored_crc16}, Computed CRC16: {computed_crc16}")
 
   @classmethod
-  def from_bytes(kls, binary:bytes, offset:int = 0, crc_check:bool = True) -> "OstdHeader":
-    OstdHeader.validate_header(binary, offset=offset)
+  def from_bytes(kls, 
+    binary:bytes,
+    offset:int = 0,
+    crc_check:bool = True,
+    skip_total_length_check:bool = False,
+  ) -> "OstdHeader":
+    OstdHeader.validate_header(binary, offset=offset, skip_total_length_check=skip_total_length_check)
 
     offset += len(OstdHeader.MAGIC)
 
@@ -288,40 +294,38 @@ class OstdHeader:
     ])
 
   def details(self) -> str:
-    return f"""
-    magic:             {OstdHeader.MAGIC}
-    version:           {self.format_version}
+    return f"""magic:             {OstdHeader.MAGIC}
+version:           {self.format_version}
 
-    id:                {self.id}
+id:                {self.id}
 
-    num verts:         {self.Nv}
-    num edges:         {self.Ne}
+num verts:         {self.Nv}
+num edges:         {self.Ne}
 
-    num components:    {self.num_components}
-    cable length:      {self.cable_length} {self.length_unit[0]}{self.length_unit[1]}
-    graph type:        {self.graph_type.name}
-    representation:    {self.edge_representation.name}
+num components:    {self.num_components}
+cable length:      {self.cable_length} {self.length_unit[0]}{self.length_unit[1]}
+graph type:        {self.graph_type.name}
+representation:    {self.edge_representation.name}
 
-    vertex dtype:      {self.vertex_data_type.name}
-    edge dtype:        {self.edge_data_type.name}
+vertex dtype:      {self.vertex_data_type.name}
+edge dtype:        {self.edge_data_type.name}
 
-    vert compression:  {self.vertex_compression.name}
-    edge compression:  {self.edge_compression.name}
+vert compression:  {self.vertex_compression.name}
+edge compression:  {self.edge_compression.name}
 
-    current space:     {self.space}
-    has_transform?:    {self.has_transform}
-    voxel centered?:   {self.voxel_centered}
-    coord frame:       {self.coordinate_frame_orientation}
+current space:     {self.space}
+has_transform?:    {self.has_transform}
+voxel centered?:   {self.voxel_centered}
+coord frame:       {self.coordinate_frame_orientation}
 
-    header  bytes:     {self.HEADER_BYTES} bytes
-    vertex bytes:      {self.vertex_bytes} bytes
-    edge bytes:        {self.edge_bytes} bytes
-    index bytes:       {self.spatial_index_bytes} bytes
-    attr header bytes: {self.attribute_header_bytes} bytes
-    total bytes:       {self.total_bytes} bytes
+header  bytes:     {self.HEADER_BYTES} bytes
+vertex bytes:      {self.vertex_bytes} bytes
+edge bytes:        {self.edge_bytes} bytes
+index bytes:       {self.spatial_index_bytes} bytes
+attr header bytes: {self.attribute_header_bytes} bytes
+total bytes:       {self.total_bytes} bytes
 
-    crc16:             {self.crc16}
-    """
+crc16:             {self.crc16}"""
 
   def __repr__(self):
     return str(self.__dict__)
