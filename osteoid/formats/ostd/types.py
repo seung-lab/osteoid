@@ -540,7 +540,7 @@ FROM_LENGTH_UNIT = {
 
 @dataclass
 class PhysicalUnit:
-  prefix:SIPrefix
+  prefix:SIPrefixType
   base:IntEnum
 
   def __eq__(self, other) -> bool:
