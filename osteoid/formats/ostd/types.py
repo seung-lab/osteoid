@@ -227,81 +227,81 @@ TIME_SYMBOLS = {
 TimeType.__str__ = lambda self: TIME_SYMBOLS[self]
 
 class LuminosityType(IntEnum):
-    UNKNOWN = 0
-    CANDELA = 1
-    LUMEN = 2
-    LUX = 3
-    PHOTON = 4
-    PHOTONS_PER_SECOND = 5
+  UNKNOWN = 0
+  CANDELA = 1
+  LUMEN = 2
+  LUX = 3
+  PHOTON = 4
+  PHOTONS_PER_SECOND = 5
 
 LUMINOSITY_SYMBOLS = {
-    LuminosityType.UNKNOWN: "",
-    LuminosityType.CANDELA: "cd",
-    LuminosityType.LUMEN: "lm",
-    LuminosityType.LUX: "lx",
-    LuminosityType.PHOTON: "photons",
-    LuminosityType.PHOTONS_PER_SECOND: "pps",
+  LuminosityType.UNKNOWN: "",
+  LuminosityType.CANDELA: "cd",
+  LuminosityType.LUMEN: "lm",
+  LuminosityType.LUX: "lx",
+  LuminosityType.PHOTON: "photons",
+  LuminosityType.PHOTONS_PER_SECOND: "pps",
 }
 
 LuminosityType.__str__ = lambda self: LUMINOSITY_SYMBOLS[self]
 
 
 class ElectricalType(IntEnum):
-    UNKNOWN = 0
-    VOLT = 1
-    AMPERE = 2
-    OHM = 3
-    SIEMEN = 4
-    FARAD = 5
-    HENRY = 6
-    COULOMB = 7
+  UNKNOWN = 0
+  VOLT = 1
+  AMPERE = 2
+  OHM = 3
+  SIEMEN = 4
+  FARAD = 5
+  HENRY = 6
+  COULOMB = 7
 
 ELECTRICAL_SYMBOLS = {
-    ElectricalType.UNKNOWN: "",
-    ElectricalType.VOLT: "V",
-    ElectricalType.AMPERE: "A",
-    ElectricalType.OHM: "Ω",
-    ElectricalType.SIEMEN: "S",
-    ElectricalType.FARAD: "F",
-    ElectricalType.HENRY: "H",
-    ElectricalType.COULOMB: "C",
+  ElectricalType.UNKNOWN: "",
+  ElectricalType.VOLT: "V",
+  ElectricalType.AMPERE: "A",
+  ElectricalType.OHM: "Ω",
+  ElectricalType.SIEMEN: "S",
+  ElectricalType.FARAD: "F",
+  ElectricalType.HENRY: "H",
+  ElectricalType.COULOMB: "C",
 }
 
 ElectricalType.__str__ = lambda self: ELECTRICAL_SYMBOLS[self]
 
 class MassType(IntEnum):
-    UNKNOWN = 0
-    GRAM = 1
-    DALTON = 2
+  UNKNOWN = 0
+  GRAM = 1
+  DALTON = 2
 
 MASS_SYMBOLS = {
-    MassType.UNKNOWN: "",
-    MassType.GRAM: "g",
-    MassType.DALTON: "da",
+  MassType.UNKNOWN: "",
+  MassType.GRAM: "g",
+  MassType.DALTON: "da",
 }
 
 MassType.__str__ = lambda self: MASS_SYMBOLS[self]
 
 class SubstanceAmount(IntEnum):
-    UNKNOWN = 0
-    MOLE = 1
+  UNKNOWN = 0
+  MOLE = 1
 
 SUBSTANCE_AMOUNT_SYMBOLS = {
-    SubstanceAmount.UNKNOWN: "",
-    SubstanceAmount.MOLE: "mol",
+  SubstanceAmount.UNKNOWN: "",
+  SubstanceAmount.MOLE: "mol",
 }
 
 SubstanceAmount.__str__ = lambda self: SUBSTANCE_AMOUNT_SYMBOLS[self]
 
 class EnergyType(IntEnum):
-    UNKNOWN = 0
-    JOULE = 1
-    WATT = 2
+  UNKNOWN = 0
+  JOULE = 1
+  WATT = 2
 
 ENERGY_SYMBOLS = {
-    EnergyType.UNKNOWN: "",
-    EnergyType.JOULE: "J",
-    EnergyType.WATT: "W",
+  EnergyType.UNKNOWN: "",
+  EnergyType.JOULE: "J",
+  EnergyType.WATT: "W",
 }
 
 EnergyType.__str__ = lambda self: ENERGY_SYMBOLS[self]
