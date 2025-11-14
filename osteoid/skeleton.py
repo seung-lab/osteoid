@@ -1062,9 +1062,10 @@ class Skeleton:
 
     return formats.ostd.OstdSkeleton.create(
       id=self.id,
-      vertices=self.voxel_space().vertices,
+      vertices=self.physical_space().vertices,
       edges=self.edges,
       spaces=[ (formats.ostd.SpaceType.PHYSICAL, transform) ],
+      space=1,
       length_unit=unit,
       coordinate_frame_orientation=coordinate_frame,
       voxel_centered=True,

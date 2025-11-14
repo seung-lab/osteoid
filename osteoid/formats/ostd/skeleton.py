@@ -501,6 +501,7 @@ class OstdSkeleton:
     edges:npt.NDArray[np.unsignedinteger],
     length_unit:str = "nm",
     id:Optional[int] = None,
+    space:int = 0,
     spaces:list = [],
     coordinate_frame_orientation:str = "+X+Y+Z",
     voxel_centered:bool = True,
@@ -520,6 +521,7 @@ class OstdSkeleton:
       id = id,
       length_unit = TO_LENGTH_UNIT[length_unit.lower()],
       num_axes = vertices.shape[1],
+      space=int(space),
       vertex_data_type = TO_DATATYPE[np.dtype(vertices.dtype).type],
       voxel_centered = bool(voxel_centered),
     )
