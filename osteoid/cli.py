@@ -12,12 +12,20 @@ def main():
 
 @main.command()
 @click.argument("src")
+def info(src):
+  import osteoid.formats
+  if src.endswith(".swc"):
+    click.echo(osteoid.formats.swc.read_header(src))
+
+
+@main.command()
+@click.argument("src")
 @click.argument("dest")
 def convert(src:str, dest:str):
-	"""Convert a skeleton from one format to another."""
-	from .util import load, save
-	skel = load(src, allow_mmap=True)
-	save(dest, skel)
+  """Convert a skeleton from one format to another."""
+  from .util import load, save
+  skel = load(src, allow_mmap=True)
+  save(dest, skel)
 
 @main.command()
 @click.argument("filename")
@@ -30,14 +38,14 @@ def view(filename, color_by):
   skel = load(filename, allow_mmap=True)
 
   error_text = {
-  	'r': "radius",
-  	'x': "cross sectional area",
+    'r': "radius",
+    'x': "cross sectional area",
   }
 
   try:
-  	microviewer.objects([ skel ], skeleton_color_by=color_by)
+    microviewer.objects([ skel ], skeleton_color_by=color_by)
   except AttributeError:
-  	click.echo(f"ostd: skeleton does not have a {error_text[color_by]} attribute.")
+    click.echo(f"ostd: skeleton does not have a {error_text[color_by]} attribute.")
    
 @main.command()
 def license():
