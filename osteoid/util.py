@@ -42,32 +42,30 @@ def load(filename:str, allow_mmap:bool = False) -> Skeleton:
     return Skeleton.from_precomputed(binary)
 
 def save(
-  filelike,
+  filename:str,
   skeleton:Skeleton,
   **kwargs
 ):
   """Save labels into the file-like object or file path."""
   if filename.endswith("swc"):
-    binary = skel.to_swc()
+    binary = skeleton.to_swc()
   elif filename.endswith("ostd"):
-    binary = skel.to_ostd()
+    binary = skeleton.to_ostd()
   else:
-    binary = skel.to_precomputed()
+    binary = skeleton.to_precomputed()
 
-  if hasattr(filelike, 'write'):
-    filelike.write(binary)
-  elif (
-    isinstance(filelike, str) 
-    and os.path.splitext(filelike)[1] == '.gz'
+  if (
+    isinstance(filename, str) 
+    and os.path.splitext(filename)[1] == '.gz'
   ):
-    with gzip.open(filelike, 'wb') as f:
+    with gzip.open(filename, 'wb') as f:
       f.write(binary)
   elif (
-    isinstance(filelike, str) 
-    and os.path.splitext(filelike)[1] in ('.lzma', '.xz')
+    isinstance(filename, str) 
+    and os.path.splitext(filename)[1] in ('.lzma', '.xz')
   ):
-    with lzma.open(filelike, 'wb') as f:
+    with lzma.open(filename, 'wb') as f:
       f.write(binary)
   else:
-    with open(filelike, 'wb') as f:
+    with open(filename, 'wb') as f:
       f.write(binary)

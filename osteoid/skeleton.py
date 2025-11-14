@@ -1159,6 +1159,15 @@ class Skeleton:
     else:
       raise ValueError(f"{library} is not currently supported.")
 
+  def save(self, filename:str):
+    from . import util
+    util.save(filename, self)
+
+  @classmethod
+  def load(kls, filename:str, allow_mmap:bool = False) -> "Skeleton":
+    from . import util
+    return util.load(filename, allow_mmap=allow_mmap)
+
   def __eq__(self, other):
     if self.id != other.id:
       return False
