@@ -1030,7 +1030,7 @@ class Skeleton:
     return Skeleton(
       vertices=oskel.vertices,
       edges=oskel.edges,
-      transform=oskel.transforms[0][:,:3],
+      transform=oskel.transforms[0][:3,:],
       segid=oskel.id,
       radii=(oskel.a.radius if "radius" in oskel.a else None),
       vertex_types=(oskel.a.vertex_types if "vertex_types" in oskel.a else None),
