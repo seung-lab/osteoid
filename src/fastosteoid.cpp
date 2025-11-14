@@ -126,22 +126,34 @@ bool has_cycle_impl(const py::array_t<EDGE_T>& edges) {
 bool has_cycle(const py::array& edges) {
 	py::buffer_info buf = edges.request();
 
-	if (buf.ndim != 2 || buf.strides[1] != sizeof(uint32_t)) {
+	if (buf.ndim != 2) {
 		throw std::runtime_error("Array must be 2D and C-contiguous");
 	}
 
 	int data_width = edges.dtype().itemsize();
 
 	if (data_width == 1) {
+		if (buf.strides[1] != sizeof(uint8_t)) {
+			throw std::runtime_error("Array must be C-contiguous");
+		}
 		return has_cycle_impl<uint8_t>(edges);
 	}
 	else if (data_width == 2) {
+		if (buf.strides[1] != sizeof(uint16_t)) {
+			throw std::runtime_error("Array must be C-contiguous");
+		}
 		return has_cycle_impl<uint16_t>(edges);
 	}
 	else if (data_width == 4) {
+		if (buf.strides[1] != sizeof(uint32_t)) {
+			throw std::runtime_error("Array must be C-contiguous");
+		}
 		return has_cycle_impl<uint32_t>(edges);
 	}
 	else {
+		if (buf.strides[1] != sizeof(uint64_t)) {
+			throw std::runtime_error("Array must be C-contiguous");
+		}
 		return has_cycle_impl<uint64_t>(edges);
 	}
 }
@@ -287,26 +299,38 @@ py::list compute_components(
 	const py::array &edges_arr,
 	const uint64_t Nv
 ) {
-		py::buffer_info buf = edges_arr.request();
+	py::buffer_info buf = edges_arr.request();
 
-		if (buf.ndim != 2 || buf.strides[1] != sizeof(uint32_t)) {
-				throw std::runtime_error("Array must be 2D and C-contiguous");
-		}
+	if (buf.ndim != 2) {
+		throw std::runtime_error("Array must be 2D and C-contiguous");
+	}
 
-		int data_width = edges_arr.dtype().itemsize();
+	int data_width = edges_arr.dtype().itemsize();
 
-		if (data_width == 1) {
-			return compute_components_impl<uint8_t>(edges_arr, Nv);
+	if (data_width == 1) {
+		if (buf.strides[1] != sizeof(uint8_t)) {
+			throw std::runtime_error("Array must be C-contiguous");
 		}
-		else if (data_width == 2) {
-			return compute_components_impl<uint16_t>(edges_arr, Nv);
+		return compute_components_impl<uint8_t>(edges_arr, Nv);
+	}
+	else if (data_width == 2) {
+		if (buf.strides[1] != sizeof(uint16_t)) {
+			throw std::runtime_error("Array must be C-contiguous");
 		}
-		else if (data_width == 4) {
-			return compute_components_impl<uint32_t>(edges_arr, Nv);
+		return compute_components_impl<uint16_t>(edges_arr, Nv);
+	}
+	else if (data_width == 4) {
+		if (buf.strides[1] != sizeof(uint32_t)) {
+			throw std::runtime_error("Array must be C-contiguous");
 		}
-		else {
-			return compute_components_impl<uint64_t>(edges_arr, Nv);
+		return compute_components_impl<uint32_t>(edges_arr, Nv);
+	}
+	else {
+		if (buf.strides[1] != sizeof(uint64_t)) {
+			throw std::runtime_error("Array must be C-contiguous");
 		}
+		return compute_components_impl<uint64_t>(edges_arr, Nv);
+	}
 }
 
 PYBIND11_MODULE(fastosteoid, m) {
