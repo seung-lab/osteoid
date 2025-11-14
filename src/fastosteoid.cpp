@@ -212,7 +212,7 @@ py::list compute_components_impl(
 	py::buffer_info buf = edges_arr.request();
 
 	if (buf.ndim != 2 || buf.strides[1] != sizeof(EDGE_T)) {
-			throw std::runtime_error("Array must be 2D and C-contiguous");
+		throw std::runtime_error("Array must be 2D and C-contiguous");
 	}
 
 	EDGE_T* edges = static_cast<EDGE_T*>(buf.ptr);
