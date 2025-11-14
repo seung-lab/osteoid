@@ -44,24 +44,124 @@ namespace py = pybind11;
 //     return i;
 // }
 
+// Ne = size of edges / 2
+// Nv = number of vertices (max of edge values)
+template <typename EDGE_T>
+bool has_cycle_impl(const py::array_t<EDGE_T>& edges) {
+	auto buf = edges.request();
+	if (buf.ndim != 2 || buf.shape[1] != 2) {
+		throw std::runtime_error("edges must be an (N,2) array");
+	}
+	constexpr EDGE_T sentinel = std::numeric_limits<EDGE_T>::max();
+	const size_t Ne = buf.shape[0];
 
+	if (Ne == 0) {
+		return false;
+	}
+
+	const EDGE_T* ptr = static_cast<const EDGE_T*>(buf.ptr);
+
+	EDGE_T maxv = 0;
+	for (size_t i = 0; i < 2 * Ne; i++) {
+		maxv = std::max(maxv, ptr[i]);
+	}
+	
+	if (maxv == sentinel) {
+		throw std::runtime_error("has_cycle: edges contains its maximum dtype value, which is used as a sentinel.");
+	}
+
+	const size_t Nv = static_cast<size_t>(maxv) + 1;
+
+	std::vector< ankerl::unordered_dense::set<EDGE_T> > index(Nv);
+
+	for (size_t i = 0; i < 2 * Ne; i += 2) {
+		const EDGE_T e1 = ptr[i];
+		const EDGE_T e2 = ptr[i+1];
+
+		if (e1 == e2) {
+			continue;
+		}
+
+		index[e1].insert(e2);
+		index[e2].insert(e1);
+	}
+
+	const EDGE_T root = ptr[0];
+	EDGE_T node = sentinel;
+	EDGE_T parent = sentinel;
+
+	std::vector<EDGE_T> stack;
+	std::vector<EDGE_T> parents;
+
+	parents.push_back(sentinel);
+	stack.push_back(root);
+	
+	std::vector<bool> visited(Nv, false);
+
+	while (!stack.empty()) {
+		node = stack.back();
+		parent = parents.back();
+
+		stack.pop_back();
+		parents.pop_back();
+
+		visited[node] = true;
+
+		for (EDGE_T child : index[node]) {
+			if (child == parent) {
+				continue;
+			}
+			else if (visited[child]) {
+				return true;
+			}
+
+			stack.push_back(child);
+			parents.push_back(node);
+		}
+	}
+
+	return false;
+}
+
+bool has_cycle(const py::array& edges) {
+	py::buffer_info buf = edges.request();
+
+	if (buf.ndim != 2 || buf.strides[1] != sizeof(uint32_t)) {
+		throw std::runtime_error("Array must be 2D and C-contiguous");
+	}
+
+	int data_width = edges.dtype().itemsize();
+
+	if (data_width == 1) {
+		return has_cycle_impl<uint8_t>(edges);
+	}
+	else if (data_width == 2) {
+		return has_cycle_impl<uint16_t>(edges);
+	}
+	else if (data_width == 4) {
+		return has_cycle_impl<uint32_t>(edges);
+	}
+	else {
+		return has_cycle_impl<uint64_t>(edges);
+	}
+}
 
 template <typename T>
 py::array_t<T> pairs_to_numpy(
 	const std::vector<std::pair<T, T>>& pairs
 ) {
-    size_t n = pairs.size();
+		size_t n = pairs.size();
 
-    // Create an uninitialized NumPy array of shape (n, 2)
-    py::array_t<T> arr({n, size_t(2)});
-    auto buf = arr.template mutable_unchecked<2>();
+		// Create an uninitialized NumPy array of shape (n, 2)
+		py::array_t<T> arr({n, size_t(2)});
+		auto buf = arr.template mutable_unchecked<2>();
 
-    for (size_t i = 0; i < n; ++i) {
-        buf(i, 0) = pairs[i].first;
-        buf(i, 1) = pairs[i].second;
-    }
+		for (size_t i = 0; i < n; ++i) {
+				buf(i, 0) = pairs[i].first;
+				buf(i, 1) = pairs[i].second;
+		}
 
-    return arr;
+		return arr;
 }
 
 template <typename T>
@@ -97,13 +197,13 @@ py::list compute_components_impl(
 ) {
 	const uint64_t Ne = edges_arr.size() >> 1;
 
-    py::buffer_info buf = edges_arr.request();
+	py::buffer_info buf = edges_arr.request();
 
-    if (buf.ndim != 2 || buf.strides[1] != sizeof(EDGE_T)) {
-        throw std::runtime_error("Array must be 2D and C-contiguous");
-    }
+	if (buf.ndim != 2 || buf.strides[1] != sizeof(EDGE_T)) {
+			throw std::runtime_error("Array must be 2D and C-contiguous");
+	}
 
-    EDGE_T* edges = static_cast<EDGE_T*>(buf.ptr);
+	EDGE_T* edges = static_cast<EDGE_T*>(buf.ptr);
 
 	std::vector<bool> visited(Nv);
 	std::vector< ankerl::unordered_dense::set<EDGE_T> > index(Nv);
@@ -187,29 +287,30 @@ py::list compute_components(
 	const py::array &edges_arr,
 	const uint64_t Nv
 ) {
-    py::buffer_info buf = edges_arr.request();
+		py::buffer_info buf = edges_arr.request();
 
-    if (buf.ndim != 2 || buf.strides[1] != sizeof(uint32_t)) {
-        throw std::runtime_error("Array must be 2D and C-contiguous");
-    }
+		if (buf.ndim != 2 || buf.strides[1] != sizeof(uint32_t)) {
+				throw std::runtime_error("Array must be 2D and C-contiguous");
+		}
 
-    int data_width = edges_arr.dtype().itemsize();
+		int data_width = edges_arr.dtype().itemsize();
 
-    if (data_width == 1) {
-    	return compute_components_impl<uint8_t>(edges_arr, Nv);
-    }
-    else if (data_width == 2) {
-    	return compute_components_impl<uint16_t>(edges_arr, Nv);
-    }
-    else if (data_width == 4) {
-    	return compute_components_impl<uint32_t>(edges_arr, Nv);
-    }
-    else {
-    	return compute_components_impl<uint64_t>(edges_arr, Nv);
-    }
+		if (data_width == 1) {
+			return compute_components_impl<uint8_t>(edges_arr, Nv);
+		}
+		else if (data_width == 2) {
+			return compute_components_impl<uint16_t>(edges_arr, Nv);
+		}
+		else if (data_width == 4) {
+			return compute_components_impl<uint32_t>(edges_arr, Nv);
+		}
+		else {
+			return compute_components_impl<uint64_t>(edges_arr, Nv);
+		}
 }
 
 PYBIND11_MODULE(fastosteoid, m) {
 	m.doc() = "Accelerated osteoid functions."; 
+	m.def("has_cycle", &has_cycle, "Check whether this connected component has a cycle.");
 	m.def("compute_components", &compute_components, "Find skeleton components.");
 }
