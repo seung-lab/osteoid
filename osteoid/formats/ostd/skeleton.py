@@ -490,7 +490,7 @@ class OstdSkeleton:
       f.write(self.to_bytes())
 
   @classmethod
-  def load(kls, filename:str) -> "OstdSkeleton":
+  def load(kls, filename:str, mmap:bool = False) -> "OstdSkeleton":
     with open(filename, "rb") as f:
       binary = f.read()
     return kls.from_bytes(binary)
