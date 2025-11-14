@@ -27,6 +27,7 @@ from .types import (
   AttributeType,
   CompressionType, 
   EdgeRepresentationType,
+  GraphType,
   LengthType,
   SIPrefixType,
   SpaceType,
@@ -59,6 +60,7 @@ class OstdSkeletonPart:
 
     self.header.cable_length = self.cable_length()
     self.header.num_components = self.num_components()
+    self.header.graph_type = self.graph_type()
 
     self.header.has_transform = False
     transform_binary = b''
@@ -144,6 +146,15 @@ class OstdSkeletonPart:
     self.change_space(original_space)
 
     return self.header.cable_length
+
+  def graph_type(self) -> GraphType:
+    components = fastosteoid.compute_components(self.edges, self.header.Nv)
+
+    for component in components:
+      if fastosteoid.has_cycle(component):
+        return GraphType.CYCLIC
+
+    return GraphType.TREE
 
   def num_components(self) -> int:
     sentinel = np.iinfo(np.uint32).max

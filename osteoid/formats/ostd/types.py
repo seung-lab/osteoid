@@ -337,6 +337,7 @@ class EdgeRepresentationType(IntEnum):
 class GraphType(IntEnum):
   GRAPH = 0
   TREE = 1
+  CYCLIC = 2
 
 class SpaceType(IntEnum):
   GENERIC = 0
