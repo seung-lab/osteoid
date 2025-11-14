@@ -13,7 +13,6 @@ import fastremap
 import fastosteoid
 
 from ... import lib
-from ... import util
 
 from .header import (
   OstdAttribute,
@@ -492,6 +491,7 @@ class OstdSkeleton:
 
   @classmethod
   def load(kls, filename:str, allow_mmap:bool = False) -> "OstdSkeleton":
+    from ... import util
     binary = util._load(filename, allow_mmap=allow_mmap)
     return kls.from_bytes(binary)
 
