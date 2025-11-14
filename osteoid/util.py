@@ -48,7 +48,7 @@ def save(
 ):
   """Save labels into the file-like object or file path."""
   if filename.endswith("swc"):
-    binary = skeleton.to_swc()
+    binary = skeleton.to_swc().encode("utf8")
   elif filename.endswith("ostd"):
     binary = skeleton.to_ostd()
   else:
