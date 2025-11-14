@@ -5,8 +5,8 @@ import struct
 import numpy as np
 
 def to_precomputed(skeleton:"Skeleton") -> bytes:
-  edges = skeleton.edges.astype(np.uint32)
-  vertices = skeleton.vertices.astype(np.float32)
+  edges = skeleton.edges.astype(np.uint32, copy=False)
+  vertices = skeleton.vertices.astype(np.float32, copy=False)
   
   result = BytesIO()
 
