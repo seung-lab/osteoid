@@ -95,17 +95,17 @@ SI_PREFIX_VALUE = {
 class LengthType(IntEnum):
   UNKNOWN = 0
   VOXEL = 1
-  METER = 2
-  ANGSTROM = 3
-  ASTRONOMICAL_UNIT = 4
-  LIGHTYEAR = 5
-  PARSEC = 6
-  MIL = 7
-  INCH = 8
-  FOOT = 9
-  YARD = 10
-  STATUTE_MILE = 11
-  NAUTICAL_MILE = 12
+  ANGSTROM = 2
+  MIL = 3
+  INCH = 4
+  FOOT = 5
+  YARD = 6
+  METER = 7
+  STATUTE_MILE = 8
+  NAUTICAL_MILE = 9
+  ASTRONOMICAL_UNIT = 10
+  LIGHTYEAR = 11
+  PARSEC = 12
 
 LENGTH_SYMBOLS = {
   LengthType.UNKNOWN: "",
@@ -537,3 +537,16 @@ TO_LENGTH_UNIT = {
 FROM_LENGTH_UNIT = {
   v:k for k,v in TO_LENGTH_UNIT.items()
 }
+
+@dataclass
+class PhysicalUnit:
+  prefix:SIPrefix
+  base:IntEnum
+
+  def __eq__(self, other) -> bool:
+    return self.prefix == other.prefix and self.base == other.base
+
+  def __str__(self) -> str:
+    return f"{self.prefix}{self.base}"
+
+

@@ -354,17 +354,17 @@ Note: Only None is currently supported.
 |------------------------|-------|
 | unknown (dimensionless)| 0     |
 | voxel (dimensionless)  | 1     |
-| meter                  | 2     |
-| angstrom               | 3     | 
-| astronomical unit      | 4     |
-| lightyear              | 5     |
-| parsec                 | 6     |
-| mil (1/1000 inch)      | 7     |
-| inch                   | 8     |
-| foot                   | 9     |
-| yard                   | 10    |
-| statute mile           | 11    |
-| nautical mile          | 12    |
+| angstrom               | 2     | 
+| mil (1/1000 inch)      | 3     |
+| inch                   | 4     |
+| foot                   | 5     |
+| yard                   | 6     |
+| meter                  | 7     |
+| statute mile           | 8     |
+| nautical mile          | 9     |
+| astronomical unit      | 10    |
+| lightyear              | 11    |
+| parsec                 | 12    |
 
 ### Area Type
 
