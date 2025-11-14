@@ -127,22 +127,34 @@ bool has_cycle_impl(const py::array_t<EDGE_T>& edges) {
 bool has_cycle(const py::array& edges) {
 	py::buffer_info buf = edges.request();
 
-	if (buf.ndim != 2 || buf.strides[1] != sizeof(uint32_t)) {
+	if (buf.ndim != 2) {
 		throw std::runtime_error("Array must be 2D and C-contiguous");
 	}
 
 	int data_width = edges.dtype().itemsize();
 
 	if (data_width == 1) {
+		if (buf.strides[1] != sizeof(uint8_t)) {
+			throw std::runtime_error("Array must be C-contiguous");
+		}
 		return has_cycle_impl<uint8_t>(edges);
 	}
 	else if (data_width == 2) {
+		if (buf.strides[1] != sizeof(uint16_t)) {
+			throw std::runtime_error("Array must be C-contiguous");
+		}
 		return has_cycle_impl<uint16_t>(edges);
 	}
 	else if (data_width == 4) {
+		if (buf.strides[1] != sizeof(uint32_t)) {
+			throw std::runtime_error("Array must be C-contiguous");
+		}
 		return has_cycle_impl<uint32_t>(edges);
 	}
 	else {
+		if (buf.strides[1] != sizeof(uint64_t)) {
+			throw std::runtime_error("Array must be C-contiguous");
+		}
 		return has_cycle_impl<uint64_t>(edges);
 	}
 }
