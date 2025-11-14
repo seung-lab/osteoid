@@ -5,9 +5,19 @@ import click
 @click.group()
 def main():
   """
-  View and convert skeleton formats.
+  Tools for viewing, converting, and reading
+  skeleton formats such as swc, ostd.
   """
   pass
+
+@main.command()
+@click.argument("src")
+@click.argument("dest")
+def convert(src:str, dest:str):
+	"""Convert a skeleton from one format to another."""
+	from .util import load, save
+	skel = load(src, allow_mmap=True)
+	save(dest, skel)
 
 @main.command()
 @click.argument("filename")
