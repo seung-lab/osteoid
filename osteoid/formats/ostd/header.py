@@ -287,6 +287,45 @@ class OstdHeader:
       header_crc16.to_bytes(2, 'little'),
     ])
 
+  def details(self) -> str:
+    return f"""
+    magic:             {OstdHeader.MAGIC}
+    version:           {self.format_version}
+
+    id:                {self.id}
+
+    num verts:         {self.Nv}
+    num edges:         {self.Ne}
+
+    num components:    {self.num_components}
+    cable length:      {self.cable_length} {self.length_unit[0]}{self.length_unit[1]}
+    graph type:        {self.graph_type.name}
+    representation:    {self.edge_representation.name}
+
+    vertex dtype:      {self.vertex_data_type.name}
+    edge dtype:        {self.edge_data_type.name}
+
+    vert compression:  {self.vertex_compression.name}
+    edge compression:  {self.edge_compression.name}
+
+    current space:     {self.space}
+    has_transform?:    {self.has_transform}
+    voxel centered?:   {self.voxel_centered}
+    coord frame:       {self.coordinate_frame_orientation}
+
+    header  bytes:     {self.HEADER_BYTES} bytes
+    vertex bytes:      {self.vertex_bytes} bytes
+    edge bytes:        {self.edge_bytes} bytes
+    index bytes:       {self.spatial_index_bytes} bytes
+    attr header bytes: {self.attribute_header_bytes} bytes
+    total bytes:       {self.total_bytes} bytes
+
+    crc16:             {self.crc16}
+    """
+
+  def __repr__(self):
+    return str(self.__dict__)
+
 @dataclass
 class OstdTransform:
   space:SpaceType
