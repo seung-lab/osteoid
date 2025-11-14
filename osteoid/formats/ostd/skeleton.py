@@ -59,8 +59,11 @@ class OstdSkeletonPart:
     edge_binary += lib.crc32c(edge_binary).to_bytes(4, 'little')
 
     self.header.cable_length = self.cable_length()
-    self.header.num_components = self.num_components()
-    self.header.graph_type = self.graph_type()
+
+    components = fastosteoid.compute_components(self.edges, self.header.Nv)
+    self.header.num_components = len(components)
+    self.header.graph_type = self._graph_type(components)
+    del components
 
     self.header.has_transform = False
     transform_binary = b''
@@ -147,14 +150,17 @@ class OstdSkeletonPart:
 
     return self.header.cable_length
 
-  def graph_type(self) -> GraphType:
-    components = fastosteoid.compute_components(self.edges, self.header.Nv)
-
+  def _graph_type(self, components:list[np.ndarray]) -> GraphType:
     for component in components:
       if fastosteoid.has_cycle(component):
         return GraphType.CYCLIC
 
     return GraphType.TREE
+
+  def graph_type(self) -> GraphType:
+    return self._graph_type(
+      fastosteoid.compute_components(self.edges, self.header.Nv)
+    )
 
   def num_components(self) -> int:
     sentinel = np.iinfo(np.uint32).max
