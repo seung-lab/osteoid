@@ -153,34 +153,34 @@ def length_conversion_factor(unit1:LengthType, unit2:LengthType) -> float:
 class AreaType(IntEnum):
   UNKNOWN = 0
   VOXEL = 1
-  METER = 2
-  ANGSTROM = 3
-  ASTRONOMICAL_UNIT = 4
-  LIGHTYEAR = 5
-  PARSEC = 6
-  MIL = 7
-  INCH = 8
-  FOOT = 9
-  YARD = 10
-  STATUTE_MILE = 11
-  NAUTICAL_MILE = 12
+  ANGSTROM = 2
+  MIL = 3
+  INCH = 4
+  FOOT = 5
+  YARD = 6
+  METER = 7
+  STATUTE_MILE = 8
+  NAUTICAL_MILE = 9
+  ASTRONOMICAL_UNIT = 10
+  LIGHTYEAR = 11
+  PARSEC = 12
 
 AreaType.__str__ = lambda self: f"{LENGTH_SYMBOLS[self]}^2"
 
 class VolumeType(IntEnum):
   UNKNOWN = 0
   VOXEL = 1
-  METER = 2
-  ANGSTROM = 3
-  ASTRONOMICAL_UNIT = 4
-  LIGHTYEAR = 5
-  PARSEC = 6
-  MIL = 7
-  INCH = 8
-  FOOT = 9
-  YARD = 10
-  STATUTE_MILE = 11
-  NAUTICAL_MILE = 12
+  ANGSTROM = 2
+  MIL = 3
+  INCH = 4
+  FOOT = 5
+  YARD = 6
+  METER = 7
+  STATUTE_MILE = 8
+  NAUTICAL_MILE = 9
+  ASTRONOMICAL_UNIT = 10
+  LIGHTYEAR = 11
+  PARSEC = 12
   LITER = 13
 
 VOLUME_SYMBOLS = {**LENGTH_SYMBOLS, VolumeType.LITER: "L"}
