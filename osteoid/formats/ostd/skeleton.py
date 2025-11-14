@@ -38,6 +38,11 @@ from .types import (
   FROM_LENGTH_UNIT,
 )
 
+def check_crc32c(binary:bytes, stored_crc:int):
+    computed_crc = lib.crc32c(binary)    
+    if stored_crc != computed_crc:
+      raise ValueError(f"Header corruption detected. Stored crc32c: {stored_crc}, Computed crc32c: {computed_crc}")
+
 # represents one skeleton section
 # in a possibly multipart file
 @dataclass
@@ -177,7 +182,7 @@ class OstdSkeletonPart:
     return len(forest)
 
   def change_space(self, idx:int):
-    if idx < 0 or idx >= len(self.spaces.spaces) or idx > 255:
+    if idx < 0 or idx > len(self.spaces.spaces) or idx > 255:
       raise ValueError(f"No transform exists for this space index. {idx} (max: {len(self.spaces.spaces)})")
 
     if idx == self.header.space:
@@ -190,12 +195,12 @@ class OstdSkeletonPart:
 
     if src_space != 0:
       # transform from src space to voxels
-      src_to_vox = np.linalg.inv(self.spaces[src_space].transform)
+      src_to_vox = np.linalg.inv(self.spaces.spaces[src_space - 1].transform)
       total_transform = total_transform @ src_to_vox
 
     if idx != 0:
       # transform from voxels to target space
-      vox_to_dst = self.spaces[idx - 1].transform
+      vox_to_dst = self.spaces.spaces[idx - 1].transform
       total_transform = total_transform @ vox_to_dst
 
     if not np.allclose(total_transform, identity):
@@ -266,7 +271,11 @@ class OstdSkeletonPart:
       dtype=header.vertex_dtype,
     ).reshape((header.Nv, header.num_axes), order="C")
 
-    off += header.vertex_bytes
+    check_buf = vertices.view(np.uint8).reshape((vertices.nbytes,))
+    off += header.vertex_bytes - 4
+    stored_crc32c = int.from_bytes(binary[off:off+4], 'little')
+    check_crc32c(check_buf,  stored_crc32c)
+    off += 4
 
     if header.edge_representation != EdgeRepresentationType.PAIR:
       raise ValueError("Only edge lists are currently supported.")
@@ -278,7 +287,11 @@ class OstdSkeletonPart:
       dtype=header.edge_dtype
     ).reshape((header.Ne, 2), order="C")
 
-    off += header.edge_bytes
+    check_buf = edges.view(np.uint8).reshape((edges.nbytes,))
+    off += header.edge_bytes - 4
+    stored_crc32c = int.from_bytes(binary[off:off+4], 'little')
+    check_crc32c(check_buf,  stored_crc32c)
+    off += 4
 
     attribute_header = None
     attributes = OrderedDict()
@@ -301,8 +314,13 @@ class OstdSkeletonPart:
         if attribute.num_components > 1:
           arr = arr.reshape((header.Nv, attribute.num_components), order="C")
 
+        check_buf = arr.view(np.uint8).reshape((arr.nbytes,))
+        off += arr.nbytes
+        stored_crc32c = int.from_bytes(binary[off:off+4], 'little')
+        check_crc32c(check_buf,  stored_crc32c)
+        off += 4
+
         attributes[attribute.name] = (attribute.unit, arr)
-        off += arr.nbytes + 4
 
     return OstdSkeletonPart(
       header=header,
