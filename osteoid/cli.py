@@ -14,9 +14,15 @@ def main():
 @click.argument("src")
 def info(src):
   import osteoid.formats
+  from osteoid.formats.ostd import OstdHeader
+
   if src.endswith(".swc"):
     click.echo(osteoid.formats.swc.read_header(src))
-
+  elif src.endswith(".ostd"):
+    with open(src, "rb") as f:
+      binary = f.read(OstdHeader.HEADER_BYTES)
+    header = OstdHeader.from_bytes(binary, skip_total_length_check=True)
+    click.echo(header.details())
 
 @main.command()
 @click.argument("src")
