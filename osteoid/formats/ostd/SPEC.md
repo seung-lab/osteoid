@@ -470,12 +470,13 @@ The following values are added in addition.
 
 ### Graph Type
 
-1 bit
+2 bit
 
-| Graph Structure       | Value |
-|-----------------------|-------|
-| graph                 | 0     |
-| tree                  | 1     |
+| Graph Structure       | Value | Description                |
+|-----------------------|-------|----------------------------|
+| graph                 | 0     | Could be any kind of graph.|
+| tree                  | 1     | Acyclic graph.             |
+| cyclic                | 2     | Contains one or more loops.|
 
 This value is advisory and does not control the edge representation. 
 This is because a tree can be represented as an edge list. See edge representation.
