@@ -506,11 +506,14 @@ class OstdSkeleton:
     voxel_centered:bool = True,
     attributes:dict[str,npt.NDArray[np.generic]] = {},
   ):
+    Nv = vertices.shape[0]
+    edge_dtype = lib.compute_dtype(Nv)
+
     header = OstdHeader(
-      Nv = vertices.shape[0],
+      Nv = Nv,
       Ne = edges.shape[0],
       coordinate_frame_orientation = coordinate_frame_orientation,
-      edge_data_type = TO_DATATYPE[np.dtype(edges.dtype).type],
+      edge_data_type = TO_DATATYPE[np.dtype(edge_dtype).type],
       edge_compression = CompressionType.NONE,
       edge_representation = EdgeRepresentationType.PAIR,
       has_transform = False,
@@ -532,7 +535,7 @@ class OstdSkeleton:
       OstdSkeletonPart(
         header=header, 
         vertices=vertices, 
-        edges=edges,
+        edges=edges.astype(edge_dtype, copy=False),
         spaces=spaces,
         attributes=attributes,
       )
@@ -565,10 +568,4 @@ class OstdSkeleton:
       skel.a._props[name] = partial(getattribute, skel, name)
 
     return skel
-
-
-
-
-
-
 
