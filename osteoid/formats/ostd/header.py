@@ -529,4 +529,18 @@ class OstdAttributeSection:
 
     return OstdAttributeSection(attrs)
 
+  def details(self) -> str:
+    details = f"""
+    num attributes: {len(self.attributes)}
+
+    name, attr_type, dtype, compress, unit, num_components, byte_length
+    """
+    for attr in self.attributes:
+      details += (f"{attr.name}, {attr.attribute_type.name}, {attr.data_type.name},"
+                 f"{attr.compression.name}, {attr.unit[0]}{attr.unit[1]}, {attr.num_components},"
+                 f"{attr.content_length} bytes")
+      details += "\n"
+    return detials
+
+
 
