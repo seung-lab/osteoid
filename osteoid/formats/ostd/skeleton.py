@@ -121,13 +121,13 @@ class OstdSkeletonPart:
     attrs = []
     for name, (unit, arr) in self.attributes.items():
       attr = OstdAttribute(
-        name = name,
-        attribute_type = AttributeType.VERTEX,
-        data_type = TO_DATATYPE[np.dtype(arr.dtype).type],
-        compression = CompressionType.NONE,
-        unit = unit,
-        num_components = (1 if arr.ndim == 1 else arr.shape[1]),
-        content_length = arr.nbytes,
+        name=name,
+        attribute_type=AttributeType.VERTEX,
+        data_type=TO_DATATYPE[np.dtype(arr.dtype).type],
+        compression=CompressionType.NONE,
+        unit=unit,
+        num_components=(1 if arr.ndim == 1 else arr.shape[1]),
+        content_length=arr.nbytes,
       )
       attrs.append(attr)
     return OstdAttributeSection(attrs)
