@@ -266,6 +266,9 @@ py::list compute_components_impl(
 			visited[node] = true;
 
 			for (EDGE_T child : index[node]) {
+				if (child == parent) {
+					continue;
+				}
 				stack.push_back(child);
 				parents.push_back(node);
 			}
