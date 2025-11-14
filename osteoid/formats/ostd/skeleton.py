@@ -296,7 +296,10 @@ class OstdSkeletonPart:
           offset=off,
           count=(header.Nv * attribute.num_components),
           dtype=attribute.dtype,
-        ).reshape((header.Nv, attribute.num_components), order="C")
+        )
+
+        if attribute.num_components > 1:
+          arr = arr.reshape((header.Nv, attribute.num_components), order="C")
 
         attributes[attribute.name] = (attribute.unit, arr)
 
