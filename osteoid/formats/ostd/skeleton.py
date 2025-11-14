@@ -302,6 +302,7 @@ class OstdSkeletonPart:
           arr = arr.reshape((header.Nv, attribute.num_components), order="C")
 
         attributes[attribute.name] = (attribute.unit, arr)
+        off += arr.nbytes + 4
 
     return OstdSkeletonPart(
       header=header,
@@ -393,6 +394,13 @@ class OstdSkeleton:
   def num_components(self) -> int:
     """Note: This may be an overestimate for multi-part files."""
     return sum(( part.header.num_components for part in self.parts ))
+
+  @property
+  def attributes(self) -> list[OstdAttribute]:
+    return [ 
+      (name, f"{unit[0]}{unit[1]}")
+      for name, (unit, arr) in self.parts[0].attributes.items()
+    ]
 
   @property
   def unit(self) -> tuple[SIPrefixType, LengthType]:
