@@ -32,10 +32,10 @@ def _load(filelike, size:int = -1, allow_mmap:bool = False) -> IO[bytes]:
   return binary
 
 def load(filename:str, allow_mmap:bool = False) -> Skeleton:
-  binary = _load(filename, allow_mmap=mmap)
+  binary = _load(filename, allow_mmap=allow_mmap)
 
   if filename.endswith("swc"):
-    return Skeleton.from_swc(binary.decode("utf8"))
+    return Skeleton.from_swc(bytes(binary).decode("utf8"))
   elif filename.endswith("ostd"):
     return Skeleton.from_ostd(binary)
   else:
