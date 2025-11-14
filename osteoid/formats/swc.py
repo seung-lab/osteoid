@@ -8,6 +8,21 @@ import numpy as np
 import importlib.metadata
 __VERSION__ = importlib.metadata.version("osteoid")
 
+def read_header(filename:str) -> str:
+  with open(filename, "rt") as f:
+    lines = f.readlines()
+
+  header_lines = []
+  for line in lines:
+    if line[0] == "#":
+      header_lines.append(
+        re.sub(r'# ?', '', line, count=1)
+      )
+    else:
+      break
+
+  return "\n".join(header_lines)
+
 def to_swc(
   skeleton:"Skeleton", 
   contributors:str = "", 
