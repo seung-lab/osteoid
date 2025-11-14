@@ -32,36 +32,42 @@ def _load(filelike, size:int = -1, allow_mmap:bool = False) -> IO[bytes]:
   return binary
 
 def load(filename:str, allow_mmap:bool = False) -> Skeleton:
-  binary = _load(filename, allow_mmap=allow_mmap)
+  binary = _load(filename, allow_mmap=mmap)
 
   if filename.endswith("swc"):
-    return Skeleton.from_swc(bytes(binary).decode("utf8"))
+    return Skeleton.from_swc(binary.decode("utf8"))
+  elif filename.endswith("ostd"):
+    return Skeleton.from_ostd(binary)
   else:
     return Skeleton.from_precomputed(binary)
 
 def save(
-  filename:str,
+  filelike,
   skeleton:Skeleton,
   **kwargs
 ):
   """Save labels into the file-like object or file path."""
   if filename.endswith("swc"):
-    binary = skeleton.to_swc().encode("utf8")
+    binary = skel.to_swc()
+  elif filename.endswith("ostd"):
+    binary = skel.to_ostd()
   else:
-    binary = skeleton.to_precomputed()
+    binary = skel.to_precomputed()
 
-  if (
-    isinstance(filename, str) 
-    and os.path.splitext(filename)[1] == '.gz'
+  if hasattr(filelike, 'write'):
+    filelike.write(binary)
+  elif (
+    isinstance(filelike, str) 
+    and os.path.splitext(filelike)[1] == '.gz'
   ):
-    with gzip.open(filename, 'wb') as f:
+    with gzip.open(filelike, 'wb') as f:
       f.write(binary)
   elif (
-    isinstance(filename, str) 
-    and os.path.splitext(filename)[1] in ('.lzma', '.xz')
+    isinstance(filelike, str) 
+    and os.path.splitext(filelike)[1] in ('.lzma', '.xz')
   ):
-    with lzma.open(filename, 'wb') as f:
+    with lzma.open(filelike, 'wb') as f:
       f.write(binary)
   else:
-    with open(filename, 'wb') as f:
+    with open(filelike, 'wb') as f:
       f.write(binary)
