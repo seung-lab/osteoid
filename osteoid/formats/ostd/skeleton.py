@@ -109,8 +109,9 @@ class OstdSkeletonPart:
     else:
       raise ValueError("Unsupported representation: ", self.header.edge_representation)
 
+  @classmethod
   def _decode_edge_representation_pair(
-    self,
+    kls,
     header:OstdHeader,
     binary:bytes,
     offset:int,
@@ -123,13 +124,14 @@ class OstdSkeletonPart:
     ).reshape((header.Ne, 2), order="C")
 
     check_buf = edges.view(np.uint8).reshape((edges.nbytes,))
-    off += header.edge_bytes - 4
-    stored_crc32c = int.from_bytes(binary[off:off+4], 'little')
+    crc_off = offset + header.edge_bytes - 4
+    stored_crc32c = int.from_bytes(binary[crc_off:crc_off+4], 'little')
     check_crc32c(check_buf,  stored_crc32c)
     return edges
 
+  @classmethod
   def _decode_edge_representation_linked_paths(
-    self,
+    kls,
     header:OstdHeader,
     binary:bytes,
     offset:int,
@@ -182,9 +184,9 @@ class OstdSkeletonPart:
     offset:int,
   ) -> npt.NDArray[np.unsignedinteger]:
     if header.edge_representation == EdgeRepresentationType.PAIR:
-      return kls._encode_representation_pair(header, binary, offset)
+      return kls._decode_edge_representation_pair(header, binary, offset)
     elif header.edge_representation == EdgeRepresentationType.LINKED_PATHS:
-      return kls._encode_representation_linked_paths(header, binary, offset)
+      return kls._decode_representation_linked_paths(header, binary, offset)
     else:
       raise ValueError("Unsupported representation: ", header.edge_representation)
 
@@ -399,7 +401,7 @@ class OstdSkeletonPart:
     check_crc32c(check_buf,  stored_crc32c)
     off += 4
 
-    edges = self._decode_edge_representation(header, binary, off)
+    edges = kls._decode_edge_representation(header, binary, off)
     off += header.edge_bytes
 
     attribute_header = None
