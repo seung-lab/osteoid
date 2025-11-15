@@ -80,7 +80,16 @@ class OstdSkeletonPart:
     ]
 
     # sort vertices by path locations
-    verts = self.vertices[np.concatenate(all_paths)]
+    reorder = np.concatenate(all_paths)
+    verts = self.vertices[reorder]
+    edges = np.concatenate(all_edges).astype(self.header.edge_dtype, copy=False)
+    
+    inv = np.empty_like(reorder)
+    inv[reorder] = np.arange(len(reorder), dtype=reorder.dtype)
+    del reorder
+    edges = inv[edges]
+    del inv
+
     path_lengths = np.array([ len(path) for path in all_paths ], dtype=np.uint64)
 
     self.header.num_components = N
@@ -95,7 +104,7 @@ class OstdSkeletonPart:
     edge_binary = b''.join([
       len(path_lengths).to_bytes(8, 'little'),
       path_lengths.tobytes(),
-      np.concatenate(all_edges).astype(self.header.edge_dtype, copy=False)
+      edges.tobytes(),
     ])
     edge_binary += lib.crc32c(edge_binary).to_bytes(4, 'little')
 
