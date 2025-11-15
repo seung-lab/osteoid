@@ -56,19 +56,134 @@ class OstdSkeletonPart:
     OrderedDict[str,tuple[tuple[SIPrefixType, IntEnum], npt.NDArray[np.generic]]]
   ] = None
 
-  def to_bytes(self) -> bytes:
+  def _encode_representation_pair(self) -> tuple[bytes, bytes]:
     vertex_binary = self.vertices.tobytes("C")
     vertex_binary += lib.crc32c(vertex_binary).to_bytes(4, 'little')
 
     edge_binary = self.edges.tobytes("C")
     edge_binary += lib.crc32c(edge_binary).to_bytes(4, 'little')
 
-    self.header.cable_length = self.cable_length()
-
     components = fastosteoid.compute_components(self.edges, self.header.Nv)
     self.header.num_components = len(components)
     self.header.graph_type = self._graph_type(components)
-    del components
+
+    return (vertex_binary, edge_binary)
+
+  def _encode_representation_linked_paths(self) -> tuple[bytes, bytes]:
+    (all_paths, all_edges, has_cycle, N) = fastosteoid.linked_paths(self.edges)
+
+    # sort vertices by path locations
+    verts = self.vertices[np.concatenate(all_paths)]
+    path_lengths = np.array([ len(path) for path in all_paths ], dtype=np.uint64)
+
+    self.header.num_components = N
+    if has_cycle:
+      self.header.graph_type = GraphType.CYCLIC
+    else:
+      self.header.graph_type = GraphType.TREE
+
+    vertex_binary = verts.tobytes("C")
+    vertex_binary += lib.crc32c(vertex_binary).to_bytes(4, 'little')
+
+    edges_binary = b''.join([
+      len(path_lengths).to_bytes(8, 'little')
+      path_lengths.tobytes(),
+      np.concatenate(all_edges).astype(self.header.edge_dtype, copy=False)
+    ])
+    edge_binary += lib.crc32c(edge_binary).to_bytes(4, 'little')
+
+    return (vertex_binary, edge_binary)
+
+  def _encode_representation(self) -> tuple[bytes, bytes]:
+    if self.header.edge_representation == EdgeRepresentationType.PAIR:
+      return self._encode_representation_pair()
+    elif self.header.edge_representation == EdgeRepresentationType.LINKED_PATHS:
+      return self._encode_representation_linked_paths()
+    else:
+      raise ValueError("Unsupported representation: ", self.header.edge_representation)
+
+  def _decode_edge_representation_pair(
+    self,
+    header:OstdHeader,
+    binary:bytes,
+    offset:int,
+  ) -> npt.NDArray[np.unsignedinteger]:
+    edges = np.frombuffer(
+      binary, 
+      offset=offset,
+      count=header.Ne * 2, 
+      dtype=header.edge_dtype
+    ).reshape((header.Ne, 2), order="C")
+
+    check_buf = edges.view(np.uint8).reshape((edges.nbytes,))
+    off += header.edge_bytes - 4
+    stored_crc32c = int.from_bytes(binary[off:off+4], 'little')
+    check_crc32c(check_buf,  stored_crc32c)
+    return edges
+
+  def _decode_edge_representation_linked_paths(
+    self,
+    header:OstdHeader,
+    binary:bytes,
+    offset:int,
+  ) -> npt.NDArray[np.unsignedinteger]:
+    check_buf = np.frombuffer(
+      binary, 
+      offset=offset, 
+      count=(header.edge_bytes - 4), 
+      dtype=np.uint8
+    )
+    crc_off = offset + header.edge_bytes - 4
+    stored_crc32c = int.from_bytes(binary[crc_off:crc_off+4], 'little')
+    check_crc32c(check_buf,  stored_crc32c)
+
+    num_paths = int.from_bytes(binary[offset:offset+8], 'little')
+    path_lengths = np.frombuffer(
+      binary, 
+      offset=offset+8,
+      count=num_paths,
+      dtype=np.uint64,
+    )
+    edge_path_bytes = path_lengths.nbytes + 8
+    num_edges = header.edge_bytes - edge_path_bytes
+    num_edges //= np.dtype(header.edge_dtype).itemsize 
+    
+    all_edges = []
+    total_length = 0
+    for path_len in path_lengths:
+      e1 = np.arange(total_length, total_length + path_len, dtype=header.edge_dtype)
+      e2 = np.arange(total_length + 1, total_length + path_len + 1, dtype=header.edge_dtype)
+      all_edges.append(
+        np.hstack([e1.T,e2.T])
+      )
+
+    explicit_pairs = np.frombuffer(
+      binary,
+      offset=(offset + edge_path_bytes),
+      count=num_edges,
+      dtype=header.edge_dtype,
+    ).reshape(((num_edges // 2), 2), order="C")
+    all_edges.append(explicit_pairs)
+
+    return np.concatenate(all_edges)
+
+  @classmethod
+  def _decode_edge_representation(
+    kls, 
+    header:OstdHeader,
+    binary:bytes,
+    offset:int,
+  ) -> npt.NDArray[np.unsignedinteger]:
+    if header.edge_representation == EdgeRepresentationType.PAIR:
+      return kls._encode_representation_pair(header, binary, offset)
+    elif header.edge_representation == EdgeRepresentationType.LINKED_PATHS:
+      return kls._encode_representation_linked_paths(header, binary, offset)
+    else:
+      raise ValueError("Unsupported representation: ", header.edge_representation)
+
+  def to_bytes(self) -> bytes:
+    vertex_binary, edge_binary = self._encode_representation()
+    self.header.cable_length = self.cable_length()
 
     self.header.has_transform = False
     transform_binary = b''
@@ -277,21 +392,8 @@ class OstdSkeletonPart:
     check_crc32c(check_buf,  stored_crc32c)
     off += 4
 
-    if header.edge_representation != EdgeRepresentationType.PAIR:
-      raise ValueError("Only edge lists are currently supported.")
-
-    edges = np.frombuffer(
-      binary, 
-      offset=off,
-      count=header.Ne * 2, 
-      dtype=header.edge_dtype
-    ).reshape((header.Ne, 2), order="C")
-
-    check_buf = edges.view(np.uint8).reshape((edges.nbytes,))
-    off += header.edge_bytes - 4
-    stored_crc32c = int.from_bytes(binary[off:off+4], 'little')
-    check_crc32c(check_buf,  stored_crc32c)
-    off += 4
+    edges = self._decode_edge_representation(header, binary, off)
+    off += header.edge_bytes
 
     attribute_header = None
     attributes = OrderedDict()
