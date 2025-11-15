@@ -153,8 +153,9 @@ class OstdSkeletonPart:
       count=num_paths,
       dtype=np.uint64,
     )
+
     edge_path_bytes = path_lengths.nbytes + 8
-    num_edges = header.edge_bytes - edge_path_bytes
+    num_edges = header.edge_bytes - edge_path_bytes - 4 # - crc
     num_edges //= np.dtype(header.edge_dtype).itemsize 
     
     all_edges = []
