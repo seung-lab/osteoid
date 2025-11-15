@@ -90,7 +90,8 @@ class OstdSkeletonPart:
     edges = inv[edges]
     del inv
 
-    path_lengths = np.array([ len(path) for path in all_paths ], dtype=np.uint64)
+    pdtype = lib.compute_dtype(verts.shape[0])
+    path_lengths = np.asarray([ len(path) for path in all_paths ], dtype=pdtype)
 
     self.header.num_components = N
     if has_cycle:
@@ -156,11 +157,13 @@ class OstdSkeletonPart:
     check_crc32c(check_buf,  stored_crc32c)
 
     num_paths = int.from_bytes(binary[offset:offset+8], 'little')
+
+    pdtype = lib.compute_dtype(header.Nv)
     path_lengths = np.frombuffer(
       binary, 
       offset=(offset+8),
       count=num_paths,
-      dtype=np.uint64,
+      dtype=pdtype,
     )
 
     edge_path_bytes = path_lengths.nbytes + 8
