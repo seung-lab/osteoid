@@ -164,6 +164,7 @@ class OstdSkeletonPart:
       arr[:,0] = np.arange(total_length, total_length + path_len - 1, dtype=header.edge_dtype)
       arr[:,1] = np.arange(total_length + 1, total_length + path_len, dtype=header.edge_dtype)
       all_edges.append(arr)
+      total_length += path_len
 
     explicit_pairs = np.frombuffer(
       binary,
