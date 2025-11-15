@@ -14,7 +14,7 @@ def main():
 @click.argument("src")
 def info(src):
   import osteoid.formats
-  from osteoid.formats.ostd import OstdHeader
+  from osteoid.formats.ostd import OstdSkeleton, OstdHeader
 
   if src.endswith(".swc"):
     click.echo(osteoid.formats.swc.read_header(src))
@@ -23,6 +23,10 @@ def info(src):
       binary = f.read(OstdHeader.HEADER_BYTES)
     header = OstdHeader.from_bytes(binary, skip_total_length_check=True)
     click.echo(header.details())
+
+    oskel = OstdSkeleton.load(src, allow_mmap=True)
+    attrs = [ f"{attr} ({unit})" for attr, unit in oskel.attributes ]
+    click.echo("\nattributes: " + ", ".join(attrs))
 
 @main.command()
 @click.argument("src")
