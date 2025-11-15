@@ -186,7 +186,7 @@ class OstdSkeletonPart:
     if header.edge_representation == EdgeRepresentationType.PAIR:
       return kls._decode_edge_representation_pair(header, binary, offset)
     elif header.edge_representation == EdgeRepresentationType.LINKED_PATHS:
-      return kls._decode_representation_linked_paths(header, binary, offset)
+      return kls._decode_edge_representation_linked_paths(header, binary, offset)
     else:
       raise ValueError("Unsupported representation: ", header.edge_representation)
 
