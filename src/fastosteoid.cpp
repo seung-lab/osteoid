@@ -97,7 +97,7 @@ py::tuple linked_paths_impl(const py::array_t<EDGE_T>& edges_arr) {
 		index[e2].insert(e1);
 	}
 
-	auto extract_branches = [&](EDGE_T start) -> py::array_t<EDGE_T> {
+	auto extract_branches = [&](EDGE_T start) -> py::tuple {
 		std::vector<EDGE_T> stack;
 		std::vector<EDGE_T> parents;
 
