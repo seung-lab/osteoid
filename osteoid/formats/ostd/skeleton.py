@@ -711,3 +711,7 @@ class OstdSkeleton:
 
     return skel
 
+  def drop_attribute(self, name:str):
+    for part in self.parts:
+      del part.attributes[name]
+
