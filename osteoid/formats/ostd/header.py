@@ -318,7 +318,7 @@ has_transform?:    {self.has_transform}
 voxel centered?:   {self.voxel_centered}
 coord frame:       {self.coordinate_frame_orientation}
 
-header  bytes:     {self.HEADER_BYTES} bytes
+header bytes:      {self.HEADER_BYTES} bytes
 vertex bytes:      {self.vertex_bytes} bytes
 edge bytes:        {self.edge_bytes} bytes
 index bytes:       {self.spatial_index_bytes} bytes
