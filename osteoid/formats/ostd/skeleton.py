@@ -86,7 +86,7 @@ class OstdSkeletonPart:
     vertex_binary += lib.crc32c(vertex_binary).to_bytes(4, 'little')
 
     edges_binary = b''.join([
-      len(path_lengths).to_bytes(8, 'little')
+      len(path_lengths).to_bytes(8, 'little'),
       path_lengths.tobytes(),
       np.concatenate(all_edges).astype(self.header.edge_dtype, copy=False)
     ])
@@ -625,6 +625,7 @@ class OstdSkeleton:
     spaces:list = [],
     coordinate_frame_orientation:str = "+X+Y+Z",
     voxel_centered:bool = True,
+    edge_representation:EdgeRepresentationType = EdgeRepresentationType.LINKED_PATHS,
     attributes:dict[str,npt.NDArray[np.generic]] = {},
   ):
     Nv = vertices.shape[0]
@@ -636,7 +637,7 @@ class OstdSkeleton:
       coordinate_frame_orientation = coordinate_frame_orientation,
       edge_data_type = TO_DATATYPE[np.dtype(edge_dtype).type],
       edge_compression = CompressionType.NONE,
-      edge_representation = EdgeRepresentationType.PAIR,
+      edge_representation = edge_representation,
       has_transform = False,
       id = id,
       length_unit = TO_LENGTH_UNIT[length_unit.lower()],
