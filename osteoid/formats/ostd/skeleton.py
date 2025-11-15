@@ -72,6 +72,13 @@ class OstdSkeletonPart:
   def _encode_representation_linked_paths(self) -> tuple[bytes, bytes]:
     (all_paths, all_edges, has_cycle, N) = fastosteoid.linked_paths(self.edges)
 
+    # flatten all_paths
+    all_paths = [ 
+      item 
+      for sublist in all_paths 
+        for item in sublist
+    ]
+
     # sort vertices by path locations
     verts = self.vertices[np.concatenate(all_paths)]
     path_lengths = np.array([ len(path) for path in all_paths ], dtype=np.uint64)
@@ -85,7 +92,7 @@ class OstdSkeletonPart:
     vertex_binary = verts.tobytes("C")
     vertex_binary += lib.crc32c(vertex_binary).to_bytes(4, 'little')
 
-    edges_binary = b''.join([
+    edge_binary = b''.join([
       len(path_lengths).to_bytes(8, 'little'),
       path_lengths.tobytes(),
       np.concatenate(all_edges).astype(self.header.edge_dtype, copy=False)
