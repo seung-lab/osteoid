@@ -172,7 +172,7 @@ class OstdSkeletonPart:
     for path_len in path_lengths:
       arr = np.empty([path_len - 1, 2], dtype=header.edge_dtype, order='C')
       arr[:,0] = np.arange(total_length, total_length + path_len - 1, dtype=header.edge_dtype)
-      arr[:,1] = np.arange(total_length + 1, total_length + path_len, dtype=header.edge_dtype)
+      arr[:,1] = arr[:,0] + 1
       all_edges.append(arr)
       total_length += path_len
 
