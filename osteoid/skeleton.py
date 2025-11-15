@@ -1043,8 +1043,9 @@ class Skeleton:
       DimensionlessType, LengthType, AreaType,
     )
     transform = self.transform
-    ones = np.ones((1, 4), dtype=transform.dtype)
-    transform = np.vstack((transform, ones))
+    bottom = np.zeros((1, 4), dtype=transform.dtype)
+    bottom[0,3] = 1
+    transform = np.vstack((transform, bottom))
 
     attributes = OrderedDict([
       (attr["id"], ((SIPrefixType.NONE, DimensionlessType.UNKNOWN), getattr(self, attr["id"])))
