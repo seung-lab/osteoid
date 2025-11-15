@@ -149,7 +149,7 @@ class OstdSkeletonPart:
     num_paths = int.from_bytes(binary[offset:offset+8], 'little')
     path_lengths = np.frombuffer(
       binary, 
-      offset=offset+8,
+      offset=(offset+8),
       count=num_paths,
       dtype=np.uint64,
     )
@@ -160,11 +160,10 @@ class OstdSkeletonPart:
     all_edges = []
     total_length = 0
     for path_len in path_lengths:
-      e1 = np.arange(total_length, total_length + path_len, dtype=header.edge_dtype)
-      e2 = np.arange(total_length + 1, total_length + path_len + 1, dtype=header.edge_dtype)
-      all_edges.append(
-        np.hstack([e1.T,e2.T])
-      )
+      arr = np.empty([path_len - 1, 2], dtype=header.edge_dtype, order='C')
+      arr[:,0] = np.arange(total_length, total_length + path_len - 1, dtype=header.edge_dtype)
+      arr[:,1] = np.arange(total_length + 1, total_length + path_len, dtype=header.edge_dtype)
+      all_edges.append(arr)
 
     explicit_pairs = np.frombuffer(
       binary,
