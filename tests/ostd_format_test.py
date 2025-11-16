@@ -23,7 +23,7 @@ def sample_header():
         attribute_header_bytes=64,
         cable_length=123.456,
         coordinate_frame_orientation='-X+Y+Z',
-        crc16=60279,
+        crc16=43185,
         edge_data_type=DataType.U16,
         edge_compression=CompressionType.ZSTD,
         edge_representation=EdgeRepresentationType.PAIR,
@@ -121,7 +121,7 @@ def test_create_properties(sample_skeleton):
     assert skel.vertices.shape == (3, 3)
     assert skel.vertices.dtype == np.float32
     assert skel.edges.shape == (2, 2)
-    assert skel.edges.dtype == np.uint64
+    assert skel.edges.dtype == np.uint8
     assert skel.id == 42
     assert skel.coordinate_frame_orientation == "+X+Y+Z"
     assert skel.voxel_centered is True
