@@ -283,7 +283,7 @@ class OstdHeader:
       int(self.attribute_header_bytes).to_bytes(4, 'little'),
       int(self.num_components).to_bytes(4, 'little'),
       struct.pack('<f', self.cable_length),
-      int(self.space).to_bytes(1),
+      int(self.space).to_bytes(1, 'little'),
     ])
     header_crc16 = lib.crc16(header)
     
