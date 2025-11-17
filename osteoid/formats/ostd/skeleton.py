@@ -9,7 +9,6 @@ from enum import IntEnum
 import numpy as np
 import numpy.typing as npt
 
-import DracoPy
 import fastremap
 import fastosteoid
 
@@ -61,12 +60,8 @@ class OstdSkeletonPart:
     if self.header.vertex_compression == CompressionType.NONE:
       vertex_binary = self.vertices.tobytes("C")
       vertex_binary += lib.crc32c(vertex_binary).to_bytes(4, 'little')
-    elif self.header.vertex_compression == CompressionType.DRACO:
-      vertex_binary = DracoPy.encode(
-        self.vertices, 
-        quantization_bits=30,
-        compression_level=5,
-      )
+    else:
+      raise ValueError(f"Unsupported compression type: {self.header.vertex_compression}")
 
     return vertex_binary
 
@@ -417,8 +412,6 @@ class OstdSkeletonPart:
       off = offset + header.vertex_bytes - 4
       stored_crc32c = int.from_bytes(binary[off:off+4], 'little')
       check_crc32c(check_buf,  stored_crc32c)
-    elif header.vertex_compression == CompressionType.DRACO:
-      vertices = DracoPy.decode(binary[offset:offset+header.vertex_bytes]).points
     else:
       raise ValueError(f"Compression type not supported: {header.vertex_compression}")
 
@@ -607,7 +600,7 @@ class OstdSkeleton:
     physical_length = 0
     for part in self.parts:
       part.change_space_by_type(master_space_type)
-      
+
       part_length = part.cable_length()
 
       if part.unit == master_unit:
@@ -702,8 +695,6 @@ class OstdSkeleton:
 
     if vertex_compression is None:
       vert_compress = CompressionType.NONE
-    elif vertex_compression.lower() == "draco":
-      vert_compress = CompressionType.DRACO
     else:
       raise ValueError(f"Unsupported compression type: {vertex_compression}")
 
