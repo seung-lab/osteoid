@@ -340,14 +340,14 @@ class OstdSkeletonPart:
     total_transform = identity
 
     if src_space != 0:
-      # transform from src space to voxels
-      src_to_vox = np.linalg.inv(self.spaces.spaces[src_space - 1].transform)
-      total_transform = total_transform @ src_to_vox
+      # transform from src space to root space
+      src_to_root = np.linalg.inv(self.spaces.spaces[src_space - 1].transform)
+      total_transform = total_transform @ src_to_root
 
     if idx != 0:
-      # transform from voxels to target space
-      vox_to_dst = self.spaces.spaces[idx - 1].transform
-      total_transform = total_transform @ vox_to_dst
+      # transform from root space to target space
+      root_to_dst = self.spaces.spaces[idx - 1].transform
+      total_transform = total_transform @ root_to_dst
 
     if not np.allclose(total_transform, identity):
       ones = np.ones((verts.shape[0], 1), dtype=verts.dtype)
@@ -373,17 +373,23 @@ class OstdSkeletonPart:
       return SpaceType.VOXEL
     return self.spaces[self.header.space].space
 
-  def change_space_by_type(self, typ:SpaceType):
+  def get_space_by_type(self, typ:SpaceType):
     # self.spaces : OstdTransformSection
     # self.spaces.spaces: list[OstdTransform]
     # space.space: OstdTransform.space: SpaceType
 
+    if self.header.space_type == typ:
+      return 0
+
     for i, space in enumerate(self.spaces.spaces):
       if space.space == typ:
-        self.change_space(i)
-        return
+        return i + 1
 
     raise ValueError(f"{typ} not found in space list.")
+
+  def change_space_by_type(self, typ:SpaceType):
+    i = self.get_space_by_type(typ)
+    self.change_space(i)
 
   @classmethod
   def _decode_vertices(kls, header:OstdHeader, binary:bytes, offset:int) -> np.ndarray:

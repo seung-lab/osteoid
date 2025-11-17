@@ -110,16 +110,14 @@ LSB on the left.
 
 ## Transform
 
-If this optional section is not present, the transform can assumed to be the 4x4 identity matrix. The reason this section is optional is to
-significantly reduce the header overhead for small skeletons. 
-
+The default space (0) is set in the header. Transforms listed below should be written such that they are a mapping from space 0 to the selected space. Transforms can then be dynamically composed to create efficient arbitrary mappings.
 
 | Field                  | Bytes | Datatype    | Value                       | Description                                                                                                       |
 |------------------------|-------|-------------|-----------------------------|-------------------------------------------------------------------------------------------------------------------|
 | num_spaces             | 1     | uint8       | -                           | Number of transformations available. matrices.                  |
 | units                  | 1     | uint8       | ppppPPPP                    | The physical unit this transform maps to. |
 | space                  | 1     | uint8       | -                           | The kind of space the transform represents. See *Space Type* |
-| transform              | 64    | 4x4 f32s    | [ f32, f32, f32, f32, ... ] | Homogenous transform matrix from voxel to physical coordinates. Written in row major (C) order.                   |
+| transform              | 64    | 4x4 f32s    | [ f32, f32, f32, f32, ... ] | Homogenous transform matrix from voxel to physical coordinates. Written in row major (C) order little endian.                   |
 | crc16                  | 2     | uint16      | -                          | 16-bit CRC using 0xFF init and 0xd175 implicit polynomial                  |
 
 
