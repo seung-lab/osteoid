@@ -57,8 +57,13 @@ class OstdSkeletonPart:
   ] = None
 
   def _encode_representation_pair(self) -> tuple[bytes, bytes]:
-    vertex_binary = self.vertices.tobytes("C")
-    vertex_binary += lib.crc32c(vertex_binary).to_bytes(4, 'little')
+    import DracoPy
+
+    if self.header.vertex_compression == CompressionType.NONE:
+      vertex_binary = self.vertices.tobytes("C")
+      vertex_binary += lib.crc32c(vertex_binary).to_bytes(4, 'little')
+    elif self.header.vertex_compression == CompressionType.DRACO:
+      vertex_binary = DracoPy.encode(self.vertices, quantization_bits=0)
 
     edge_binary = self.edges.tobytes("C")
     edge_binary += lib.crc32c(edge_binary).to_bytes(4, 'little')
@@ -377,6 +382,27 @@ class OstdSkeletonPart:
     raise ValueError(f"{typ} not found in space list.")
 
   @classmethod
+  def _decode_vertices(kls, header:OstdHeader, binary:bytes, offset:int) -> np.ndarray:
+    if header.vertex_compression == CompressionType.NONE: 
+      vertices = np.frombuffer(
+        binary,
+        offset=offset,
+        count=(header.Nv * header.num_axes),
+        dtype=header.vertex_dtype,
+      ).reshape((header.Nv, header.num_axes), order="C")
+
+      check_buf = vertices.view(np.uint8).reshape((vertices.nbytes,))
+      off = offset + header.vertex_bytes - 4
+      stored_crc32c = int.from_bytes(binary[off:off+4], 'little')
+      check_crc32c(check_buf,  stored_crc32c)
+    elif header.vertex_compression == CompressionType.DRACO:
+      vertices = DracoPy.decode(binary[offset:offset+header.vertex_bytes])
+    else:
+      raise ValueError(f"Compression type not supported: {header.vertex_compression}")
+
+    return vertices
+
+  @classmethod
   def from_bytes(kls, binary:bytes, offset:int = 0) -> "OstdSkeletonPart":
     header = OstdHeader.from_bytes(binary, offset=offset)
 
@@ -401,18 +427,8 @@ class OstdSkeletonPart:
     if header.edge_compression != CompressionType.NONE:
       raise ValueError(f"Compression not yet supported.")
 
-    vertices = np.frombuffer(
-      binary,
-      offset=off,
-      count=(header.Nv * header.num_axes),
-      dtype=header.vertex_dtype,
-    ).reshape((header.Nv, header.num_axes), order="C")
-
-    check_buf = vertices.view(np.uint8).reshape((vertices.nbytes,))
-    off += header.vertex_bytes - 4
-    stored_crc32c = int.from_bytes(binary[off:off+4], 'little')
-    check_crc32c(check_buf,  stored_crc32c)
-    off += 4
+    vertices = kls._decode_vertices(header, binary, off)
+    off += header.vertex_bytes
 
     edges = kls._decode_edge_representation(header, binary, off)
     off += header.edge_bytes
@@ -649,9 +665,17 @@ class OstdSkeleton:
     voxel_centered:bool = True,
     edge_representation:Literal["linked_paths", "pairs"] = "linked_paths",
     attributes:dict[str,npt.NDArray[np.generic]] = {},
+    vertex_compression:Optional[str] = None,
   ):
     Nv = vertices.shape[0]
     edge_dtype = lib.compute_dtype(Nv)
+
+    if vertex_compression is None:
+      vert_compress = CompressionType.NONE
+    elif vertex_compression.lower() == "draco":
+      vert_compress = CompressionType.DRACO
+    else:
+      raise ValueError(f"Unsupported compression type: {vertex_compression}")
 
     if edge_representation == "linked_paths":
       edge_repr = EdgeRepresentationType.LINKED_PATHS
@@ -671,6 +695,7 @@ class OstdSkeleton:
       num_axes = vertices.shape[1],
       space=int(space),
       vertex_data_type = TO_DATATYPE[np.dtype(vertices.dtype).type],
+      vertex_compression = vert_compress,
       voxel_centered = bool(voxel_centered),
     )
 

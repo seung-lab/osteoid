@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, Optional
 
 from collections import defaultdict, OrderedDict
 import copy
@@ -1043,6 +1043,7 @@ class Skeleton:
     unit:str = "nm", 
     coordinate_frame:str = "+X-Y-Z",
     edge_representation:Literal["linked_paths", "pairs"] = "linked_paths",
+    vertex_compression:Optional[Literal["draco"]] = None,
   ) -> bytes:
     """
     Serializes the skeleton to osdt format, defined
@@ -1092,6 +1093,7 @@ class Skeleton:
       coordinate_frame_orientation=coordinate_frame,
       voxel_centered=True,
       attributes=attributes,
+      vertex_compression=vertex_compression,
     ).to_bytes()
 
   @classmethod
