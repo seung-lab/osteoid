@@ -9,6 +9,7 @@ from enum import IntEnum
 import numpy as np
 import numpy.typing as npt
 
+import DracoPy
 import fastremap
 import fastosteoid
 
@@ -56,15 +57,16 @@ class OstdSkeletonPart:
     OrderedDict[str,tuple[tuple[SIPrefixType, IntEnum], npt.NDArray[np.generic]]]
   ] = None
 
-  def _encode_representation_pair(self) -> tuple[bytes, bytes]:
-    import DracoPy
-
+  def _encode_vertices(self) -> bytes:
     if self.header.vertex_compression == CompressionType.NONE:
       vertex_binary = self.vertices.tobytes("C")
       vertex_binary += lib.crc32c(vertex_binary).to_bytes(4, 'little')
     elif self.header.vertex_compression == CompressionType.DRACO:
       vertex_binary = DracoPy.encode(self.vertices, quantization_bits=0)
 
+    return vertex_binary
+
+  def _encode_edge_representation_pair(self) -> bytes:
     edge_binary = self.edges.tobytes("C")
     edge_binary += lib.crc32c(edge_binary).to_bytes(4, 'little')
 
@@ -72,9 +74,9 @@ class OstdSkeletonPart:
     self.header.num_components = len(components)
     self.header.graph_type = self._graph_type(components)
 
-    return (vertex_binary, edge_binary)
+    return edge_binary
 
-  def _encode_representation_linked_paths(self) -> tuple[bytes, bytes]:
+  def _encode_edge_representation_linked_paths(self) -> tuple[bytes, bytes]:
     (all_paths, all_edges, has_cycle, N) = fastosteoid.linked_paths(self.edges)
 
     # flatten all_paths
@@ -104,9 +106,6 @@ class OstdSkeletonPart:
     else:
       self.header.graph_type = GraphType.TREE
 
-    vertex_binary = verts.tobytes("C")
-    vertex_binary += lib.crc32c(vertex_binary).to_bytes(4, 'little')
-
     edge_binary = b''.join([
       len(path_lengths).to_bytes(8, 'little'),
       path_lengths.tobytes(),
@@ -114,13 +113,13 @@ class OstdSkeletonPart:
     ])
     edge_binary += lib.crc32c(edge_binary).to_bytes(4, 'little')
 
-    return (vertex_binary, edge_binary)
+    return edge_binary
 
-  def _encode_representation(self) -> tuple[bytes, bytes]:
+  def _encode_edge_representation(self) ->bytes:
     if self.header.edge_representation == EdgeRepresentationType.PAIR:
-      return self._encode_representation_pair()
+      return self._encode_edge_representation_pair()
     elif self.header.edge_representation == EdgeRepresentationType.LINKED_PATHS:
-      return self._encode_representation_linked_paths()
+      return self._encode_edge_representation_linked_paths()
     else:
       raise ValueError("Unsupported representation: ", self.header.edge_representation)
 
@@ -209,7 +208,8 @@ class OstdSkeletonPart:
       raise ValueError("Unsupported representation: ", header.edge_representation)
 
   def to_bytes(self) -> bytes:
-    vertex_binary, edge_binary = self._encode_representation()
+    vertex_binary = self._encode_vertices()
+    edge_binary = self._encode_edge_representation()
     self.header.cable_length = self.cable_length()
 
     self.header.has_transform = False
@@ -396,7 +396,7 @@ class OstdSkeletonPart:
       stored_crc32c = int.from_bytes(binary[off:off+4], 'little')
       check_crc32c(check_buf,  stored_crc32c)
     elif header.vertex_compression == CompressionType.DRACO:
-      vertices = DracoPy.decode(binary[offset:offset+header.vertex_bytes])
+      vertices = DracoPy.decode(binary[offset:offset+header.vertex_bytes]).points
     else:
       raise ValueError(f"Compression type not supported: {header.vertex_compression}")
 
@@ -422,8 +422,6 @@ class OstdSkeletonPart:
     if header.spatial_index_bytes > 0:
       raise ValueError("Spatial index not implemented.")
 
-    if header.vertex_compression != CompressionType.NONE:
-      raise ValueError(f"Compression not yet supported.")
     if header.edge_compression != CompressionType.NONE:
       raise ValueError(f"Compression not yet supported.")
 
