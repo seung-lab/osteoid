@@ -62,7 +62,11 @@ class OstdSkeletonPart:
       vertex_binary = self.vertices.tobytes("C")
       vertex_binary += lib.crc32c(vertex_binary).to_bytes(4, 'little')
     elif self.header.vertex_compression == CompressionType.DRACO:
-      vertex_binary = DracoPy.encode(self.vertices, quantization_bits=0)
+      vertex_binary = DracoPy.encode(
+        self.vertices, 
+        quantization_bits=30,
+        compression_level=5,
+      )
 
     return vertex_binary
 
@@ -412,8 +416,9 @@ class OstdSkeletonPart:
       spaces = OstdTransformSection.from_bytes(binary, offset=off)
       off += spaces.nbytes
     else:
+      generic_unit = (SIPrefixType.NONE, LengthType.METER)
       spaces = OstdTransformSection([ 
-        OstdTransform(SpaceType.GENERIC, np.eye(4,4, dtype=np.float32))
+        OstdTransform(generic_unit, SpaceType.GENERIC, np.eye(4,4, dtype=np.float32))
       ])
       off += 0
 

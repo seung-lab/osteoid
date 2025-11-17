@@ -7,40 +7,28 @@ SI_PREFIXES = {}
 LENGTH_SYMBOLS = {}
 
 class SIPrefixType(IntEnum):
-  QUECTO = 0 
-  RONTO = 1 
-  YOCTO = 2 
-  ZEPTO = 3 
-  ATTO = 4 
-  FEMTO = 5 
-  PICO = 6 
-  NANO = 7 
-  MICRO = 8
-  MILLI = 19
-  CENTI = 10
-  DECI = 11
-  NONE = 12
-  DEKA = 13
-  HECTO = 14
-  KILO = 15
-  MEGA = 16
-  GIGA = 17
-  TERA = 18
-  PETA = 19
-  EXA = 20
-  ZETTA = 21
-  YOTTA = 22
-  RONNA = 23
-  QUETTA = 24
+  ZEPTO = 0
+  ATTO = 1 
+  FEMTO = 2 
+  PICO = 3
+  NANO = 4 
+  MICRO = 5
+  MILLI = 6
+  CENTI = 7
+  NONE = 8
+  KILO = 9
+  MEGA = 10
+  GIGA = 11
+  TERA = 12
+  PETA = 13
+  EXA = 14
+  ZETTA = 15
 
   def __str__(self):
     return SI_PREFIXES[self.value]
 
 SI_PREFIXES = {
   SIPrefixType.NONE: "",
-  SIPrefixType.QUECTO: "q",
-  SIPrefixType.RONTO: "r",
-  SIPrefixType.YOCTO: "y",
   SIPrefixType.ZEPTO: "z",
   SIPrefixType.ATTO: "a",
   SIPrefixType.FEMTO: "f",
@@ -49,9 +37,6 @@ SI_PREFIXES = {
   SIPrefixType.MICRO: "u",
   SIPrefixType.MILLI: "m",
   SIPrefixType.CENTI: "c",
-  SIPrefixType.DECI: "d",
-  SIPrefixType.DEKA: "D",
-  SIPrefixType.HECTO: "h",
   SIPrefixType.KILO: "k",
   SIPrefixType.MEGA: "M",
   SIPrefixType.GIGA: "G",
@@ -59,16 +44,9 @@ SI_PREFIXES = {
   SIPrefixType.PETA: "P",
   SIPrefixType.EXA: "E",
   SIPrefixType.ZETTA: "Z",
-  SIPrefixType.YOTTA: "Y",
-  SIPrefixType.RONNA: "R",
-  SIPrefixType.QUETTA: "Q",
 }
 
 SI_PREFIX_VALUE = {
-  SIPrefixType.NONE: 1.0,
-  SIPrefixType.QUECTO: 1e-30,
-  SIPrefixType.RONTO: 1e-27,
-  SIPrefixType.YOCTO: 1e-24,
   SIPrefixType.ZEPTO: 1e-21,
   SIPrefixType.ATTO: 1e-18,
   SIPrefixType.FEMTO: 1e-15,
@@ -77,9 +55,7 @@ SI_PREFIX_VALUE = {
   SIPrefixType.MICRO: 1e-6,
   SIPrefixType.MILLI: 0.001,
   SIPrefixType.CENTI: 0.01,
-  SIPrefixType.DECI: 0.1,
-  SIPrefixType.DEKA: 10.0,
-  SIPrefixType.HECTO: 100.0,
+  SIPrefixType.NONE: 1.0,
   SIPrefixType.KILO: 1000.0,
   SIPrefixType.MEGA: 1e6,
   SIPrefixType.GIGA: 1e9,
@@ -87,9 +63,6 @@ SI_PREFIX_VALUE = {
   SIPrefixType.PETA: 1e15,
   SIPrefixType.EXA: 1e18,
   SIPrefixType.ZETTA: 1e21,
-  SIPrefixType.YOTTA: 1e24,
-  SIPrefixType.RONNA: 1e27,
-  SIPrefixType.QUETTA: 1e30,
 }
 
 class LengthType(IntEnum):

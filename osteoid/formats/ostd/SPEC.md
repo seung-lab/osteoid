@@ -88,7 +88,7 @@ units specified in flags.  |
 
 LSB on the left.
 
-`VVVVeeeeCCCCccccGGGpppppPPPPOOOOOaaatoEEAR*`
+`VVVVeeeeCCCCccccGGGppppPPPPsssssOOOOOaaatoEEAR*`
 
 | Flag   | Meaning                            | Notes                                                                                |
 | ------ | ---------------------------------- | ------------------------------------------------------------------------------------ |
@@ -100,10 +100,11 @@ LSB on the left.
 | **c**  | Compression algorithm for edges    | See *Compression Type*                                                               |
 | **G**  | Graph structure (advisory)         | See *Graph Type*                                                                     |
 | **p**  | SI Prefix                          | See *SIPrefixType*
-| **P**  | Physical length units              | See *Length Type*                                                        |
+| **P**  | Physical length units              | The units of default space (0). See *Length Type*                                                         |
 | **a**  | Number of Axes                     | Number of axes                       |
 | **t**  | Transforms present                 | bool                                                                                 |
 | **O**  | Coordinate Frame Orientation       | Has own structure: `sssaaa`<br>s: sign of X,Y,Z axes in that order (0: positive, 1: negative)<br>a: axis permutation<br>See Axis Permutation Type, 000000 means +X+Y+Z standard frame |
+| **s**  | Default Space Type                 | Can specify what the default space (0) means. |
 | **o*** | Voxel centered or top left corner. | Describes whether voxel coordinates are interpreted as centered or in the top left corner.                                                              |
 | **R*** | RESERVED                           | From this point forward                                                              |
 
@@ -116,6 +117,7 @@ significantly reduce the header overhead for small skeletons.
 | Field                  | Bytes | Datatype    | Value                       | Description                                                                                                       |
 |------------------------|-------|-------------|-----------------------------|-------------------------------------------------------------------------------------------------------------------|
 | num_spaces             | 1     | uint8       | -                           | Number of transformations available. matrices.                  |
+| units                  | 1     | uint8       | ppppPPPP                    | The physical unit this transform maps to. |
 | space                  | 1     | uint8       | -                           | The kind of space the transform represents. See *Space Type* |
 | transform              | 64    | 4x4 f32s    | [ f32, f32, f32, f32, ... ] | Homogenous transform matrix from voxel to physical coordinates. Written in row major (C) order.                   |
 | crc16                  | 2     | uint16      | -                          | 16-bit CRC using 0xFF init and 0xd175 implicit polynomial                  |
@@ -316,35 +318,26 @@ Note: Only None is currently supported.
 
 ### SI Prefix
 
-5 bits
+4 bits
 
 | Prefix | Value |
 | ------ | ----- |
-| quecto | 0     |
-| ronto  | 1     |
-| yocto  | 2     |
-| zepto  | 3     |
-| atto   | 4     |
-| femto  | 5     |
-| pico   | 6     |
-| nano   | 7     |
-| micro  | 8     |
-| milli  | 9     |
-| centi  | 10    |
-| deci   | 11    |
-| none   | 12    |
-| deka   | 13    |
-| hecto  | 14    |
-| kilo   | 15    |
-| mega   | 16    |
-| giga   | 17    |
-| tera   | 18    |
-| peta   | 19    |
-| exa    | 20    |
-| zetta  | 21    |
-| yotta  | 22    |
-| ronna  | 23    |
-| quetta | 24    |
+| zepto  | 0     |
+| atto   | 1     |
+| femto  | 2     |
+| pico   | 3     |
+| nano   | 4     |
+| micro  | 5     |
+| milli  | 6     |
+| centi  | 7     |
+| none   | 8     |
+| kilo   | 9     |
+| mega   | 10    |
+| giga   | 11    |
+| tera   | 12    |
+| peta   | 13    |
+| exa    | 14    |
+| zetta  | 15    |
 
 ### Length Type
 
@@ -483,20 +476,23 @@ This is because a tree can be represented as an edge list. See edge representati
 
 ### Space Type
 
+5 bits
+
 | Space                        | Value |
 |------------------------------|-------|
 | Generic                      | 0     |
-| Physical                     | 1     |
-| Scanner                      | 2     |
-| Atlas                        | 3     |
-| Aligned                      | 4     |
-| World                        | 5     |
-| Soma                         | 6     |
-| Base                         | 7     |
-| Joint                        | 8     |
-| Tool                         | 9     |
-| Model                        | 10    |
-| Camera                       | 11    |
+| Voxel                        | 1     |
+| Physical                     | 2     |
+| Scanner                      | 3     |
+| Atlas                        | 4     |
+| Aligned                      | 5     |
+| World                        | 6     |
+| Soma                         | 7     |
+| Base                         | 8     |
+| Joint                        | 9     |
+| Tool                         | 10    |
+| Model                        | 11    |
+| Camera                       | 12    |
 
 ### Axis Permutation Type
 
