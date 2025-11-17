@@ -271,7 +271,7 @@ class OstdHeader:
 
   def to_bytes(self) -> bytes:
     header = b''.join([
-      int(self.format_version).to_bytes(1),
+      int(self.format_version).to_bytes(1, 'little'),
       int(self.total_bytes).to_bytes(8, 'little'),
       int(self.id).to_bytes(16, 'little'),
       self.encode_flags().tobytes(),
