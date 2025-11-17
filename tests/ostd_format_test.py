@@ -19,11 +19,10 @@ def sample_header():
     return OstdHeader(
         Nv=123,
         Ne=456,
-        append_mode=True,
         attribute_header_bytes=64,
         cable_length=123.456,
         coordinate_frame_orientation='-X+Y+Z',
-        crc16=43185,
+        crc16=5479,
         edge_data_type=DataType.U16,
         edge_compression=CompressionType.ZSTD,
         edge_representation=EdgeRepresentationType.PAIR,
