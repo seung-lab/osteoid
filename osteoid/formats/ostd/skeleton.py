@@ -368,6 +368,10 @@ class OstdSkeletonPart:
 
     self.change_space_by_type(SpaceType.PHYSICAL)
 
+  @property
+  def unit(self):
+    return self.get_space_unit(self.header.space)
+
   def get_space_unit(self, idx:int) -> tuple[SIPrefixType, LengthType]:
     if idx == 0:
       return self.header.length_unit
@@ -594,19 +598,23 @@ class OstdSkeleton:
 
   @property
   def cable_length(self) -> float:
-    master_unit = self.parts[0].header.length_unit
+    master_unit = self.parts[0].unit
     master_si_unit, master_base_unit = master_unit
     master_si_value = SI_PREFIX_VALUE[master_si_unit]
 
+    master_space_type = self.parts[0].header.space_type
+
     physical_length = 0
     for part in self.parts:
+      part.change_space_by_type(master_space_type)
+      
       part_length = part.cable_length()
 
-      if part.header.length_unit == master_unit:
+      if part.unit == master_unit:
         physical_length += part_length
         continue
 
-      si_unit, base_unit = part.header.length_unit
+      si_unit, base_unit = part.unit
       si_conversion = (master_si_value / SI_PREFIX_VALUE[si_unit])
       base_conversion = length_conversion_factor(base_unit, master_base_unit)
       physical_length += part_length * (si_conversion * base_conversion)
@@ -615,21 +623,21 @@ class OstdSkeleton:
 
   @property
   def vertices(self) -> npt.NDArray[Any]:
-    master_unit = self.parts[0].header.length_unit
-    master_si_prefix, master_base_unit = self.parts[0].header.length_unit
+    master_unit = self.parts[0].unit
+    master_si_prefix, master_base_unit = self.parts[0].unit
     master_si_value = SI_PREFIX_VALUE[master_si_prefix]
 
-    master_space = self.parts[0].header.space
+    master_space_type = self.parts[0].header.space_type
 
     verts = []
     for part in self.parts:
-      part.change_space(master_space)
+      part.change_space_by_type(master_space_type)
 
-      if part.header.length_unit == master_unit:
+      if part.unit == master_unit:
         verts.append(part.vertices)
         continue
 
-      si_prefix, base_unit = part.header.length_unit
+      si_prefix, base_unit = part.unit
       factor = (master_si_value / SI_PREFIX_VALUE[si_prefix])
       factor *= length_conversion_factor(base_unit, master_base_unit)
 
