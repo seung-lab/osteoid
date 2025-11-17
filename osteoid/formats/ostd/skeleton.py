@@ -368,10 +368,18 @@ class OstdSkeletonPart:
 
     self.change_space_by_type(SpaceType.PHYSICAL)
 
+  def get_space_unit(self, idx:int) -> tuple[SIPrefixType, LengthType]:
+    if idx == 0:
+      return self.header.length_unit
+    return self.spaces[idx].unit
+
+  def get_space_type(self, idx:int) -> SpaceType:
+    if idx == 0:
+      return self.header.space_type
+    return self.spaces[idx].space
+
   def current_space_type(self) -> SpaceType:
-    if self.header.space == 0:
-      return SpaceType.VOXEL
-    return self.spaces[self.header.space].space
+    return self.get_space_type(self.space)
 
   def get_space_by_type(self, typ:SpaceType):
     # self.spaces : OstdTransformSection
@@ -510,12 +518,17 @@ class OstdSkeleton:
     return self.parts[0].header.id
 
   @property
-  def spaces(self):
-    return self.parts[0].spaces
+  def spaces(self) -> list[OstdTransform]:
+    root_space = OstdTransform(
+      self.parts[0].header.length_unit, 
+      self.parts[0].header.space_type, 
+      np.eye(4, dtype=np.float32)
+    )
+    return [ root_space ] + self.parts[0].spaces
 
   @property
-  def transforms(self):
-    return [ space.transform for space in self.parts[0].spaces.spaces ]
+  def transforms(self) -> list[npt.NDArray[np.float32]]:
+    return [ np.eye(4, dtype=np.float32) ] + [ space.transform for space in self.parts[0].spaces.spaces ]
 
   @property
   def coordinate_frame_orientation(self):
@@ -573,7 +586,7 @@ class OstdSkeleton:
   def unit(self) -> tuple[SIPrefixType, LengthType]:
     if len(self.parts) == 0:
       return (SIPrefixType.NONE, LengthType.VOXEL)
-    return self.parts[0].header.length_unit
+    return self.parts[0].get_space_unit(self.parts[0].header.space)
 
   @property
   def human_readable_unit(self) -> str:
