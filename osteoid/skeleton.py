@@ -1036,7 +1036,26 @@ class Skeleton:
       vertex_types=(oskel.a.vertex_types if "vertex_types" in oskel.a else None),
     )
 
-  def to_ostd(self, unit:str = "nm", coordinate_frame:str = "+X-Y-Z") -> bytes:
+  def to_ostd(
+    self, 
+    unit:str = "nm", 
+    coordinate_frame:str = "+X-Y-Z",
+    edge_representation:Literal["linked_paths", "pairs"] = "linked_paths",
+  ) -> bytes:
+    """
+    Serializes the skeleton to osdt format, defined
+    at https://github.com/seung-lab/osteoid/
+
+    unit: which physical unit the vertices represent
+      when transformed into physical space.
+    coordinate_frame: save how the coordinate space
+      is oriented. This can differ in computer graphics,
+      neurology, radiology, etc.
+    edge_representation: picks a representation mode for edges.
+      pairs: easiest to parse, just writes the edge list literally
+      linked_paths: arranges the vertices into paths and only writes
+        the edges that connect the paths.
+    """
     from .formats.ostd import OstdSkeleton
     from .formats.ostd.types import (
       TO_LENGTH_UNIT, SIPrefixType, 
