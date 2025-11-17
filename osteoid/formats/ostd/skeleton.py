@@ -89,7 +89,7 @@ class OstdSkeletonPart:
     verts = self.vertices[reorder]
     edges = np.concatenate(all_edges).astype(self.header.edge_dtype, copy=False)
     
-    inv = np.empty_like(reorder)
+    inv = np.empty([ self.header.Nv ], dtype=reorder.dtype, order="C")
     inv[reorder] = np.arange(len(reorder), dtype=reorder.dtype)
     del reorder
     edges = inv[edges]
