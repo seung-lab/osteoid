@@ -314,17 +314,18 @@ class GraphType(IntEnum):
 
 class SpaceType(IntEnum):
   GENERIC = 0
-  PHYSICAL = 1
-  SCANNER = 2
-  ATLAS = 3
-  ALIGNED = 4
-  WORLD = 5
-  SOMA = 6
-  BASE = 7
-  JOINT = 8
-  TOOL = 9
-  MODEL = 10
-  CAMERA = 11
+  VOXEL = 1
+  PHYSICAL = 2
+  SCANNER = 3
+  ATLAS = 4
+  ALIGNED = 5
+  WORLD = 6
+  SOMA = 7
+  BASE = 8
+  JOINT = 9
+  TOOL = 10
+  MODEL = 11
+  CAMERA = 12
 
 class AxisPermutationType(IntEnum):
   XYZ = 0

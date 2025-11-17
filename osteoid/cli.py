@@ -41,20 +41,33 @@ def convert(src:str, dest:str):
 
 @main.command()
 @click.option('-v', '--verbose', is_flag=True, default=False, help="Print information about conversion progress.", show_default=True)
+@click.option('-d', '--dir', default=".", help="Where to write the new skeletons.", show_default=True)
 @click.option('-f', '--force', is_flag=True, default=False, help="Overwrite files without asking.", show_default=True)
 @click.option('-t', '--type', required=True, type=click.Choice(['swc', 'ostd']), help="Convert all file specified to this type. If the type is the same leave the file alone.", show_default=True)
 @click.argument("src", nargs=-1)
-def convertall(src, type, verbose, force):
+def convertall(src, type, verbose, force, dir):
   """Convert many skeletons from one format to another."""
   from .util import load, save
-  for path_str in src:
+
+  srcs = []
+  for path in src:
+    if path[-1] == "*":
+      path = path[:-1]
+      path = [ os.path.join(path, x) for x in os.listdir(path) ]
+      srcs.extend(path)
+    else:
+      srcs.append(path)
+
+  new_dir = Path(dir)
+
+  for path_str in srcs:
       path = Path(path_str)
       if not path.exists() and verbose:
         click.echo(f"File {path} does not exist, skipping.")
         continue
       
-      # Determine destination path
-      dest_path = path.with_suffix(f".{type}")
+      dest_path = new_dir / path.with_suffix(f".{type}").name
+
       if dest_path.exists() and not force:
         click.echo(f"{path.name} exists, aborting.")
         return

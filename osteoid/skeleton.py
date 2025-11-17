@@ -1062,7 +1062,7 @@ class Skeleton:
     from .formats.ostd import OstdSkeleton
     from .formats.ostd.types import (
       TO_LENGTH_UNIT, SIPrefixType, 
-      DimensionlessType, LengthType, AreaType,
+      DimensionlessType, LengthType, AreaType, SpaceType,
     )
     transform = self.transform
     bottom = np.zeros((1, 4), dtype=transform.dtype)
@@ -1083,13 +1083,16 @@ class Skeleton:
       xs_unit = (xs_unit[0], AreaType(xs_unit[1].value))
       attributes["cross_sectional_area"] = (xs_unit, self.cross_sectional_area)
 
+    physical_unit = TO_LENGTH_UNIT[unit]
+
     return formats.ostd.OstdSkeleton.create(
       id=self.id,
       vertices=self.physical_space().vertices,
       edges=self.edges,
-      spaces=[ (formats.ostd.SpaceType.PHYSICAL, transform) ],
+      spaces=[ (physical_unit, formats.ostd.SpaceType.PHYSICAL, transform) ],
       space=1,
-      length_unit=unit,
+      length_unit="vx", # defines space=0
+      space_type=SpaceType.VOXEL, # defines space=0
       coordinate_frame_orientation=coordinate_frame,
       voxel_centered=True,
       attributes=attributes,
