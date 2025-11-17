@@ -46,7 +46,6 @@ class OstdHeader:
     self,
     Nv:int,
     Ne:int,
-    append_mode:bool = False,
     attribute_header_bytes:int = 0,
     coordinate_frame_orientation:Union[str, CoordinateFrame] = '+X+Y+Z',
     crc16:Optional[int] = None,
@@ -73,7 +72,6 @@ class OstdHeader:
     self.Nv = int(Nv)
     self.Ne = int(Ne)
     self.space = space
-    self.append_mode = append_mode
 
     self.vertex_data_type = vertex_data_type
     self.edge_data_type = edge_data_type
@@ -151,7 +149,6 @@ class OstdHeader:
     write_int(self.num_axes, 3)
     write_int(bool(self.has_transform), 1)
     write_int(self.voxel_centered, 1)
-    write_int(bool(self.append_mode), 1)
     write_int(self.edge_representation.value, 2)
 
     return flags
@@ -184,7 +181,6 @@ class OstdHeader:
 
     self.has_transform = bool(read_int(1))
     self.voxel_centered = bool(read_int(1))
-    self.append_mode = bool(read_int(1))
     self.edge_representation = EdgeRepresentationType(read_int(2))
 
   @classmethod
