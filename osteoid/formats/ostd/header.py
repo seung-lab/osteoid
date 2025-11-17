@@ -62,6 +62,7 @@ class OstdHeader:
     length_unit:Union[str, tuple[SIPrefixType, IntEnum]] = (SIPrefixType.NANO, LengthType.METER),
     cable_length:float = float('NaN'),
     space:int = 0,
+    space_type:SpaceType = SpaceType.GENERIC,
     spatial_index_bytes:int = 0,
     total_bytes:int = 0,
     vertex_compression:CompressionType = CompressionType.NONE,
@@ -72,6 +73,7 @@ class OstdHeader:
     self.Nv = int(Nv)
     self.Ne = int(Ne)
     self.space = space
+    self.space_type = space_type
 
     self.vertex_data_type = vertex_data_type
     self.edge_data_type = edge_data_type
@@ -138,8 +140,10 @@ class OstdHeader:
     write_int(self.edge_compression.value, 4)
 
     write_int(self.graph_type.value, 3)
-    write_int(self.length_unit[0].value, 5)
+    write_int(self.length_unit[0].value, 4)
     write_int(self.length_unit[1].value, 4)
+
+    write_int(self.space_type, 5)
 
     write_int(self.coordinate_frame_orientation.sign_x, 1)
     write_int(self.coordinate_frame_orientation.sign_y, 1)
@@ -168,7 +172,8 @@ class OstdHeader:
     self.edge_compression = CompressionType(read_int(4))
 
     self.graph_type = GraphType(read_int(3))
-    self.length_unit = (SIPrefixType(read_int(5)), LengthType(read_int(4)))
+    self.length_unit = (SIPrefixType(read_int(4)), LengthType(read_int(4)))
+    self.space_type = SpaceType(read_int(5))
 
     self.coordinate_frame_orientation = CoordinateFrame(
       sign_x=bool(read_int(1)),
@@ -334,21 +339,29 @@ crc16:             {self.crc16}"""
 
 @dataclass
 class OstdTransform:
+  unit:tuple[SIPrefixType, LengthType]
   space:SpaceType
   transform:npt.NDArray[np.float32]
-  NUM_BYTES = 65
+  NUM_BYTES = 66
 
   @classmethod
   def from_bytes(kls, binary:bytes, offset:int = 0) -> "OstdTransform":
-    space = SpaceType(binary[offset])
-    transform = np.frombuffer(binary, offset=(offset+1), count=4*4, dtype=np.float32)
+    unit = (
+      SIPrefixType(binary[offset] & 0b1111),
+      LengthType((binary[offset] >> 4))
+    )
+    space = SpaceType(binary[offset+1])
+    transform = np.frombuffer(binary, offset=(offset+2), count=4*4, dtype=np.float32)
     transform = transform.reshape((4,4), order='C')
-    return OstdTransform(space, transform)
+    return OstdTransform(unit, space, transform)
 
   def to_bytes(self) -> bytes:
     assert self.transform.shape == (4,4)
 
+    units = self.unit[0].value | (self.unit[1].value << 4)
+
     return b''.join([
+      int(units).to_bytes(1, 'little'),
       int(self.space).to_bytes(1, 'little'),
       self.transform.astype(np.float32, copy=False).tobytes('C')
     ])
