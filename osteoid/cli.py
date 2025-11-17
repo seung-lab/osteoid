@@ -1,4 +1,6 @@
 import os
+from pathlib import Path
+import time
 
 import click
 
@@ -36,6 +38,37 @@ def convert(src:str, dest:str):
   from .util import load, save
   skel = load(src, allow_mmap=True)
   save(dest, skel)
+
+@main.command()
+@click.option('-v', '--verbose', is_flag=True, default=False, help="Print information about conversion progress.", show_default=True)
+@click.option('-f', '--force', is_flag=True, default=False, help="Overwrite files without asking.", show_default=True)
+@click.option('-t', '--type', required=True, type=click.Choice(['swc', 'ostd']), help="Convert all file specified to this type. If the type is the same leave the file alone.", show_default=True)
+@click.argument("src", nargs=-1)
+def convertall(src, type, verbose, force):
+  """Convert many skeletons from one format to another."""
+  from .util import load, save
+  for path_str in src:
+      path = Path(path_str)
+      if not path.exists() and verbose:
+        click.echo(f"File {path} does not exist, skipping.")
+        continue
+      
+      # Determine destination path
+      dest_path = path.with_suffix(f".{type}")
+      if dest_path.exists() and not force:
+        click.echo(f"{path.name} exists, aborting.")
+        return
+
+      if path.suffix.lower() == f".{type}" and verbose:
+          click.echo(f"{path.name} is already {type}, skipping.")
+          continue
+      
+      s = time.perf_counter()
+      skel = load(str(path), allow_mmap=True)
+      save(str(dest_path), skel)      
+      t = time.perf_counter() - s
+      if verbose:
+        click.echo(f"Converted {path.name} to {dest_path.name} in {t:.2f} sec")
 
 @main.command()
 @click.argument("filename")
