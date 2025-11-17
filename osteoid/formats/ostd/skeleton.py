@@ -1,4 +1,4 @@
-from typing import Optional, Any
+from typing import Optional, Any, Literal
 
 from collections import OrderedDict, defaultdict
 from dataclasses import dataclass
@@ -647,11 +647,16 @@ class OstdSkeleton:
     spaces:list = [],
     coordinate_frame_orientation:str = "+X+Y+Z",
     voxel_centered:bool = True,
-    edge_representation:EdgeRepresentationType = EdgeRepresentationType.LINKED_PATHS,
+    edge_representation:Literal["linked_paths", "pairs"] = "linked_paths",
     attributes:dict[str,npt.NDArray[np.generic]] = {},
   ):
     Nv = vertices.shape[0]
     edge_dtype = lib.compute_dtype(Nv)
+
+    if edge_representation == "linked_paths":
+      edge_repr = EdgeRepresentationType.LINKED_PATHS
+    else:
+      edge_repr = EdgeRepresentationType.PAIR
 
     header = OstdHeader(
       Nv = Nv,
@@ -659,7 +664,7 @@ class OstdSkeleton:
       coordinate_frame_orientation = coordinate_frame_orientation,
       edge_data_type = TO_DATATYPE[np.dtype(edge_dtype).type],
       edge_compression = CompressionType.NONE,
-      edge_representation = edge_representation,
+      edge_representation = edge_repr,
       has_transform = False,
       id = id,
       length_unit = TO_LENGTH_UNIT[length_unit.lower()],
