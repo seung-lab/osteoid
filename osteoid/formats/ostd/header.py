@@ -209,6 +209,12 @@ class OstdHeader:
       raise ValueError(f"Header corruption detected. Stored CRC16: {stored_crc16}, Computed CRC16: {computed_crc16}")
 
   @classmethod
+  def load(kls, filename:str):
+    with open(filename, "rb") as f:
+      binary = f.read(kls.HEADER_BYTES)
+    return kls.from_bytes(binary, skip_total_length_check=True)
+
+  @classmethod
   def from_bytes(kls, 
     binary:bytes,
     offset:int = 0,
