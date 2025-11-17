@@ -681,6 +681,7 @@ class OstdSkeleton:
     vertices:npt.NDArray[np.generic], 
     edges:npt.NDArray[np.unsignedinteger],
     length_unit:str = "nm",
+    space_type:SpaceType = SpaceType.GENERIC,
     id:Optional[int] = None,
     space:int = 0,
     spaces:list = [],
@@ -721,7 +722,7 @@ class OstdSkeleton:
     )
 
     spaces = OstdTransformSection([
-        OstdTransform(space=transform[0], transform=transform[1])
+        OstdTransform(unit=transform[0], space=transform[1], transform=transform[2])
         if isinstance(transform, tuple)
         else OstdTransform(space=SpaceType.GENERIC, transform=transform)
       for transform in spaces
