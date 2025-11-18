@@ -535,6 +535,9 @@ class OstdSkeleton:
   def voxel_centered(self):
     return self.parts[0].header.voxel_centered
 
+  def ids(self) -> list[int]:
+    return [ int(part.header.id) for part in self.parts ]
+
   def split_by_id(self) -> dict[int,"OstdSkeleton"]:
     """
     If skeleton parts with multiple ids are contained in this file,
