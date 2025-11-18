@@ -13,6 +13,16 @@ def main():
   """
   pass
 
+
+@main.command()
+@click.argument("src")
+def ids(src):
+  import osteoid.formats
+  from osteoid.formats.ostd import OstdSkeleton, OstdHeader
+
+  oskel = OstdSkeleton.load(src, allow_mmap=True)
+  click.echo(",".join([ str(x) for x in oskel.ids() ]))
+
 @main.command()
 @click.argument("src")
 def info(src):
