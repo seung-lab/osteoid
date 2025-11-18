@@ -78,6 +78,11 @@ class Skeleton:
 
     Note that for backwards compatibility, skel.radius is treated 
     specially and is synonymous with skel.radii.
+
+  default_attributes: when True, ensure that radius and vertex_types
+    are initialized regardless of the content of extra_attributes.
+    This was to conform to the SWC/Neuroglancer Precomputed
+    conception of a skeleton.
   """
   def __init__(self, 
     vertices:Optional[np.ndarray] = None,
@@ -88,7 +93,7 @@ class Skeleton:
     transform:Optional[npt.NDArray[np.float32]] = None,
     space:Literal['voxel', 'physical'] = 'voxel',
     extra_attributes:Optional[list] = None,
-    disable_default_attributes:bool = False,
+    default_attributes:bool = True,
   ):
     self.id = segid
     self.space = space
@@ -107,17 +112,17 @@ class Skeleton:
     else:
       self.edges = edges
 
-    if radii is None:
+    if radii is None and default_attributes:
       self.radius = np.full(shape=self.vertices.shape[0], fill_value=-1, dtype=np.float32)
     elif type(radii) is list:
       self.radius = np.asarray(radii, dtype=np.float32)
-    else:
+    elif radii is not None:
       self.radius = radii
 
-    if vertex_types is None:
+    if vertex_types is None and default_attributes:
       # 0 = undefined in SWC (http://research.mssm.edu/cnic/swc.html)
       self.vertex_types = np.zeros(shape=self.vertices.shape[0], dtype=np.uint8)
-    else:
+    elif vertex_types is not None:
       self.vertex_types = np.asarray(vertex_types, dtype=np.uint8)
 
     if extra_attributes is None:
