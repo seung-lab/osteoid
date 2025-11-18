@@ -595,7 +595,7 @@ class OstdSkeleton:
     master_si_unit, master_base_unit = master_unit
     master_si_value = SI_PREFIX_VALUE[master_si_unit]
 
-    master_space_type = self.parts[0].header.space_type
+    master_space_type = self.parts[0].current_space_type()
 
     physical_length = 0
     for part in self.parts:
@@ -620,20 +620,19 @@ class OstdSkeleton:
     master_si_prefix, master_base_unit = self.parts[0].unit
     master_si_value = SI_PREFIX_VALUE[master_si_prefix]
 
-    master_space_type = self.parts[0].header.space_type
+    master_space_type = self.parts[0].current_space_type()
 
     verts = []
     for part in self.parts:
       part.change_space_by_type(master_space_type)
-
       if part.unit == master_unit:
         verts.append(part.vertices)
         continue
 
       si_prefix, base_unit = part.unit
       factor = (master_si_value / SI_PREFIX_VALUE[si_prefix])
-      factor *= length_conversion_factor(base_unit, master_base_unit)
 
+      factor *= length_conversion_factor(base_unit, master_base_unit)
       if np.issubdtype(part.vertices.dtype, np.floating):
         verts.append(
           part.vertices * factor
