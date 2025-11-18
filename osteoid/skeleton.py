@@ -241,7 +241,7 @@ class Skeleton:
       axis=1
     )
     verts = transform.dot(verts.T).T
-    return verts[:,0:3]    
+    return verts[:,0:3].astype(vertices.dtype, copy=False)
 
   def apply_transform(self):
     self.vertices = self.transform_vertices(self.vertices, self.transform)
@@ -261,7 +261,7 @@ class Skeleton:
     transform[:,3] = -self.transform[:,3]
 
     verts = transform.dot(verts.T).T
-    self.vertices = verts[:,0:3]    
+    self.vertices = verts[:,0:3].astype(self.vertices, copy=False)
 
   @property 
   def radii(self):
