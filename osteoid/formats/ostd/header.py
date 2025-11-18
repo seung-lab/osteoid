@@ -18,6 +18,7 @@ from .types import (
   GraphType,
   LengthType,
   MassType,
+  PhysicalUnit,
   SIPrefixType,
   SpaceType,
   TemperatureType,
@@ -59,7 +60,7 @@ class OstdHeader:
     id:Optional[int] = None,
     num_axes:int = 3,
     num_components:int = np.iinfo(np.uint32).max,
-    length_unit:Union[str, tuple[SIPrefixType, IntEnum]] = (SIPrefixType.NANO, LengthType.METER),
+    length_unit:Union[str, PhysicalUnit, tuple[SIPrefixType, IntEnum]] = PhysicalUnit(SIPrefixType.NANO, LengthType.METER),
     cable_length:float = float('NaN'),
     space:int = 0,
     space_type:SpaceType = SpaceType.GENERIC,
@@ -82,6 +83,8 @@ class OstdHeader:
 
     if isinstance(length_unit, str):
       self.length_unit = TO_LENGTH_UNIT[length_unit]
+    elif isinstance(length_unit, tuple):
+      self.length_unit = PhysicalUnit(length_unit[0], length_unit[1])
     else:
       self.length_unit = length_unit
 
@@ -140,8 +143,8 @@ class OstdHeader:
     write_int(self.edge_compression.value, 4)
 
     write_int(self.graph_type.value, 3)
-    write_int(self.length_unit[0].value, 4)
-    write_int(self.length_unit[1].value, 4)
+    write_int(self.length_unit.prefix.value, 4)
+    write_int(self.length_unit.base.value, 4)
 
     write_int(self.space_type, 5)
 
@@ -172,7 +175,7 @@ class OstdHeader:
     self.edge_compression = CompressionType(read_int(4))
 
     self.graph_type = GraphType(read_int(3))
-    self.length_unit = (SIPrefixType(read_int(4)), LengthType(read_int(4)))
+    self.length_unit = PhysicalUnit(SIPrefixType(read_int(4)), LengthType(read_int(4)))
     self.space_type = SpaceType(read_int(5))
 
     self.coordinate_frame_orientation = CoordinateFrame(
@@ -310,7 +313,7 @@ num verts:         {self.Nv}
 num edges:         {self.Ne}
 
 num components:    {self.num_components}
-cable length:      {self.cable_length} {self.length_unit[0]}{self.length_unit[1]}
+cable length:      {self.cable_length} {self.length_unit}
 graph type:        {self.graph_type.name}
 representation:    {self.edge_representation.name}
 
@@ -339,14 +342,14 @@ crc16:             {self.crc16}"""
 
 @dataclass
 class OstdTransform:
-  unit:tuple[SIPrefixType, LengthType]
+  unit:PhysicalUnit
   space:SpaceType
   transform:npt.NDArray[np.float32]
   NUM_BYTES = 66
 
   @classmethod
   def from_bytes(kls, binary:bytes, offset:int = 0) -> "OstdTransform":
-    unit = (
+    unit = PhysicalUnit(
       SIPrefixType(binary[offset] & 0b1111),
       LengthType((binary[offset] >> 4))
     )
@@ -358,7 +361,7 @@ class OstdTransform:
   def to_bytes(self) -> bytes:
     assert self.transform.shape == (4,4)
 
-    units = self.unit[0].value | (self.unit[1].value << 4)
+    units = self.unit.prefix.value | (self.unit.base.value << 4)
 
     return b''.join([
       int(units).to_bytes(1, 'little'),
@@ -420,7 +423,7 @@ class OstdAttribute:
   attribute_type:AttributeType = AttributeType.VERTEX
   data_type:DataType = DataType.F32
   compression:CompressionType = CompressionType.NONE
-  unit:tuple[SIPrefixType, Any] = (SIPrefixType.NONE, LengthType.VOXEL)
+  unit:PhysicalUnit = PhysicalUnit(SIPrefixType.NONE, LengthType.VOXEL)
   num_components:int = 0
   content_length:int = 0
 
@@ -450,9 +453,9 @@ class OstdAttribute:
     ])
 
   def encode_units(self) -> np.uint16:
-    quantity_type = FROM_QUANTITY_TYPE[type(self.unit[1])]
-    si_prefix_value = self.unit[0].value
-    base_unit_value = self.unit[1].value
+    quantity_type = FROM_QUANTITY_TYPE[type(self.unit.base)]
+    si_prefix_value = self.unit.prefix.value
+    base_unit_value = self.unit.base.value
 
     units = np.uint16(0)
     units |= (quantity_type & 0b111)
@@ -461,11 +464,11 @@ class OstdAttribute:
     return units
 
   @classmethod
-  def decode_units(kls, units:int) -> tuple[SIPrefixType, Any]:
+  def decode_units(kls, units:int) -> PhysicalUnit:
     DimensionTypeClass = TO_QUANTITY_TYPE[int(units & 0b111)]
     si_prefix = SIPrefixType((units >> 3) & 0b11111)
     dimension = DimensionTypeClass((units >> (3+5)) & 0b1111)
-    return (si_prefix, dimension)
+    return PhysicalUnit(si_prefix, dimension)
 
   def encode_flags(self) -> np.uint16:
     flags = np.uint16(0)
@@ -556,7 +559,7 @@ class OstdAttributeSection:
     """
     for attr in self.attributes:
       details += (f"{attr.name}, {attr.attribute_type.name}, {attr.data_type.name},"
-                 f"{attr.compression.name}, {attr.unit[0]}{attr.unit[1]}, {attr.num_components},"
+                 f"{attr.compression.name}, {attr.unit}, {attr.num_components},"
                  f"{attr.content_length} bytes")
       details += "\n"
     return detials

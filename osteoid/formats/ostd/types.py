@@ -468,77 +468,84 @@ TO_QUANTITY_TYPE = {
 }
 FROM_QUANTITY_TYPE = { v:k for k,v in TO_QUANTITY_TYPE.items() }
 
-TO_LENGTH_UNIT = {
-  "vx": (SIPrefixType.NONE, LengthType.VOXEL),
-  "voxel": (SIPrefixType.NONE, LengthType.VOXEL),
-
-  "A": (SIPrefixType.NONE, LengthType.ANGSTROM),
-  "angstrom": (SIPrefixType.NONE, LengthType.ANGSTROM),
-  
-  "fm": (SIPrefixType.FEMTO, LengthType.METER),
-  "femtometer": (SIPrefixType.FEMTO, LengthType.METER),
-  
-  "pm": (SIPrefixType.PICO, LengthType.METER),
-  "picometer": (SIPrefixType.PICO, LengthType.METER),
-  
-  "nm": (SIPrefixType.NANO, LengthType.METER),
-  "nanometer": (SIPrefixType.NANO, LengthType.METER),
-  
-  "um": (SIPrefixType.MICRO, LengthType.METER),
-  "micrometer": (SIPrefixType.MICRO, LengthType.METER),
-  "micron": (SIPrefixType.MICRO, LengthType.METER),
-  
-  "mm": (SIPrefixType.MILLI, LengthType.METER),
-  "millimeter": (SIPrefixType.MILLI, LengthType.METER),
-
-  "cm": (SIPrefixType.CENTI, LengthType.METER),
-  "centimeter": (SIPrefixType.CENTI, LengthType.METER),
-  
-  "m": (SIPrefixType.NONE, LengthType.METER),
-  "meter": (SIPrefixType.NONE, LengthType.METER),
-  
-  "km": (SIPrefixType.KILO, LengthType.METER),
-  "kilometer": (SIPrefixType.KILO, LengthType.METER),
-
-  "Mm": (SIPrefixType.MEGA, LengthType.METER),
-  
-  "ly": (SIPrefixType.NONE, LengthType.LIGHTYEAR),
-  "lightyear": (SIPrefixType.NONE, LengthType.LIGHTYEAR),
-
-  "pc": (SIPrefixType.NONE, LengthType.PARSEC),
-  "parsec": (SIPrefixType.NONE, LengthType.PARSEC),
-
-  "mil": (SIPrefixType.NONE, LengthType.MIL),
-  
-  "in": (SIPrefixType.NONE, LengthType.INCH),
-  "inch": (SIPrefixType.NONE, LengthType.INCH),
-  "inches": (SIPrefixType.NONE, LengthType.INCH),
-  
-  "ft": (SIPrefixType.NONE, LengthType.FOOT),
-  "foot": (SIPrefixType.NONE, LengthType.FOOT),
-  "feet": (SIPrefixType.NONE, LengthType.FOOT),
-
-  "yd": (SIPrefixType.NONE, LengthType.YARD),
-  "yard": (SIPrefixType.NONE, LengthType.YARD),
-  
-  "mi": (SIPrefixType.NONE, LengthType.STATUTE_MILE),
-  "mile": (SIPrefixType.NONE, LengthType.STATUTE_MILE),
-  
-  "nmi": (SIPrefixType.NONE, LengthType.NAUTICAL_MILE),
-}
-FROM_LENGTH_UNIT = {
-  v:k for k,v in TO_LENGTH_UNIT.items()
-}
-
 @dataclass
 class PhysicalUnit:
   prefix:SIPrefixType
   base:IntEnum
+
+  def tuple(self) -> tuple[SIPrefixType, IntEnum]:
+    return (self.prefix, self.base)
+
+  def __hash__(self):
+    return self.prefix.value + 31 * self.base.value
 
   def __eq__(self, other) -> bool:
     return self.prefix == other.prefix and self.base == other.base
 
   def __str__(self) -> str:
     return f"{self.prefix}{self.base}"
+
+TO_LENGTH_UNIT = {
+  "vx": PhysicalUnit(SIPrefixType.NONE, LengthType.VOXEL),
+  "voxel": PhysicalUnit(SIPrefixType.NONE, LengthType.VOXEL),
+
+  "A": PhysicalUnit(SIPrefixType.NONE, LengthType.ANGSTROM),
+  "angstrom": PhysicalUnit(SIPrefixType.NONE, LengthType.ANGSTROM),
+  
+  "fm": PhysicalUnit(SIPrefixType.FEMTO, LengthType.METER),
+  "femtometer": PhysicalUnit(SIPrefixType.FEMTO, LengthType.METER),
+  
+  "pm": PhysicalUnit(SIPrefixType.PICO, LengthType.METER),
+  "picometer": PhysicalUnit(SIPrefixType.PICO, LengthType.METER),
+  
+  "nm": PhysicalUnit(SIPrefixType.NANO, LengthType.METER),
+  "nanometer": PhysicalUnit(SIPrefixType.NANO, LengthType.METER),
+  
+  "um": PhysicalUnit(SIPrefixType.MICRO, LengthType.METER),
+  "micrometer": PhysicalUnit(SIPrefixType.MICRO, LengthType.METER),
+  "micron": PhysicalUnit(SIPrefixType.MICRO, LengthType.METER),
+  
+  "mm": PhysicalUnit(SIPrefixType.MILLI, LengthType.METER),
+  "millimeter": PhysicalUnit(SIPrefixType.MILLI, LengthType.METER),
+
+  "cm": PhysicalUnit(SIPrefixType.CENTI, LengthType.METER),
+  "centimeter": PhysicalUnit(SIPrefixType.CENTI, LengthType.METER),
+  
+  "m": PhysicalUnit(SIPrefixType.NONE, LengthType.METER),
+  "meter": PhysicalUnit(SIPrefixType.NONE, LengthType.METER),
+  
+  "km": PhysicalUnit(SIPrefixType.KILO, LengthType.METER),
+  "kilometer": PhysicalUnit(SIPrefixType.KILO, LengthType.METER),
+
+  "Mm": PhysicalUnit(SIPrefixType.MEGA, LengthType.METER),
+  
+  "ly": PhysicalUnit(SIPrefixType.NONE, LengthType.LIGHTYEAR),
+  "lightyear": PhysicalUnit(SIPrefixType.NONE, LengthType.LIGHTYEAR),
+
+  "pc": PhysicalUnit(SIPrefixType.NONE, LengthType.PARSEC),
+  "parsec": PhysicalUnit(SIPrefixType.NONE, LengthType.PARSEC),
+
+  "mil": PhysicalUnit(SIPrefixType.NONE, LengthType.MIL),
+  
+  "in": PhysicalUnit(SIPrefixType.NONE, LengthType.INCH),
+  "inch": PhysicalUnit(SIPrefixType.NONE, LengthType.INCH),
+  "inches": PhysicalUnit(SIPrefixType.NONE, LengthType.INCH),
+  
+  "ft": PhysicalUnit(SIPrefixType.NONE, LengthType.FOOT),
+  "foot": PhysicalUnit(SIPrefixType.NONE, LengthType.FOOT),
+  "feet": PhysicalUnit(SIPrefixType.NONE, LengthType.FOOT),
+
+  "yd": PhysicalUnit(SIPrefixType.NONE, LengthType.YARD),
+  "yard": PhysicalUnit(SIPrefixType.NONE, LengthType.YARD),
+  
+  "mi": PhysicalUnit(SIPrefixType.NONE, LengthType.STATUTE_MILE),
+  "mile": PhysicalUnit(SIPrefixType.NONE, LengthType.STATUTE_MILE),
+  
+  "nmi": PhysicalUnit(SIPrefixType.NONE, LengthType.NAUTICAL_MILE),
+}
+FROM_LENGTH_UNIT = {
+  v:k for k,v in TO_LENGTH_UNIT.items()
+}
+
 
 

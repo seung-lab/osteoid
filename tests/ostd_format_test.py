@@ -12,6 +12,7 @@ from osteoid.formats.ostd import (
     EdgeRepresentationType,
     GraphType,
     LengthType,
+    PhysicalUnit,
     SIPrefixType,
     SpaceType,
 )
@@ -66,7 +67,7 @@ def test_header_roundtrip(sample_header):
 @pytest.fixture
 def sample_transform():
     mat = np.arange(16, dtype=np.float32).reshape(4, 4)
-    return OstdTransform(unit=(SIPrefixType.NONE, LengthType.METER), space=SpaceType.WORLD, transform=mat)
+    return OstdTransform(unit=PhysicalUnit(SIPrefixType.NONE, LengthType.METER), space=SpaceType.WORLD, transform=mat)
 
 def test_transform_roundtrip(sample_transform):
     data = sample_transform.to_bytes()

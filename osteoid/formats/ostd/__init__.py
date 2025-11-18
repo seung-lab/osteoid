@@ -12,6 +12,7 @@ from .types import (
   GraphType,
   LengthType,
   MassType,
+  PhysicalUnit,
   SIPrefixType,
   SpaceType,
   TemperatureType,
