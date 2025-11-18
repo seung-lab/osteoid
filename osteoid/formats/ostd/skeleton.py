@@ -370,12 +370,12 @@ class OstdSkeletonPart:
   def get_space_unit(self, idx:int) -> tuple[SIPrefixType, LengthType]:
     if idx == 0:
       return self.header.length_unit
-    return self.spaces[idx].unit
+    return self.spaces.spaces[idx-1].unit
 
   def get_space_type(self, idx:int) -> SpaceType:
     if idx == 0:
       return self.header.space_type
-    return self.spaces[idx].space
+    return self.spaces.spaces[idx-1].space
 
   def current_space_type(self) -> SpaceType:
     return self.get_space_type(self.space)
