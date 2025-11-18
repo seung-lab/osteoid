@@ -378,7 +378,7 @@ class OstdSkeletonPart:
     return self.spaces.spaces[idx-1].space
 
   def current_space_type(self) -> SpaceType:
-    return self.get_space_type(self.space)
+    return self.get_space_type(self.header.space)
 
   def get_space_by_type(self, typ:SpaceType):
     # self.spaces : OstdTransformSection
