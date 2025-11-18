@@ -16,12 +16,20 @@ def main():
 
 @main.command()
 @click.argument("src")
-def ids(src):
+@click.option('-u', '--uniq', is_flag=True, default=False, help="Print unique ids in sorted order.", show_default=True)
+def ids(src, uniq):
+  """Prints all unique ids in the potentially multi-part ostd file."""
   import osteoid.formats
   from osteoid.formats.ostd import OstdSkeleton, OstdHeader
 
   oskel = OstdSkeleton.load(src, allow_mmap=True)
-  click.echo(",".join([ str(x) for x in oskel.ids() ]))
+
+  ids = oskel.ids()
+  if uniq:
+    ids = np.unique(ids)
+
+  ids = [ str(x) for x in ids ]
+  click.echo(",".join(ids))
 
 @main.command()
 @click.argument("src")
