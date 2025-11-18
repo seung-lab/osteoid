@@ -13,7 +13,6 @@ def main():
   """
   pass
 
-
 @main.command()
 @click.argument("src")
 @click.option('-u', '--uniq', is_flag=True, default=False, help="Print unique ids in sorted order.", show_default=True)
@@ -48,6 +47,7 @@ def info(src):
     oskel = OstdSkeleton.load(src, allow_mmap=True)
     attrs = [ f"{attr} ({unit})" for attr, unit in oskel.attributes ]
     click.echo("\nattributes: " + ", ".join(attrs))
+    click.echo(f"num parts: {len(oskel.parts)}")
 
 @main.command()
 @click.argument("src")
