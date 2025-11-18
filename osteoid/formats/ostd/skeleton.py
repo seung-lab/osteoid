@@ -721,6 +721,7 @@ class OstdSkeleton:
       length_unit = TO_LENGTH_UNIT[length_unit.lower()],
       num_axes = vertices.shape[1],
       space=int(space),
+      space_type=space_type,
       vertex_data_type = TO_DATATYPE[np.dtype(vertices.dtype).type],
       vertex_compression = vert_compress,
       voxel_centered = bool(voxel_centered),
