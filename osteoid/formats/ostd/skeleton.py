@@ -29,6 +29,7 @@ from .types import (
   EdgeRepresentationType,
   GraphType,
   LengthType,
+  PhysicalUnit,
   SIPrefixType,
   SpaceType,
   length_conversion_factor,
@@ -53,7 +54,7 @@ class OstdSkeletonPart:
   spaces:Optional[OstdTransformSection] = None
   spatial_index:Optional[OstdSpatialIndex] = None
   attributes:Optional[
-    OrderedDict[str,tuple[tuple[SIPrefixType, IntEnum], npt.NDArray[np.generic]]]
+    OrderedDict[str,tuple[PhysicalUnit, npt.NDArray[np.generic]]]
   ] = None
 
   def _encode_vertices(self) -> bytes:
@@ -367,7 +368,7 @@ class OstdSkeletonPart:
   def unit(self):
     return self.get_space_unit(self.header.space)
 
-  def get_space_unit(self, idx:int) -> tuple[SIPrefixType, LengthType]:
+  def get_space_unit(self, idx:int) -> PhysicalUnit:
     if idx == 0:
       return self.header.length_unit
     return self.spaces.spaces[idx-1].unit
@@ -575,24 +576,24 @@ class OstdSkeleton:
   @property
   def attributes(self) -> list[OstdAttribute]:
     return [ 
-      (name, f"{unit[0]}{unit[1]}")
+      (name, str(unit))
       for name, (unit, arr) in self.parts[0].attributes.items()
     ]
 
   @property
-  def unit(self) -> tuple[SIPrefixType, LengthType]:
+  def unit(self) -> PhysicalUnit:
     if len(self.parts) == 0:
-      return (SIPrefixType.NONE, LengthType.VOXEL)
+      return PhysicalUnit(SIPrefixType.NONE, LengthType.VOXEL)
     return self.parts[0].get_space_unit(self.parts[0].header.space)
 
   @property
   def human_readable_unit(self) -> str:
-    return FROM_LENGTH_UNIT[self.unit]
+    return FROM_LENGTH_UNIT[self.unit.tuple()]
 
   @property
   def cable_length(self) -> float:
     master_unit = self.parts[0].unit
-    master_si_unit, master_base_unit = master_unit
+    master_si_unit, master_base_unit = master_unit.tuple()
     master_si_value = SI_PREFIX_VALUE[master_si_unit]
 
     master_space_type = self.parts[0].current_space_type()
@@ -607,7 +608,7 @@ class OstdSkeleton:
         physical_length += part_length
         continue
 
-      si_unit, base_unit = part.unit
+      si_unit, base_unit = part.unit.tuple()
       si_conversion = (master_si_value / SI_PREFIX_VALUE[si_unit])
       base_conversion = length_conversion_factor(base_unit, master_base_unit)
       physical_length += part_length * (si_conversion * base_conversion)
@@ -617,7 +618,7 @@ class OstdSkeleton:
   @property
   def vertices(self) -> npt.NDArray[Any]:
     master_unit = self.parts[0].unit
-    master_si_prefix, master_base_unit = self.parts[0].unit
+    master_si_prefix, master_base_unit = self.parts[0].unit.tuple()
     master_si_value = SI_PREFIX_VALUE[master_si_prefix]
 
     master_space_type = self.parts[0].current_space_type()
@@ -629,7 +630,7 @@ class OstdSkeleton:
         verts.append(part.vertices)
         continue
 
-      si_prefix, base_unit = part.unit
+      si_prefix, base_unit = part.unit.tuple()
       factor = (master_si_value / SI_PREFIX_VALUE[si_prefix])
 
       factor *= length_conversion_factor(base_unit, master_base_unit)
