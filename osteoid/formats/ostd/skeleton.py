@@ -648,14 +648,19 @@ class OstdSkeleton:
     return np.concatenate(verts, axis=0)
 
   @property
-  def edges(self) -> npt.NDArray[np.uint64]:
+  def edges(self) -> npt.NDArray[np.unsignedinteger]:
     if len(self.parts) <= 1:
       return self.parts[0].edges
 
+    Ne = np.sum([ part.header.Ne for part in self.parts ])
+    combined_edge_dtype = lib.compute_dtype(Ne)
+
     offset = 0
     edges = []
-    for part in self.parts:
-      edges.append(part.edges + offset)
+    for part in self.parts[:2]:
+      part_edges = part.edges.astype(combined_edge_dtype, copy=False)
+      part_edges += offset
+      edges.append(part_edges)
       offset += part.header.Nv
 
     return np.concatenate(edges)

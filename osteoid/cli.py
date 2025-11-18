@@ -3,6 +3,7 @@ from pathlib import Path
 import time
 
 import click
+import numpy as np
 
 @click.group()
 def main():
