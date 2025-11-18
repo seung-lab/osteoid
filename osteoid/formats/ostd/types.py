@@ -327,6 +327,24 @@ class SpaceType(IntEnum):
   MODEL = 11
   CAMERA = 12
 
+SPACE_SYMBOLS = {
+  SpaceType.GENERIC: "GENERIC",
+  SpaceType.VOXEL: "VOXEL",
+  SpaceType.PHYSICAL: "PHYSICAL",
+  SpaceType.SCANNER: "SCANNER",
+  SpaceType.ATLAS: "ATLAS",
+  SpaceType.ALIGNED: "ALIGNED",
+  SpaceType.WORLD: "WORLD",
+  SpaceType.SOMA: "SOMA",
+  SpaceType.BASE: "BASE",
+  SpaceType.JOINT: "JOINT",
+  SpaceType.TOOL: "TOOL",
+  SpaceType.MODEL: "MODEL",
+  SpaceType.CAMERA: "CAMERA",
+}
+
+SpaceType.__str__ = lambda self: SPACE_SYMBOLS[self]
+
 class AxisPermutationType(IntEnum):
   XYZ = 0
   XZY = 1

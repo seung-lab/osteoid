@@ -521,7 +521,7 @@ class OstdSkeleton:
       self.parts[0].header.space_type, 
       np.eye(4, dtype=np.float32)
     )
-    return [ root_space ] + self.parts[0].spaces
+    return [ root_space ] + self.parts[0].spaces.spaces
 
   @property
   def transforms(self) -> list[npt.NDArray[np.float32]]:

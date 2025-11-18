@@ -45,6 +45,12 @@ def info(src):
     click.echo(header.details())
 
     oskel = OstdSkeleton.load(src, allow_mmap=True)
+
+    click.echo("\nSpaces Available:")
+
+    for i, space in enumerate(oskel.spaces):
+      click.echo(f"{i}: {space.space}, {space.unit[0]}{space.unit[1]}")
+
     attrs = [ f"{attr} ({unit})" for attr, unit in oskel.attributes ]
     click.echo("\nattributes: " + ", ".join(attrs))
     click.echo(f"num parts: {len(oskel.parts)}")
