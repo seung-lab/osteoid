@@ -427,10 +427,7 @@ class OstdSkeletonPart:
       spaces = OstdTransformSection.from_bytes(binary, offset=off)
       off += spaces.nbytes
     else:
-      generic_unit = (SIPrefixType.NONE, LengthType.METER)
-      spaces = OstdTransformSection([ 
-        OstdTransform(generic_unit, SpaceType.GENERIC, np.eye(4,4, dtype=np.float32))
-      ])
+      spaces = OstdTransformSection([])
       off += 0
 
     spatial_index = None

@@ -126,8 +126,10 @@ class Skeleton:
       self.vertex_types = np.asarray(vertex_types, dtype=np.uint8)
 
     if extra_attributes is None:
-      if not disable_default_attributes:
+      if default_attributes:
         self.extra_attributes = self._default_attributes()
+      else:
+        self.extra_attributes = []
     else:
       self.extra_attributes = extra_attributes
 
@@ -277,15 +279,15 @@ class Skeleton:
     self.radius = val
 
   @classmethod
-  def from_path(kls, vertices):
+  def from_path(kls, vertices, default_attributes:bool = True):
     """
     Given an Nx3 array of vertices that constitute a single path, 
     generate a skeleton with appropriate edges.
     """
     if vertices.shape[0] == 0:
-      return Skeleton()
+      return Skeleton(default_attributes=default_attributes)
 
-    skel = Skeleton(vertices)
+    skel = Skeleton(vertices, default_attributes=default_attributes)
     edges = np.zeros(shape=(skel.vertices.shape[0] - 1, 2), dtype=np.uint32)
     edges[:,0] = np.arange(skel.vertices.shape[0] - 1)
     edges[:,1] = np.arange(1, skel.vertices.shape[0])
@@ -622,18 +624,31 @@ class Skeleton:
         
     return skel
 
+  def has(self, id:str) -> bool:
+    for attr in self.extra_attributes:
+      if attr["id"] == id:
+        return True
+    return False
+
   def clone(self):
     vertices = np.copy(self.vertices)
     edges = np.copy(self.edges)
-    radii = np.copy(self.radii)
-    vertex_types = np.copy(self.vertex_types)
+
+    radii = None
+    if self.has("radius"):
+      radii = np.copy(self.radii)
+
+    vertex_types = None
+    if self.has("vertex_types"):
+      vertex_types = np.copy(self.vertex_types)
 
     skel = Skeleton(
       vertices, edges, radii, vertex_types, 
       segid=self.id, 
       space=self.space, 
       extra_attributes=self.extra_attributes,
-      transform=np.copy(self.transform)
+      transform=np.copy(self.transform),
+      default_attributes=False,
     )
     for attr in skel.extra_attributes:
       setattr(skel, attr['id'], np.copy(getattr(self, attr['id'])))
@@ -1032,16 +1047,32 @@ class Skeleton:
 
     physical_unit = TO_LENGTH_UNIT[unit]
 
+    if np.all(transform == np.eye(4)):
+      spaces = []
+      space = 0
+      length_unit = unit
+      if unit in ("voxel", "vx"):
+        space_type = SpaceType.VOXEL
+      else:
+        space_type = SpaceType.PHYSICAL
+      vertices = self.physical_space().vertices
+    else:
+      spaces = [ 
+        (physical_unit, formats.ostd.SpaceType.PHYSICAL, transform) 
+      ]
+      space = 1
+      length_unit = "vx"
+      space_type = SpaceType.VOXEL
+      vertices = self.voxel_space().vertices
+
     return formats.ostd.OstdSkeleton.create(
       id=self.id,
-      vertices=self.physical_space().vertices,
+      vertices=vertices,
       edges=self.edges,
-      spaces=[ 
-        (physical_unit, formats.ostd.SpaceType.PHYSICAL, transform) 
-      ],
-      space=1,
-      length_unit="vx", # defines space=0
-      space_type=SpaceType.VOXEL, # defines space=0
+      spaces=spaces,
+      space=space,
+      length_unit=length_unit, # defines space=0
+      space_type=space_type, # defines space=0
       coordinate_frame_orientation=coordinate_frame,
       voxel_centered=True,
       attributes=attributes,
