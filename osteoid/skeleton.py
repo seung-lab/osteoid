@@ -11,6 +11,7 @@ import struct
 import sys
 
 import numpy as np
+import numpy.typing as npt
 import networkx as nx
 
 import fastremap
@@ -79,10 +80,15 @@ class Skeleton:
     specially and is synonymous with skel.radii.
   """
   def __init__(self, 
-    vertices=None, edges=None, 
-    radii=None, vertex_types=None, 
-    segid=None, transform=None,
-    space='voxel', extra_attributes=None
+    vertices:Optional[np.ndarray] = None,
+    edges:Optional[np.ndarray] = None, 
+    radii:Optional[npt.NDArray[np.float32]] = None,
+    vertex_types:Optional[npt.NDArray[np.uint8]] = None, 
+    segid:Optional[int] = None,
+    transform:Optional[npt.NDArray[np.float32]] = None,
+    space:Literal['voxel', 'physical'] = 'voxel',
+    extra_attributes:Optional[list] = None,
+    disable_default_attributes:bool = False,
   ):
     self.id = segid
     self.space = space
@@ -92,39 +98,38 @@ class Skeleton:
     elif type(vertices) is list:
       self.vertices = np.array(vertices, dtype=np.float32)
     else:
-      self.vertices = vertices.astype(np.float32)
+      self.vertices = vertices
 
     if edges is None:
       self.edges = np.array([[]], dtype=np.uint32).reshape(0,2)
     elif type(edges) is list:
       self.edges = np.array(edges, dtype=np.uint32)
     else:
-      self.edges = edges.astype(np.uint32)
+      self.edges = edges
 
     if radii is None:
       self.radius = np.full(shape=self.vertices.shape[0], fill_value=-1, dtype=np.float32)
     elif type(radii) is list:
-      self.radius = np.array(radii, dtype=np.float32)
+      self.radius = np.asarray(radii, dtype=np.float32)
     else:
       self.radius = radii
 
     if vertex_types is None:
       # 0 = undefined in SWC (http://research.mssm.edu/cnic/swc.html)
       self.vertex_types = np.zeros(shape=self.vertices.shape[0], dtype=np.uint8)
-    elif type(vertex_types) is list:
-      self.vertex_types = np.array(vertex_types, dtype=np.uint8)
     else:
-      self.vertex_types = vertex_types.astype(np.uint8)
+      self.vertex_types = np.asarray(vertex_types, dtype=np.uint8)
 
     if extra_attributes is None:
-      self.extra_attributes = self._default_attributes()
+      if not disable_default_attributes:
+        self.extra_attributes = self._default_attributes()
     else:
       self.extra_attributes = extra_attributes
 
     if transform is None:
       self.transform = np.copy(IDENTITY)
     else:
-      self.transform = np.array(transform).reshape( (3, 4) )
+      self.transform = np.asarray(transform).reshape( (3, 4) )
 
   @classmethod
   def _default_attributes(self):
@@ -1008,23 +1013,7 @@ class Skeleton:
     Convert navis skeletons to osteoid.Skeleton. This
     should be more efficient than the SWC interchange method.
     """
-    vertex_types = None
-    if len(navis_skel.nodes.type):
-      # 'root', 'slab', 'branch', 'end', first letter of each
-      vertex_types = [ ord(t[0]) for t in navis_skel.nodes.type ] 
-      mapping = np.zeros(ord('t') + 1, dtype=np.uint8)
-      mapping[ord('s')] = 7 # custom
-      mapping[ord('r')] = 8 # custom
-      mapping[ord('b')] = 5 # fork point
-      mapping[ord('t')] = 6 # end point
-      vertex_types = mapping[vertex_types]
-
-    return Skeleton(
-      vertices=navis_skel.vertices, 
-      edges=navis_skel.edges - 1,
-      radii=navis_skel.nodes.radius.to_numpy(),
-      vertex_types=vertex_types,
-    )
+    return formats.from_navis(navis_skel)
 
   @classmethod
   def from_ostd(self, binary:bytes) -> "Skeleton":
@@ -1089,7 +1078,9 @@ class Skeleton:
       id=self.id,
       vertices=self.physical_space().vertices,
       edges=self.edges,
-      spaces=[ (physical_unit, formats.ostd.SpaceType.PHYSICAL, transform) ],
+      spaces=[ 
+        (physical_unit, formats.ostd.SpaceType.PHYSICAL, transform) 
+      ],
       space=1,
       length_unit="vx", # defines space=0
       space_type=SpaceType.VOXEL, # defines space=0
