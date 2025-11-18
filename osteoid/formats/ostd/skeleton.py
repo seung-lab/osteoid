@@ -656,7 +656,7 @@ class OstdSkeleton:
 
     offset = 0
     edges = []
-    for part in self.parts[:2]:
+    for part in self.parts:
       part_edges = part.edges.astype(combined_edge_dtype, copy=False)
       part_edges += offset
       edges.append(part_edges)
