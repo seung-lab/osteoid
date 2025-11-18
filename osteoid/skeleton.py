@@ -838,53 +838,6 @@ class Skeleton:
 
     return paths
 
-  def _compute_components(self, skel):
-    if skel.edges.size == 0:
-      return [ skel ]
-
-    index = defaultdict(set)
-    visited = defaultdict(bool)
-    for e1, e2 in skel.edges:
-      index[e1].add(e2)
-      index[e2].add(e1)
-
-    def extract_component(start):
-      edge_list = []
-      stack = [ start ]
-      parents = [ -1 ]
-
-      while stack:
-        node = stack.pop()
-        parent = parents.pop()
-
-        if node < parent:
-          edge_list.append( (node, parent) )
-        else:
-          edge_list.append( (parent, node) )
-
-        if visited[node]:
-          continue
-
-        visited[node] = True
-        
-        for child in index[node]:
-          stack.append(child)
-          parents.append(node)
-
-      el = np.array(edge_list[1:], dtype=np.uint32)
-      return fastremap.unique(el, axis=0)
-
-    forest = []
-    for edge in fastremap.unique(skel.edges.flat):
-      if visited[edge]:
-        continue
-
-      forest.append(
-        extract_component(edge)
-      )
-
-    return forest
-
   def average_smoothing(
     self, n:int, 
     check_boundary:bool = True,
