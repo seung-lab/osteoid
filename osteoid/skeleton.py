@@ -1085,7 +1085,9 @@ class Skeleton:
       id=self.id,
       vertices=self.physical_space().vertices,
       edges=self.edges,
-      spaces=[ (physical_unit, formats.ostd.SpaceType.PHYSICAL, transform) ],
+      spaces=[ 
+        (physical_unit, formats.ostd.SpaceType.PHYSICAL, transform) 
+      ],
       space=1,
       length_unit="vx", # defines space=0
       space_type=SpaceType.VOXEL, # defines space=0
