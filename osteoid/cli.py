@@ -49,7 +49,7 @@ def info(src):
     click.echo("\nSpaces Available:")
 
     for i, space in enumerate(oskel.spaces):
-      click.echo(f"{i}: {space.space}, {space.unit[0]}{space.unit[1]}")
+      click.echo(f"{i}: {space.space}, {space.unit}")
 
     attrs = [ f"{attr} ({unit})" for attr, unit in oskel.attributes ]
     click.echo("\nattributes: " + ", ".join(attrs))

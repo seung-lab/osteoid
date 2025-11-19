@@ -313,7 +313,7 @@ num verts:         {self.Nv}
 num edges:         {self.Ne}
 
 num components:    {self.num_components}
-cable length:      {self.cable_length} {self.length_unit}
+cable length:      {self.cable_length:.3f} {self.length_unit}
 graph type:        {self.graph_type.name}
 representation:    {self.edge_representation.name}
 
