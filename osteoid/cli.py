@@ -58,11 +58,17 @@ def info(src):
 @main.command()
 @click.argument("src")
 @click.argument("dest")
-def convert(src:str, dest:str):
+@click.option('--unit', default="nm", type=str, help="For file types that don't support units (e.g. SWC), specify what the physical length units are.", show_default=True)
+@click.option('--orientation', default="+X-Y-Z", type=str, help="Coordinate frame orientation. Default is typical for computer graphics.", show_default=True)
+def convert(src:str, dest:str, units:str, orientation:str):
   """Convert a skeleton from one format to another."""
   from .util import load, save
   skel = load(src, allow_mmap=True)
-  save(dest, skel)
+  save(
+    dest, skel, 
+    unit=unit, 
+    coordinate_frame_orientation=orientation,
+  )
 
 @main.command()
 @click.option('-v', '--verbose', is_flag=True, default=False, help="Print information about conversion progress.", show_default=True)
