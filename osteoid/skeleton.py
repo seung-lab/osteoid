@@ -125,6 +125,8 @@ class Skeleton:
     elif vertex_types is not None:
       self.vertex_types = np.asarray(vertex_types, dtype=np.uint8)
 
+    self.default_attributes = bool(default_attributes)
+
     if extra_attributes is None:
       if default_attributes:
         self.extra_attributes = self._default_attributes()
@@ -672,7 +674,7 @@ class Skeleton:
 
     return np.sum(dist)
 
-  def downsample(self, factor):
+  def downsample(self, factor:int) -> "Skeleton":
     """
     Compute a downsampled version of the skeleton by striding while 
     preserving endpoints.
@@ -695,7 +697,10 @@ class Skeleton:
       )
 
     ds_skel = Skeleton.simple_merge(
-      [ Skeleton.from_path(path) for path in paths ]
+      [ 
+        Skeleton.from_path(path, default_attributes=self.default_attributes) 
+        for path in paths 
+      ]
     ).consolidate()
     ds_skel.id = self.id
     ds_skel.extra_attributes = self.extra_attributes
