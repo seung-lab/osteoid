@@ -18,7 +18,6 @@ from .header import (
   OstdAttribute,
   OstdAttributeSection,
   OstdHeader, 
-  OstdSpatialIndex,
   OstdTransform,
   OstdTransformSection,
 )
@@ -38,6 +37,8 @@ from .types import (
   TO_LENGTH_UNIT,
   FROM_LENGTH_UNIT,
 )
+
+from .spatial_index import OstdSpatialIndex
 
 def check_crc32c(binary:bytes, stored_crc:int):
     computed_crc = lib.crc32c(binary)    

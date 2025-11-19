@@ -671,7 +671,7 @@ class Skeleton:
 
     return np.sum(dist)
 
-  def downsample(self, factor):
+  def downsample(self, factor:int) -> "Skeleton":
     """
     Compute a downsampled version of the skeleton by striding while 
     preserving endpoints.
@@ -694,7 +694,10 @@ class Skeleton:
       )
 
     ds_skel = Skeleton.simple_merge(
-      [ Skeleton.from_path(path) for path in paths ]
+      [ 
+        Skeleton.from_path(path, default_attributes=self.default_attributes) 
+        for path in paths 
+      ]
     ).consolidate()
     ds_skel.id = self.id
     ds_skel.extra_attributes = self.extra_attributes

@@ -410,14 +410,6 @@ class OstdTransformSection:
 
 
 @dataclass
-class OstdSpatialIndex:
-  minpt:npt.NDArray[np.float32]
-  maxpt:npt.NDArray[np.float32]
-  chunk_size:npt.NDArray[np.float32]
-  index_binary:bytes
-  paths_binary:bytes
-
-@dataclass
 class OstdAttribute:
   name:str = ""
   attribute_type:AttributeType = AttributeType.VERTEX
