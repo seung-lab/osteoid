@@ -961,14 +961,17 @@ class Skeleton:
     elif len(forest) == 1:
       return [ skel.clone() ]
 
+    max_size = max([ max(np.max(edge_list), len(edge_list)) for edge_list in forest ])
+
+    if max_size < int(1e8):
+      remap = np.empty([ max_size + 1 ], dtype=np.uint32)
+
     skeletons = []
     for edge_list in forest:
       vert_idx = fastremap.unique(edge_list)
 
       vert_list = skel.vertices[vert_idx]
-
-      if max(vert_idx[-1], vert_idx.size) < int(1e8):
-        remap = np.zeros([ vert_idx[-1] + 1 ], dtype=np.uint32)
+      if max_size < int(1e8):
         remap[vert_idx] = np.arange(vert_idx.size)
         edge_list = remap[edge_list]
       else:
