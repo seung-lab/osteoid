@@ -161,38 +161,14 @@ class OstdSkeletonPart:
     stored_crc32c = int.from_bytes(binary[crc_off:crc_off+4], 'little')
     check_crc32c(check_buf,  stored_crc32c)
 
-    num_paths = int.from_bytes(binary[offset:offset+8], 'little')
-
-    pdtype = lib.compute_dtype(header.Nv)
-    path_lengths = np.frombuffer(
+    edges_buf = np.frombuffer(
       binary, 
-      offset=(offset+8),
-      count=num_paths,
-      dtype=pdtype,
+      offset=offset, 
+      count=header.edge_bytes, 
+      dtype=np.uint8
     )
 
-    edge_path_bytes = path_lengths.nbytes + 8
-    num_edges = header.edge_bytes - edge_path_bytes - 4 # - crc
-    num_edges //= np.dtype(header.edge_dtype).itemsize 
-    
-    all_edges = []
-    total_length = 0
-    for path_len in path_lengths:
-      arr = np.empty([path_len - 1, 2], dtype=header.edge_dtype, order='C')
-      arr[:,0] = np.arange(total_length, total_length + path_len - 1, dtype=header.edge_dtype)
-      arr[:,1] = arr[:,0] + 1
-      all_edges.append(arr)
-      total_length += path_len
-
-    explicit_pairs = np.frombuffer(
-      binary,
-      offset=(offset + edge_path_bytes),
-      count=num_edges,
-      dtype=header.edge_dtype,
-    ).reshape(((num_edges // 2), 2), order="C")
-    all_edges.append(explicit_pairs)
-
-    return np.concatenate(all_edges)
+    return fastosteoid.decode_linked_path_edges(edges_buf, header.Nv)
 
   @classmethod
   def _decode_edge_representation(
