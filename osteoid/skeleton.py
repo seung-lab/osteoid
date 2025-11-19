@@ -534,6 +534,7 @@ class Skeleton:
         space=self.space, 
         extra_attributes=self.extra_attributes,
         transform=self.transform,
+        default_attributes=self.default_attributes,
       )
     
     eff_vertices, uniq_idx, idx_representative = fastremap.unique(
@@ -555,6 +556,7 @@ class Skeleton:
       space=self.space,
       extra_attributes=self.extra_attributes,
       transform=self.transform,
+      default_attributes=self.default_attributes,
     )
 
     for attr in self.extra_attributes:
@@ -581,6 +583,7 @@ class Skeleton:
         space=self.space, 
         extra_attributes=self.extra_attributes,
         transform=self.transform,
+        default_attributes=self.default_attributes,
       )
 
     all_edges = fastremap.unique(self.edges.flat)
@@ -610,6 +613,7 @@ class Skeleton:
       space=self.space,
       extra_attributes=self.extra_attributes,
       transform=self.transform,
+      default_attributes=self.default_attributes,
     )
 
     if len(self.extra_attributes) == 0:
@@ -647,7 +651,7 @@ class Skeleton:
       space=self.space, 
       extra_attributes=self.extra_attributes,
       transform=np.copy(self.transform),
-      default_attributes=False,
+      default_attributes=self.default_attributes,
     )
     for attr in skel.extra_attributes:
       setattr(skel, attr['id'], np.copy(getattr(self, attr['id'])))
@@ -1027,7 +1031,7 @@ class Skeleton:
     from .formats.ostd import OstdSkeleton
     from .formats.ostd.types import (
       TO_LENGTH_UNIT, SIPrefixType, 
-      DimensionlessType, LengthType, AreaType, SpaceType,
+      DimensionlessType, LengthType, AreaType, PhysicalUnit, SpaceType,
     )
     transform = self.transform
     bottom = np.zeros((1, 4), dtype=transform.dtype)
@@ -1035,7 +1039,7 @@ class Skeleton:
     transform = np.vstack((transform, bottom))
 
     attributes = OrderedDict([
-      (attr["id"], ((SIPrefixType.NONE, DimensionlessType.UNKNOWN), getattr(self, attr["id"])))
+      (attr["id"], (PhysicalUnit(SIPrefixType.NONE, DimensionlessType.UNKNOWN), getattr(self, attr["id"])))
       for attr in self.extra_attributes
     ])
 

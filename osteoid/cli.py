@@ -110,7 +110,7 @@ def convertall(src, type, verbose, force, dir):
 
 @main.command()
 @click.argument("filename")
-@click.option('-c', '--color-by', type=click.Choice(['r', 'c', 'x']), default='r', help="For skeleton visualization. r = radius, c = components, x = cross sectional area (if available).", show_default=True)
+@click.option('-c', '--color-by', type=click.Choice(['r', 'c', 'x', 's']), default='r', help="For skeleton visualization. r = radius, c = components, x = cross sectional area (if available), s = solid color (for performance).", show_default=True)
 def view(filename, color_by):
   """Visualize a .swc or .npy file."""
   import microviewer
@@ -121,7 +121,10 @@ def view(filename, color_by):
   error_text = {
     'r': "radius",
     'x': "cross sectional area",
+    's': "solid",
   }
+
+  skel.vertices = skel.vertices.astype(np.float32, copy=False)
 
   try:
     microviewer.objects([ skel ], skeleton_color_by=color_by)
