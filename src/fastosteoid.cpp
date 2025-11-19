@@ -6,15 +6,17 @@
 
 #include <algorithm>
 #include <vector>
+#include <span>
 #include <limits>
 
 // #include "builtins.hpp"
+#include "lib.hpp"
 #include "unordered_dense.hpp"
 
 namespace py = pybind11;
 
 template <typename EDGE_T>
-py::list paths_to_pylist(const std::vector<std::vector<EDGE_T>>& paths) {
+py::list paths_to_pylist(const std::span<std::span<EDGE_T>>& paths) {
     py::list out(paths.size());
 
     for (size_t i = 0; i < paths.size(); i++) {
@@ -30,7 +32,7 @@ py::list paths_to_pylist(const std::vector<std::vector<EDGE_T>>& paths) {
 
 template <typename T>
 py::array_t<T> pairs_to_numpy(
-	const std::vector<std::pair<T, T>>& pairs
+	const std::span<std::pair<T, T>>& pairs
 ) {
 	size_t n = pairs.size();
 	py::array_t<T> arr({n, size_t(2)});
@@ -68,6 +70,94 @@ std::vector<std::pair<T,T>> unique(
 	}
 
 	return uniq;
+}
+
+template <typename LEN_T, typename EDGE_T>
+py::array decode_linked_path_edges_impl(const std::span<uint8_t>& binary) {
+	const uint64_t num_paths = fastosteoid::lib::ctoi<uint64_t>(binary, 0);
+
+
+	const uint8_t* base = binary.data() + 8;
+	auto* ptr = reinterpret_cast<const LEN_T*>(base);
+	std::span<const LEN_T> path_lengths(ptr, num_paths);
+
+	// const std::span<LEN_T> path_lengths(binary.data() + 8, num_paths);
+
+	const uint64_t edge_path_bytes = sizeof(LEN_T) * path_lengths.size() + 8;
+	const uint64_t num_edges = (binary.size() - edge_path_bytes - 4) / sizeof(EDGE_T); // -4 for crc32c
+
+	uint64_t explicit_edges = num_edges / 2; // explicit edges
+	uint64_t implicit_edges = 0;
+	// implicit edges
+	for (uint64_t i = 0; i < path_lengths.size(); i++) {
+		implicit_edges += (path_lengths[i] > 0) 
+			? (path_lengths[i] - 1) 
+			: 0;
+	}
+
+	size_t total_edges = implicit_edges + explicit_edges;
+	py::array_t<uint64_t> arr({ total_edges, size_t(2) });
+	auto buf = arr.template mutable_unchecked<2>();
+
+	uint64_t edge_i = 0;
+	uint64_t arr_i = 0;
+	for (uint64_t i = 0; i < num_paths; i++) {
+		if (path_lengths[i] == 0) {
+			continue;
+		}
+
+		for (uint64_t j = 0; j < path_lengths[i] - 1; j++, edge_i++, arr_i++) {
+			buf(arr_i, 0) = edge_i;
+			buf(arr_i, 1) = edge_i + 1;
+		}
+		edge_i++;
+	}
+
+	const uint64_t pair_bytes = explicit_edges * 2 * sizeof(EDGE_T);
+	std::span<EDGE_T> pairs(binary.data() + edge_path_bytes, pair_bytes);
+
+	for (uint64_t i = 0; i < pairs.size(); i += 2, arr_i++) {
+		buf(arr_i, 0) = pairs[i];
+		buf(arr_i, 1) = pairs[i+1];
+	}
+
+	return arr;
+}
+
+template <typename EDGE_T>
+py::array decode_linked_path_edges_helper(const std::span<uint8_t>& binary) {
+	const uint64_t num_paths = fastosteoid::lib::ctoi<uint64_t>(binary, 0);
+
+	if (num_paths <= std::numeric_limits<uint8_t>::max()) {
+		return decode_linked_path_edges_impl<uint8_t, EDGE_T>(binary);
+	}
+	if (num_paths <= std::numeric_limits<uint16_t>::max()) {
+		return decode_linked_path_edges_impl<uint16_t, EDGE_T>(binary);
+	}
+	if (num_paths <= std::numeric_limits<uint32_t>::max()) {
+		return decode_linked_path_edges_impl<uint32_t, EDGE_T>(binary);
+	}
+	else {
+		return decode_linked_path_edges_impl<uint64_t, EDGE_T>(binary);
+	}
+}
+
+py::array decode_linked_path_edges(
+	const std::span<uint8_t>& binary, 
+	const uint64_t Nv
+) {
+	if (Nv <= std::numeric_limits<uint8_t>::max()) {
+		return decode_linked_path_edges_helper<uint8_t>(binary);
+	}
+	if (Nv <= std::numeric_limits<uint16_t>::max()) {
+		return decode_linked_path_edges_helper<uint16_t>(binary);
+	}
+	if (Nv <= std::numeric_limits<uint32_t>::max()) {
+		return decode_linked_path_edges_helper<uint32_t>(binary);
+	}
+	else {
+		return decode_linked_path_edges_helper<uint64_t>(binary);
+	}
 }
 
 template <typename EDGE_T>

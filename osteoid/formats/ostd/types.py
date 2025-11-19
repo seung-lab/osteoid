@@ -98,6 +98,23 @@ LENGTH_SYMBOLS = {
 
 LengthType.__str__ = lambda self: LENGTH_SYMBOLS[self]
 
+@dataclass
+class PhysicalUnit:
+  prefix:SIPrefixType
+  base:IntEnum
+
+  def tuple(self) -> tuple[SIPrefixType, IntEnum]:
+    return (self.prefix, self.base)
+
+  def __hash__(self):
+    return self.prefix.value + 31 * self.base.value
+
+  def __eq__(self, other) -> bool:
+    return self.prefix == other.prefix and self.base == other.base
+
+  def __str__(self) -> str:
+    return f"{self.prefix}{self.base}"
+
 LENGTH_CONVERSION_FACTORS = {
   (LengthType.UNKNOWN, LengthType.METER): float('NaN'),
   (LengthType.VOXEL, LengthType.METER): float('NaN'),
@@ -467,23 +484,6 @@ TO_QUANTITY_TYPE = {
   10: VolumeType,
 }
 FROM_QUANTITY_TYPE = { v:k for k,v in TO_QUANTITY_TYPE.items() }
-
-@dataclass
-class PhysicalUnit:
-  prefix:SIPrefixType
-  base:IntEnum
-
-  def tuple(self) -> tuple[SIPrefixType, IntEnum]:
-    return (self.prefix, self.base)
-
-  def __hash__(self):
-    return self.prefix.value + 31 * self.base.value
-
-  def __eq__(self, other) -> bool:
-    return self.prefix == other.prefix and self.base == other.base
-
-  def __str__(self) -> str:
-    return f"{self.prefix}{self.base}"
 
 TO_LENGTH_UNIT = {
   "vx": PhysicalUnit(SIPrefixType.NONE, LengthType.VOXEL),
