@@ -60,14 +60,14 @@ def info(src):
 @click.argument("dest")
 @click.option('--unit', default="nm", type=str, help="For file types that don't support units (e.g. SWC), specify what the physical length units are.", show_default=True)
 @click.option('--orientation', default="+X-Y-Z", type=str, help="Coordinate frame orientation. Default is typical for computer graphics.", show_default=True)
-def convert(src:str, dest:str, units:str, orientation:str):
+def convert(src:str, dest:str, unit:str, orientation:str):
   """Convert a skeleton from one format to another."""
   from .util import load, save
   skel = load(src, allow_mmap=True)
   save(
     dest, skel, 
     unit=unit, 
-    coordinate_frame_orientation=orientation,
+    coordinate_frame=orientation,
   )
 
 @main.command()
