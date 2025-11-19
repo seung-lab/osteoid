@@ -16,7 +16,7 @@
 namespace py = pybind11;
 
 template <typename EDGE_T>
-py::list paths_to_pylist(const std::span<std::span<EDGE_T>>& paths) {
+py::list paths_to_pylist(const std::span<std::vector<EDGE_T>>& paths) {
     py::list out(paths.size());
 
     for (size_t i = 0; i < paths.size(); i++) {
@@ -73,15 +73,13 @@ std::vector<std::pair<T,T>> unique(
 }
 
 template <typename LEN_T, typename EDGE_T>
-py::array decode_linked_path_edges_impl(const std::span<uint8_t>& binary) {
+py::array decode_linked_path_edges_impl(const std::span<const uint8_t>& binary) {
 	const uint64_t num_paths = fastosteoid::lib::ctoi<uint64_t>(binary, 0);
 
 
-	const uint8_t* base = binary.data() + 8;
-	auto* ptr = reinterpret_cast<const LEN_T*>(base);
+	const uint8_t* path_len_base = binary.data() + 8;
+	auto* ptr = reinterpret_cast<const LEN_T*>(path_len_base);
 	std::span<const LEN_T> path_lengths(ptr, num_paths);
-
-	// const std::span<LEN_T> path_lengths(binary.data() + 8, num_paths);
 
 	const uint64_t edge_path_bytes = sizeof(LEN_T) * path_lengths.size() + 8;
 	const uint64_t num_edges = (binary.size() - edge_path_bytes - 4) / sizeof(EDGE_T); // -4 for crc32c
@@ -113,8 +111,9 @@ py::array decode_linked_path_edges_impl(const std::span<uint8_t>& binary) {
 		edge_i++;
 	}
 
-	const uint64_t pair_bytes = explicit_edges * 2 * sizeof(EDGE_T);
-	std::span<EDGE_T> pairs(binary.data() + edge_path_bytes, pair_bytes);
+	const uint8_t* pairs_base = binary.data() + edge_path_bytes;
+	auto* pairs_ptr = reinterpret_cast<const EDGE_T*>(pairs_base);
+	std::span<const EDGE_T> pairs(pairs_ptr, explicit_edges * 2);
 
 	for (uint64_t i = 0; i < pairs.size(); i += 2, arr_i++) {
 		buf(arr_i, 0) = pairs[i];
@@ -125,7 +124,7 @@ py::array decode_linked_path_edges_impl(const std::span<uint8_t>& binary) {
 }
 
 template <typename EDGE_T>
-py::array decode_linked_path_edges_helper(const std::span<uint8_t>& binary) {
+py::array decode_linked_path_edges_helper(const std::span<const uint8_t>& binary) {
 	const uint64_t num_paths = fastosteoid::lib::ctoi<uint64_t>(binary, 0);
 
 	if (num_paths <= std::numeric_limits<uint8_t>::max()) {
@@ -143,9 +142,15 @@ py::array decode_linked_path_edges_helper(const std::span<uint8_t>& binary) {
 }
 
 py::array decode_linked_path_edges(
-	const std::span<uint8_t>& binary, 
+	const py::buffer buffer,
 	const uint64_t Nv
 ) {
+	py::buffer_info info = buffer.request();
+	auto* ptr = static_cast<uint8_t*>(info.ptr);
+	std::span<const uint8_t> binary(ptr, info.size);
+
+	uint8_t* data = static_cast<uint8_t*>(info.ptr);
+
 	if (Nv <= std::numeric_limits<uint8_t>::max()) {
 		return decode_linked_path_edges_helper<uint8_t>(binary);
 	}
@@ -594,6 +599,7 @@ py::list compute_components(
 PYBIND11_MODULE(fastosteoid, m) {
 	m.doc() = "Accelerated osteoid functions."; 
 	m.def("linked_paths", &linked_paths, "Compute the linked paths edge representation.");
+	m.def("decode_linked_path_edges", &decode_linked_path_edges, "Decode the linked paths edge representation.");
 	m.def("has_cycle", &has_cycle, "Check whether this connected component has a cycle.");
 	m.def("compute_components", &compute_components, "Find skeleton components.");
 }
