@@ -50,7 +50,10 @@ def save(
   if filename.endswith("swc"):
     binary = skeleton.to_swc().encode("utf8")
   elif filename.endswith("ostd"):
-    binary = skeleton.to_ostd()
+    binary = skeleton.to_ostd(
+      unit=kwargs.get("unit", "nm"),
+      coordinate_frame_orientation=kwargs.get("coordinate_frame_orientation", "+X-Y-Z"),
+    )
   else:
     binary = skeleton.to_precomputed()
 
