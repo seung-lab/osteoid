@@ -52,7 +52,7 @@ def save(
   elif filename.endswith("ostd"):
     binary = skeleton.to_ostd(
       unit=kwargs.get("unit", "nm"),
-      coordinate_frame_orientation=kwargs.get("coordinate_frame_orientation", "+X-Y-Z"),
+      coordinate_frame=kwargs.get("coordinate_frame", "+X-Y-Z"),
     )
   else:
     binary = skeleton.to_precomputed()
