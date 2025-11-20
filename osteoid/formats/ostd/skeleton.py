@@ -175,7 +175,8 @@ class OstdSkeletonPart:
       dtype=np.uint8
     )
 
-    return fastosteoid.decode_linked_path_edges(edges_buf, header.Nv)
+    edge_width = np.dtype(header.edge_dtype).itemsize
+    return fastosteoid.decode_linked_path_edges(edges_buf, header.Nv, edge_width)
 
   @classmethod
   def _decode_edge_representation(
