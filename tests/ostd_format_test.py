@@ -1,6 +1,8 @@
 import pytest
 import numpy as np
 
+from osteoid import Skeleton
+
 # Assuming these enums and types are available from your module
 from osteoid.formats.ostd import (
     OstdHeader,
@@ -147,3 +149,52 @@ def test_serialization_determinism(sample_skeleton):
 def test_from_bytes_invalid():
     with pytest.raises(Exception):
         OstdSkeleton.from_bytes(b"invalid_data")
+
+
+def test_serialization_roundtrip2():
+    vertices = np.array([
+        [0.0, 0.0, 0.0],    # 0 root
+        [1.0, 0.0, 0.0],    # 1 trunk
+        [2.0, 0.0, 0.0],    # 2 trunk
+        [3.0, 0.0, 0.0],    # 3 trunk (bifurcates)
+        [3.5, 0.7, 0.0],    # 4 branch A1
+        [4.5, 1.2, 0.0],    # 5 branch A2
+        [3.5, -0.7, 0.0],   # 6 branch B1
+        [4.2, -1.4, 0.0],   # 7 branch B2
+        [2.0, 1.0, 0.0],    # 8 side branch off node 2
+        [2.8, 1.8, 0.5],    # 9 continuation of that branch
+        [2.0, -1.0, 0.0],   # 10 second side branch off node 2
+    ], dtype=np.float32)
+
+    edges = np.array([
+        [0, 1],   # trunk
+        [1, 2],
+        [2, 3],
+
+        [3, 4],   # bifurcation A
+        [4, 5],
+
+        [3, 6],   # bifurcation B
+        [6, 7],
+
+        [2, 8],   # side branch C
+        [8, 9],
+
+        [2, 10],  # side branch D
+    ], dtype=np.uint64)
+
+    skel = OstdSkeleton.create(
+        vertices, edges,
+        id=42,
+        coordinate_frame_orientation="+X+Y+Z",
+        voxel_centered=True,
+    )
+
+    data = skel.to_bytes()
+    restored = OstdSkeleton.from_bytes(data)
+    
+    skel = Skeleton(skel.vertices, skel.edges, default_attributes=False)
+    restored = Skeleton(restored.vertices, restored.edges, default_attributes=False)
+
+    assert Skeleton.equivalent(skel, restored)
+
