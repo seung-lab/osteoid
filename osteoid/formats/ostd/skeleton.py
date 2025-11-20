@@ -272,14 +272,11 @@ class OstdSkeletonPart:
     if np.dtype(dtype).itemsize < 4:
       dtype = np.float32
 
-    v1 = verts[edges[:,0]]
-    v2 = verts[edges[:,1]]
+    v1 = verts[edges[:,0]].astype(dtype, copy=False)
+    v2 = verts[edges[:,1]].astype(dtype, copy=False)
+    dist = np.linalg.norm(v2 - v1, axis=1)
 
-    delta = (v2 - v1)
-    delta *= delta
-    dist = np.sum(delta, axis=1)
-    dist = np.sqrt(dist)
-    self.header.cable_length = np.sum(dist, dtype=dtype)
+    self.header.cable_length = np.sum(dist.astype(np.float64)).astype(np.float32)
 
     self.change_space(original_space)
 
