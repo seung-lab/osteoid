@@ -58,9 +58,9 @@ class OstdSkeletonPart:
     OrderedDict[str,tuple[PhysicalUnit, npt.NDArray[np.generic]]]
   ] = None
 
-  def _encode_vertices(self) -> bytes:
+  def _encode_vertices(self, vertices:np.ndarray) -> bytes:
     if self.header.vertex_compression == CompressionType.NONE:
-      vertex_binary = self.vertices.tobytes("C")
+      vertex_binary = vertices.tobytes("C")
       vertex_binary += lib.crc32c(vertex_binary).to_bytes(4, 'little')
     else:
       raise ValueError(f"Unsupported compression type: {self.header.vertex_compression}")
@@ -77,7 +77,7 @@ class OstdSkeletonPart:
 
     return edge_binary
 
-  def _encode_edge_representation_linked_paths(self) -> tuple[bytes, bytes]:
+  def _encode_linked_paths(self) -> tuple[bytes, bytes]:
     (all_paths, all_edges, has_cycle, N) = fastosteoid.linked_paths(self.edges)
 
     # flatten all_paths
@@ -91,7 +91,7 @@ class OstdSkeletonPart:
     reorder = np.concatenate(all_paths)
     verts = self.vertices[reorder]
     edges = np.concatenate(all_edges).astype(self.header.edge_dtype, copy=False)
-    
+
     inv = np.empty([ self.header.Nv ], dtype=reorder.dtype, order="C")
     inv[reorder] = np.arange(len(reorder), dtype=reorder.dtype)
     del reorder
@@ -99,7 +99,9 @@ class OstdSkeletonPart:
     del inv
 
     pdtype = lib.compute_dtype(verts.shape[0])
-    path_lengths = np.asarray([ len(path) for path in all_paths ], dtype=pdtype)
+    path_lengths = np.asarray([
+      len(path) for path in all_paths
+    ], dtype=pdtype)
 
     self.header.num_components = N
     if has_cycle:
@@ -114,13 +116,18 @@ class OstdSkeletonPart:
     ])
     edge_binary += lib.crc32c(edge_binary).to_bytes(4, 'little')
 
-    return edge_binary
+    vertex_binary = self._encode_vertices(verts)
 
-  def _encode_edge_representation(self) ->bytes:
+    return (vertex_binary, edge_binary)
+
+  def _encode_geometry(self) ->bytes:
     if self.header.edge_representation == EdgeRepresentationType.PAIR:
-      return self._encode_edge_representation_pair()
+      return (
+        self._encode_vertices(self.vertices),
+        self._encode_edge_representation_pair()
+      )
     elif self.header.edge_representation == EdgeRepresentationType.LINKED_PATHS:
-      return self._encode_edge_representation_linked_paths()
+      return self._encode_linked_paths()
     else:
       raise ValueError("Unsupported representation: ", self.header.edge_representation)
 
@@ -185,8 +192,7 @@ class OstdSkeletonPart:
       raise ValueError("Unsupported representation: ", header.edge_representation)
 
   def to_bytes(self) -> bytes:
-    vertex_binary = self._encode_vertices()
-    edge_binary = self._encode_edge_representation()
+    vertex_binary, edge_binary = self._encode_geometry()
     self.header.cable_length = self.cable_length()
 
     self.header.has_transform = False
