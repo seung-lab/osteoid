@@ -671,12 +671,19 @@ class Skeleton:
     v1 = skel.vertices[skel.edges[:,0]]
     v2 = skel.vertices[skel.edges[:,1]]
 
+    dtype = v1.dtype
+    if np.dtype(dtype).itemsize < 4:
+      dtype = np.float32
+
     delta = (v2 - v1)
+    del v1
+    del v2
     delta *= delta
     dist = np.sum(delta, axis=1)
+    del delta
     dist = np.sqrt(dist)
 
-    return np.sum(dist)
+    return np.sum(dist, dtype=dtype)
 
   def downsample(self, factor:int) -> "Skeleton":
     """

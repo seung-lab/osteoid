@@ -268,6 +268,10 @@ class OstdSkeletonPart:
     verts = self.vertices
     edges = self.edges
 
+    dtype = self.vertices.dtype
+    if np.dtype(dtype).itemsize < 4:
+      dtype = np.float32
+
     v1 = verts[edges[:,0]]
     v2 = verts[edges[:,1]]
 
@@ -275,7 +279,7 @@ class OstdSkeletonPart:
     delta *= delta
     dist = np.sum(delta, axis=1)
     dist = np.sqrt(dist)
-    self.header.cable_length = np.sum(dist)
+    self.header.cable_length = np.sum(dist, dtype=dtype)
 
     self.change_space(original_space)
 
