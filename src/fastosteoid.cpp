@@ -123,27 +123,29 @@ py::array decode_linked_path_edges_impl(const std::span<const uint8_t>& binary) 
 	return arr;
 }
 
-template <typename EDGE_T>
-py::array decode_linked_path_edges_helper(const std::span<const uint8_t>& binary) {
-	const uint64_t num_paths = fastosteoid::lib::ctoi<uint64_t>(binary, 0);
-
-	if (num_paths <= std::numeric_limits<uint8_t>::max()) {
-		return decode_linked_path_edges_impl<uint8_t, EDGE_T>(binary);
+template <typename LEN_T>
+py::array decode_linked_path_edges_helper(
+	const std::span<const uint8_t>& binary,
+	const uint64_t edge_width
+) {
+	if (edge_width == 1) {
+		return decode_linked_path_edges_impl<LEN_T, uint8_t>(binary);
 	}
-	if (num_paths <= std::numeric_limits<uint16_t>::max()) {
-		return decode_linked_path_edges_impl<uint16_t, EDGE_T>(binary);
+	if (edge_width == 2) {
+		return decode_linked_path_edges_impl<LEN_T, uint16_t>(binary);
 	}
-	if (num_paths <= std::numeric_limits<uint32_t>::max()) {
-		return decode_linked_path_edges_impl<uint32_t, EDGE_T>(binary);
+	if (edge_width == 4) {
+		return decode_linked_path_edges_impl<LEN_T, uint32_t>(binary);
 	}
 	else {
-		return decode_linked_path_edges_impl<uint64_t, EDGE_T>(binary);
+		return decode_linked_path_edges_impl<LEN_T, uint64_t>(binary);
 	}
 }
 
 py::array decode_linked_path_edges(
 	const py::buffer buffer,
-	const uint64_t Nv
+	const uint64_t Nv,
+	const uint64_t edge_width
 ) {
 	py::buffer_info info = buffer.request();
 	auto* ptr = static_cast<uint8_t*>(info.ptr);
@@ -152,16 +154,16 @@ py::array decode_linked_path_edges(
 	uint8_t* data = static_cast<uint8_t*>(info.ptr);
 
 	if (Nv <= std::numeric_limits<uint8_t>::max()) {
-		return decode_linked_path_edges_helper<uint8_t>(binary);
+		return decode_linked_path_edges_helper<uint8_t>(binary, edge_width);
 	}
 	if (Nv <= std::numeric_limits<uint16_t>::max()) {
-		return decode_linked_path_edges_helper<uint16_t>(binary);
+		return decode_linked_path_edges_helper<uint16_t>(binary, edge_width);
 	}
 	if (Nv <= std::numeric_limits<uint32_t>::max()) {
-		return decode_linked_path_edges_helper<uint32_t>(binary);
+		return decode_linked_path_edges_helper<uint32_t>(binary, edge_width);
 	}
 	else {
-		return decode_linked_path_edges_helper<uint64_t>(binary);
+		return decode_linked_path_edges_helper<uint64_t>(binary, edge_width);
 	}
 }
 
