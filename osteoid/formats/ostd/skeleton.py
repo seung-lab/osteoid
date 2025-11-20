@@ -94,7 +94,6 @@ class OstdSkeletonPart:
 
     inv = np.empty([ self.header.Nv ], dtype=reorder.dtype, order="C")
     inv[reorder] = np.arange(len(reorder), dtype=reorder.dtype)
-    del reorder
     edges = inv[edges]
     del inv
 
@@ -118,13 +117,14 @@ class OstdSkeletonPart:
 
     vertex_binary = self._encode_vertices(verts)
 
-    return (vertex_binary, edge_binary)
+    return (vertex_binary, edge_binary, reorder)
 
-  def _encode_geometry(self) ->bytes:
+  def _encode_geometry(self) -> tuple[bytes,bytes,Optional[np.ndarray]]:
     if self.header.edge_representation == EdgeRepresentationType.PAIR:
       return (
         self._encode_vertices(self.vertices),
-        self._encode_edge_representation_pair()
+        self._encode_edge_representation_pair(),
+        None,
       )
     elif self.header.edge_representation == EdgeRepresentationType.LINKED_PATHS:
       return self._encode_linked_paths()
@@ -193,7 +193,7 @@ class OstdSkeletonPart:
       raise ValueError("Unsupported representation: ", header.edge_representation)
 
   def to_bytes(self) -> bytes:
-    vertex_binary, edge_binary = self._encode_geometry()
+    vertex_binary, edge_binary, reorder = self._encode_geometry()
     self.header.cable_length = self.cable_length()
 
     self.header.has_transform = False
@@ -217,6 +217,8 @@ class OstdSkeletonPart:
       attributes_binary = []
       for name, (unit, arr) in self.attributes.items():
         assert arr.shape[0] == self.header.Nv
+        if reorder is not None:
+          arr = arr[reorder]
         attr_binary = arr.tobytes("C")
         attr_binary += lib.crc32c(attr_binary).to_bytes(4, 'little')
         attributes_binary.append(attr_binary)
