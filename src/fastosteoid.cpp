@@ -210,6 +210,16 @@ py::tuple linked_paths_impl(const py::array_t<EDGE_T>& edges_arr) {
 			parents.push_back(start);
 		}
 
+		for (uint64_t i = 0; i < stack.size() - 1; i++) {
+			EDGE_T child = stack[i];
+			if (start < child) {
+				edge_list.emplace_back(start, child);
+			}
+			else {
+				edge_list.emplace_back(child, start);
+			}
+		}
+
 		bool cycle_detected = false;
 
 		while (stack.size()) {
