@@ -668,8 +668,12 @@ class Skeleton:
     """
     skel = self.physical_space(copy=False)
 
-    v1 = skel.vertices[skel.edges[:,0]]
-    v2 = skel.vertices[skel.edges[:,1]]
+    dtype = self.vertices.dtype
+    if np.dtype(dtype).itemsize < 4:
+      dtype = np.float32
+
+    v1 = skel.vertices[skel.edges[:,0]].astype(dtype, copy=False)
+    v2 = skel.vertices[skel.edges[:,1]].astype(dtype, copy=False)
 
     dist = np.linalg.norm(v2 - v1, axis=1)
     return np.sum(dist.astype(np.float64))
