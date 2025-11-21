@@ -3,7 +3,7 @@ ostd ("osteoid") File Format
 
 Skeletons (medial paths) may be represented as a possibly cyclic undirected graph with per vertex annotations and possibly edge annotations.
 
-The `ostd` file format fills a gap in existing skeleton file formats by offering a self-contained, high performance, safe, binary format that supports optional vertex attributes for the serialization of skeletal structures. Incorporating metadata is not a design goal, as this core file is intended to be wrapped in a container file format for that purpose.
+The `ostd` file format fills a gap in existing skeleton file formats by offering a self-contained, high performance, small, safe, binary format that supports optional vertex attributes for the serialization of arbitrary skeletal structures. Incorporating metadata is not a design goal, as this core file is intended to be wrapped in a container file format for that purpose.
 
 Typically skeleton file formats represent the geometry in either text, JSON, or XML which uses excess space and requires a comparatively slow parser. Examples include SWC, CSV/TSV, NML, OBJ. In the case of SWC, it is not easily extensible with additional attributes. Other file formats are designed to handle multiple kinds of objects. SWC only supports trees, when some skeletons may include loops. Other formats, e.g. TRK, only support paths. Precomputed only supports a fully general (and space hungry) edge list.
 
