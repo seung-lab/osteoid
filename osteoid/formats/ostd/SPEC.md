@@ -221,7 +221,7 @@ The first section of the edges is then written as:
 
 num_paths | len_1, len_2, ..., len_n
 
-Where the lengths are the number of vertices in each path. Each path is assigned an ID numbering from 0.
+Where the lengths are the number of vertices in each path. Each path is assigned an ID numbering from 0. num_paths is a u64 little endian. Each len is the smallest data type that will hold Nv, the number of vertices in the skeleton part.
 
 The next section is the links between paths:
 
