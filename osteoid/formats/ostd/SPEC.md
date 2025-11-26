@@ -80,7 +80,7 @@ units specified in flags.  |
 | spatial_index_bytes    | 4     | u32         | -                           | Content length in bytes of the spatial index.                                                         |
 | attribute_header_bytes | 4     | u32         | -                           | Content length in bytes of the attribute header.                                                         |
 | num_components         | 4     | u32         | N or (2^32-1 if unknown)    | Number of connected components in the skeleton graph. max value of uint32 is a sentinel for unknown.              |
-| cable_length           | 4     | f32         | -                           | Physical path length of this object in the 
+| cable_length           | 4     | f32         | -                           | Physical path length of this object in SI prefixed meters.                           | 
 | current_space          | 1     | u8          | 0                           | The current transform space the vertices are in. By default 0. Every +1 means selecting the next transform from the transform list. See *Transform* | 
 | crc16                  | 2     | uint16      | -                           | crc16 using 0xFFFF init and implicit polynomial 0xd175 of header bytes excluding magic number.                    |
 
@@ -88,7 +88,7 @@ units specified in flags.  |
 
 LSB on the left.
 
-`VVVVeeeeCCCCccccGGGppppPPPPsssssOOOOOaaatoEEAR*`
+`VVVVeeeeCCCCccccGGGppppsssssOOOOOaaatoEEAR*`
 
 | Flag   | Meaning                            | Notes                                                                                |
 | ------ | ---------------------------------- | ------------------------------------------------------------------------------------ |
@@ -99,8 +99,7 @@ LSB on the left.
 | **C**  | Compression algorithm for vertices | See *Compression Type*                                                               |
 | **c**  | Compression algorithm for edges    | See *Compression Type*                                                               |
 | **G**  | Graph structure (advisory)         | See *Graph Type*                                                                     |
-| **p**  | SI Prefix                          | See *SIPrefixType*
-| **P**  | Physical length units              | The units of default space (0). See *Length Type*                                                         |
+| **p**  | SI Prefix                          | signed 10^(X/3) where X is the value |
 | **a**  | Number of Axes                     | Number of axes                       |
 | **t**  | Transforms present                 | bool                                                                                 |
 | **O**  | Coordinate Frame Orientation       | Has own structure: `sssaaa`<br>s: sign of X,Y,Z axes in that order (0: positive, 1: negative)<br>a: axis permutation<br>See Axis Permutation Type, 000000 means +X+Y+Z standard frame |
@@ -115,7 +114,7 @@ The default space (0) is set in the header. Transforms listed below should be wr
 | Field                  | Bytes | Datatype    | Value                       | Description                                                                                                       |
 |------------------------|-------|-------------|-----------------------------|-------------------------------------------------------------------------------------------------------------------|
 | num_spaces             | 1     | uint8       | -                           | Number of transformations available. matrices.                  |
-| units                  | 1     | uint8       | ppppPPPP                    | The physical unit this transform maps to. |
+| units                  | 4     | tuple       | See physical units.         | The physical unit this transform maps to. |
 | space                  | 1     | uint8       | -                           | The kind of space the transform represents. See *Space Type* |
 | transform              | 64    | 4x4 f32s    | [ f32, f32, f32, f32, ... ] | Homogenous transform matrix from voxel to physical coordinates. Written in row major (C) order little endian.                   |
 | crc16                  | 2     | uint16      | -                          | 16-bit CRC using 0xFF init and 0xd175 implicit polynomial                  |
@@ -163,7 +162,7 @@ Attributes can be applied to either vertices or to edges. Vertex attributes are 
 |----------------|-----------|----------|---------------------------|---------------------------------|
 | name           | fixed<=255| string   | e.g. "radius"             | Name of the attribute           |
 | flags          | 2         | bitfield | DDDDCCCCTRRRRRRR          | Packed information              |
-| unit           | 2         | bitfield | QQQSSSSSUUUUURRR          | Physical unit.                  |
+| unit           | 4         | tuple    | See below.                | Physical unit.                  |
 | num_components | 1         | uint8    | -                         | Number of components.           |
 | content_length | 8         | uint64   | -                         | Length of compressed bitstream. |
 
@@ -176,14 +175,6 @@ T: (0) vertex attribute (1) edge attribute
 D: Data Type  
 C: Compression Type
 R: Reserved
-
-#### Unit Definition
-
-lsb on left
-
-Q: Quantity type (see *Physical Unit Type*)
-S: SI Prefix (see *SI Prefix Type*)
-U: Unit of that type
 
 ## Vertex Attribute
 
@@ -298,166 +289,32 @@ The following tables specify the meaning of various header values.
 
 Note: Only None is currently supported.
 
-### Physical Unit Type
+### Unit Definitions
 
-| Unit Type         | Value |
-|-------------------|-------|
-| AreaType          | 0     |    
-| DimensionlessType | 1     |             
-| ElectricalType    | 2     |          
-| EnergyType        | 3     |      
-| LengthType        | 4     |      
-| LuminosityType    | 5     |          
-| MassType          | 6     |    
-| SubstanceAmount   | 7     |           
-| TemperatureType   | 8     |           
-| TimeType          | 9     |    
-| VolumeType        | 10    |      
+Arbitrary SI dimensions can be encoded as a tuple of fundemental units raised to a signed exponent. While
+the original vision of this datastream is to only incorporate metadata that supports the interpretation of geometry, it seems strange to privilage length and time dimensions when all sorts of things might be measured along a skeleton, such as current or luminance.
 
-### SI Prefix
+For example, Joules can be expressed as W = ma x d or kg * m^2/s^2, Watts as kg * m^2/s^3 and Amperes can be expressed as C/s. Speed is meters/sec, area is meters^2 etc, luminousity can be measured in watts or photons per a second.
 
-4 bits
+Since this is designed for biological use cases, the candela which is based in human perception of light is less useful, so we use a bit for photon count.
 
-| Prefix | Value |
-| ------ | ----- |
-| zepto  | 0     |
-| atto   | 1     |
-| femto  | 2     |
-| pico   | 3     |
-| nano   | 4     |
-| micro  | 5     |
-| milli  | 6     |
-| centi  | 7     |
-| none   | 8     |
-| kilo   | 9     |
-| mega   | 10    |
-| giga   | 11    |
-| tera   | 12    |
-| peta   | 13    |
-| exa    | 14    |
-| zetta  | 15    |
+Therefore, for attributes, we encode the dimensions as a uint32 that represents the following structure:
 
-### Length Type
+| Field           | Bits             | Description                         |
+|-----------------|------------------|-------------------------------------|
+| coulombs        | 4                | c^x (-8 to 7)                       |
+| grams           | 4                | g^x (-8 to 7)                       |
+| kelvin          | 4                | k^x (-8 to 7)                       |
+| meters          | 4                | m^x (-8 to 7)                       |
+| mols            | 4                | mol^x (-8 to 7)                     |
+| seconds         | 4                | s^x (-8 to 7)                       |
+| photon ct.      | 1                | number of photons                   |
+| SI Prefix       | 4                | signed 10^(X/3) where X is the value|
+| Reserved        | 3                | Future use                          |
 
-4 bits
+All signed values are written in 2's complement. The field is stored as little endian.
 
-| Unit                   | Value |
-|------------------------|-------|
-| unknown (dimensionless)| 0     |
-| voxel (dimensionless)  | 1     |
-| angstrom               | 2     | 
-| mil (1/1000 inch)      | 3     |
-| inch                   | 4     |
-| foot                   | 5     |
-| yard                   | 6     |
-| meter                  | 7     |
-| statute mile           | 8     |
-| nautical mile          | 9     |
-| astronomical unit      | 10    |
-| lightyear              | 11    |
-| parsec                 | 12    |
-
-### Area Type
-
-4 bits
-
-Inherits from length type but considers each value squared.
-Additional units such as `acre` could in theory be added.
-
-### Volume Type
-
-4 bits
-
-Inherits from length type but considers each value cubed.
-The following values are added in addition.
-
-| Unit                  | Value |
-|-----------------------|-------|
-| liter                 | 13    |
-
-### Temperature Type
-
-3 bits
-
-| Unit        | Value |
-|-------------|-------|
-| unknown     | 0     |
-| celsius     | 1     |
-| fahrenheit  | 2     |
-| rankine     | 3     |
-| kelvin      | 4     |
-
-### Time Type
-
-3 bits
-
-| Unit        | Value |
-|-------------|-------|
-| unknown     | 0     |
-| second      | 1     |
-| minute      | 2     |
-| hour        | 3     |
-| day         | 4     |
-| month       | 5     |
-| year        | 6     |
-| hertz       | 7     |
-
-### Luminosity Type
-
-3 bits
-
-| Unit                  | Value |
-| --------------------- | ----- |
-| unknown               | 0     |
-| candela               | 1     |
-| lumen                 | 2     |
-| lux                   | 3     |
-| photon                | 4     |
-| photons per second    | 5     |
-
-### Electrical Type
-
-3 bits
-
-| Unit            | Value |
-| --------------- | ----- |
-| unknown         | 0     |
-| volt            | 1     |
-| ampere          | 2     |
-| ohm             | 3     |
-| siemen          | 4     |
-| farad           | 5     |
-| henry           | 6     |
-| coulomb         | 7     |
-
-### Mass Type
-
-2 bits
-
-| Unit                  | Value |
-|-----------------------|-------|
-| unknown               | 0     |
-| gram                  | 1     |
-| dalton                | 2     |
-
-### Substance Amount
-
-1 bit
-
-| Unit                  | Value |
-|-----------------------|-------|
-| unknown               | 0     |
-| mole                  | 1     |
-
-### Energy Type
-
-2 bits
-
-| Unit                  | Value |
-|-----------------------|-------|
-| unknown               | 0     |
-| joule                 | 1     |
-| watt                  | 2     |
+One can imagine the "Reserved" bits could be used as a flag for alternative systems such as US customary units.
 
 ### Graph Type
 
