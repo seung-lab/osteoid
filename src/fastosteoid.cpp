@@ -11,23 +11,24 @@
 
 // #include "builtins.hpp"
 #include "lib.hpp"
+#include "chunk.hpp"
 #include "unordered_dense.hpp"
 
 namespace py = pybind11;
 
 template <typename EDGE_T>
 py::list paths_to_pylist(const std::span<std::vector<EDGE_T>>& paths) {
-    py::list out(paths.size());
+	py::list out(paths.size());
 
-    for (size_t i = 0; i < paths.size(); i++) {
-        const auto& p = paths[i];
-        py::array_t<EDGE_T> arr(p.size());
-        auto* dst = static_cast<EDGE_T*>(arr.mutable_data());
-        std::memcpy(dst, p.data(), p.size() * sizeof(EDGE_T));
-        out[i] = arr;
-    }
+	for (size_t i = 0; i < paths.size(); i++) {
+		const auto& p = paths[i];
+		py::array_t<EDGE_T> arr(p.size());
+		auto* dst = static_cast<EDGE_T*>(arr.mutable_data());
+		std::memcpy(dst, p.data(), p.size() * sizeof(EDGE_T));
+		out[i] = arr;
+	}
 
-    return out;
+	return out;
 }
 
 template <typename T>
@@ -200,9 +201,9 @@ py::tuple linked_paths_impl(const py::array_t<EDGE_T>& edges_arr) {
 
 		std::vector<std::pair<EDGE_T, EDGE_T>> edge_list;
 		std::vector<std::vector<EDGE_T>> paths;
- 		std::vector<EDGE_T> path;
+		std::vector<EDGE_T> path;
 
- 		path.push_back(start);
+		path.push_back(start);
 
 		visited[start] = true;
 		for (EDGE_T child : index[start]) {
@@ -233,7 +234,7 @@ py::tuple linked_paths_impl(const py::array_t<EDGE_T>& edges_arr) {
 				continue;
 			}
 
- 			path.push_back(node);
+			path.push_back(node);
 
 			// check visited after because you can visit a node 
 			// multiple times for different parents, but you don't
@@ -605,6 +606,154 @@ py::list compute_components(
 			throw std::runtime_error("Array must be C-contiguous");
 		}
 		return compute_components_impl<uint64_t>(edges_arr, Nv);
+	}
+}
+
+template <typename VERT_T, EDGE_T>
+py::dict chunk_skeleton_impl(
+	const py::array_t<VERT_T>& vertex_arr,
+	const py::array_t<EDGE_T>& edges_arr,
+	const float cx, const float cy, const float cz,
+	const float origin_x, const float origin_y, const float origin_z
+) {
+	py::buffer_info vbuf = vertex_arr.request();
+	if (vbuf.ndim != 3 || vbuf.strides[1] != sizeof(VERT_T)) {
+		throw std::runtime_error("Array must be 3D and C-contiguous");
+	}
+	VERT_T* vertices = static_cast<VERT_T*>(vbuf.ptr);
+
+	py::buffer_info ebuf = edges_arr.request();
+	if (ebuf.ndim != 2 || ebuf.strides[1] != sizeof(EDGE_T)) {
+		throw std::runtime_error("Array must be 2D and C-contiguous");
+	}
+	EDGE_T* edges = static_cast<EDGE_T*>(ebuf.ptr);
+
+	const uint64_t Nv = vbuf.shape[0];
+	const uint64_t Ne = ebuf.shape[0];
+
+	auto& line_grid = fastosteoid::chunk::chunk_line(
+		vertices, Nv,
+		edges, Ne,
+		cx, cy, cz,
+		origin_x, origin_y, origin_z
+	);
+
+	VERT_T minx = vertices[0], miny = vertices[1], minz = vertices[2];
+	VERT_T maxx = vertices[0], maxy = vertices[1], maxz = vertices[2];
+	
+	for (uint64_t i = 0; i < 3 * Nv; i += 3) {
+		minx = std::min(minx, vertices[i + 0]);
+		miny = std::min(miny, vertices[i + 1]);
+		minz = std::min(minz, vertices[i + 2]);
+		maxx = std::max(maxx, vertices[i + 0]);
+		maxy = std::max(maxy, vertices[i + 1]);
+		maxz = std::max(maxz, vertices[i + 2]);
+	}
+
+	int64_t grid_x = std::max(1, (int64_t)std::ceil((maxx - origin_x) / cx));
+	int64_t grid_y = std::max(1, (int64_t)std::ceil((maxy - origin_y) / cy));
+	int64_t grid_z = std::max(1, (int64_t)std::ceil((maxz - origin_z) / cz));
+
+	py::dict chunked_skeletons;
+	int64_t idx = 0;
+	for (int64_t gz = 0; gz < grid_z; gz++) {
+		for (int64_t gy = 0; gy < grid_y; gy++) {
+			for (int64_t gx = 0; gx < grid_x; gx++, idx++) {
+				const auto& line_obj = line_grid[idx];
+
+                if (line_obj.points.empty() || line_obj.edges.empty()) {
+                    continue;
+                }
+
+            	size_t num_verts = line_obj.points.size() / 3;
+                size_t num_edges = line_obj.edges.size() / 2;
+                
+                py::array_t<VERT_T> chunk_vertices({num_verts, 3});
+                py::array_t<EDGE_T> chunk_edges({num_edges, 2});
+                
+                auto verts_buf = chunk_vertices.request();
+                auto edges_buf = chunk_edges.request();
+                
+                VERT_T* verts_ptr = static_cast<VERT_T*>(verts_buf.ptr);
+                EDGE_T* edges_ptr = static_cast<EDGE_T*>(edges_buf.ptr);
+                
+                std::memcpy(verts_ptr, line_obj.points.data(), line_obj.points.size() * sizeof(VERT_T));
+                std::memcpy(edges_ptr, line_obj.edges.data(), line_obj.edges.size() * sizeof(EDGE_T));
+                
+                py::tuple key = py::make_tuple(gx, gy, gz);
+                chunked_skeletons[key] = py::make_tuple(chunk_vertices, chunk_edges);
+			}
+		}
+	}
+   
+	return chunked_skeletons;
+}
+
+template <typename VERT_T>
+py::dict chunk_skeleton_dispatch_edge(
+	const py::array& vertex_arr,
+	const py::array& edges_arr,
+	const float cx, const float cy, const float cz,
+	const float origin_x, const float origin_y, const float origin_z
+) {
+	py::buffer_info ebuf = edges_arr.request();
+	int edge_width = edges_arr.dtype().itemsize();
+	
+	if (edge_width == 1) {
+		if (ebuf.strides[1] != sizeof(uint8_t)) {
+			throw std::runtime_error("Edge array must be C-contiguous");
+		}
+		return chunk_skeleton_impl<VERT_T, uint8_t>(vertex_arr, edges_arr, cx, cy, cz, origin_x, origin_y, origin_z);
+	}
+	else if (edge_width == 2) {
+		if (ebuf.strides[1] != sizeof(uint16_t)) {
+			throw std::runtime_error("Edge array must be C-contiguous");
+		}
+		return chunk_skeleton_impl<VERT_T, uint16_t>(vertex_arr, edges_arr, cx, cy, cz, origin_x, origin_y, origin_z);
+	}
+	else if (edge_width == 4) {
+		if (ebuf.strides[1] != sizeof(uint32_t)) {
+			throw std::runtime_error("Edge array must be C-contiguous");
+		}
+		return chunk_skeleton_impl<VERT_T, uint32_t>(vertex_arr, edges_arr, cx, cy, cz, origin_x, origin_y, origin_z);
+	}
+	else { // 8 bytes
+		if (ebuf.strides[1] != sizeof(uint64_t)) {
+			throw std::runtime_error("Edge array must be C-contiguous");
+		}
+		return chunk_skeleton_impl<VERT_T, uint64_t>(vertex_arr, edges_arr, cx, cy, cz, origin_x, origin_y, origin_z);
+	}
+}
+
+py::dict chunk_skeleton(
+	const py::array& vertex_arr,
+	const py::array& edges_arr,
+	const float cx, const float cy, const float cz,
+	const float origin_x, const float origin_y, const float origin_z
+) {
+	py::buffer_info vbuf = vertex_arr.request();
+	if (vbuf.ndim != 2) {
+		throw std::runtime_error("Vertex array must be 2D and C-contiguous");
+	}
+	
+	py::buffer_info ebuf = edges_arr.request();
+	if (ebuf.ndim != 2) {
+		throw std::runtime_error("Edge array must be 2D and C-contiguous");
+	}
+	
+	int vert_width = vertex_arr.dtype().itemsize();
+	
+	if (vert_width == 4) {
+		if (vbuf.strides[1] != sizeof(float)) {
+			throw std::runtime_error("Vertex array must be C-contiguous");
+		}
+		return chunk_skeleton_dispatch_edge<float>(vertex_arr, edges_arr, cx, cy, cz, origin_x, origin_y, origin_z);
+	}
+	else {
+		if (vbuf.strides[1] != sizeof(double)) {
+			throw std::runtime_error("Vertex array must be C-contiguous");
+		}
+		return chunk_skeleton_dispatch_edge<double>(vertex_arr, edges_arr, cx, cy, cz, origin_x, origin_y, origin_z);
 	}
 }
 
