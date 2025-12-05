@@ -192,7 +192,7 @@ struct LineObject {
 
   EDGE_T last_edge() const {
     return (points.size() > 0) 
-      ? ((points.size() - 1) / 2)
+      ? ((points.size() - 1) / 3)
       : -1;
   }
 };

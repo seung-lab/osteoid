@@ -1197,11 +1197,19 @@ class Skeleton:
     if origin is None:
       origin = [0,0,0]
 
-    return fastosteoid.chunk_skeleton(
+    chunks = fastosteoid.chunk_skeleton(
       vertices, self.edges,
       chunk_size[0], chunk_size[1], chunk_size[2],
       origin[0], origin[1], origin[2],
     )
+    del vertices
+
+    skel_chunks = {}
+    for grid, (verts, edges) in chunks.items():
+      skel_chunks[grid] = Skeleton(verts, edges).consolidate()
+
+    return skel_chunks
+
 
   def __eq__(self, other):
     if self.id != other.id:
