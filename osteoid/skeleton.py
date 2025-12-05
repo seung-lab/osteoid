@@ -1201,6 +1201,9 @@ class Skeleton:
     chunk_size:tuple[float,float,float],
     origin:Optional[np.ndarray] = None,
   ) -> dict[tuple[int,int,int], "Skeleton"]:
+    """
+    Cut a skeleton into a grid.
+    """
     vertices = self.vertices.astype(np.float32, copy=False)
     
     if origin is None:
@@ -1218,7 +1221,6 @@ class Skeleton:
       skel_chunks[grid] = Skeleton(verts, edges).consolidate()
 
     return skel_chunks
-
 
   def __eq__(self, other):
     if self.id != other.id:
