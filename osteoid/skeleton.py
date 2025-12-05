@@ -1,3 +1,5 @@
+from typing import Optional
+
 from collections import defaultdict
 import copy
 import datetime
