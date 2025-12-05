@@ -3,7 +3,8 @@ requires = [
     "setuptools>=61.0.0",
     "wheel",
     "pybind11",
-    "numpy"
+    "numpy",
+    "click",
 ]
 build-backend = "setuptools.build_meta"
 
@@ -22,7 +23,11 @@ dependencies = [
     "networkx (>=3.0.0,<4.0.0)",
     "numpy (>=1.17.0,<3.0.0)",
     "pybind11",
+    "google_crc32c",
 ]
+
+[project.scripts]
+ostd = "osteoid.cli:main"
 
 [tool.setuptools]
 packages = ["osteoid"]
