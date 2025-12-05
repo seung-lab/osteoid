@@ -152,8 +152,6 @@ py::array decode_linked_path_edges(
 	auto* ptr = static_cast<uint8_t*>(info.ptr);
 	std::span<const uint8_t> binary(ptr, info.size);
 
-	uint8_t* data = static_cast<uint8_t*>(info.ptr);
-
 	if (Nv <= std::numeric_limits<uint8_t>::max()) {
 		return decode_linked_path_edges_helper<uint8_t>(binary, edge_width);
 	}
