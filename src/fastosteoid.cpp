@@ -5,9 +5,9 @@
 #include <pybind11/stl.h>
 
 #include <algorithm>
-#include <vector>
-#include <span>
 #include <limits>
+#include <span>
+#include <vector>
 
 // #include "builtins.hpp"
 #include "lib.hpp"
@@ -607,7 +607,7 @@ py::list compute_components(
 	}
 }
 
-template <typename VERT_T, EDGE_T>
+template <typename VERT_T, typename EDGE_T>
 py::dict chunk_skeleton_impl(
 	const py::array_t<VERT_T>& vertex_arr,
 	const py::array_t<EDGE_T>& edges_arr,
@@ -629,7 +629,7 @@ py::dict chunk_skeleton_impl(
 	const uint64_t Nv = vbuf.shape[0];
 	const uint64_t Ne = ebuf.shape[0];
 
-	auto& line_grid = fastosteoid::chunk::chunk_line(
+	auto line_grid = fastosteoid::chunk::chunk_line(
 		vertices, Nv,
 		edges, Ne,
 		cx, cy, cz,
@@ -648,9 +648,9 @@ py::dict chunk_skeleton_impl(
 		maxz = std::max(maxz, vertices[i + 2]);
 	}
 
-	int64_t grid_x = std::max(1, (int64_t)std::ceil((maxx - origin_x) / cx));
-	int64_t grid_y = std::max(1, (int64_t)std::ceil((maxy - origin_y) / cy));
-	int64_t grid_z = std::max(1, (int64_t)std::ceil((maxz - origin_z) / cz));
+	int64_t grid_x = std::max(static_cast<int64_t>(1), static_cast<int64_t>(std::ceil((maxx - origin_x) / cx)));
+	int64_t grid_y = std::max(static_cast<int64_t>(1), static_cast<int64_t>(std::ceil((maxy - origin_y) / cy)));
+	int64_t grid_z = std::max(static_cast<int64_t>(1), static_cast<int64_t>(std::ceil((maxz - origin_z) / cz)));
 
 	py::dict chunked_skeletons;
 	int64_t idx = 0;
@@ -666,9 +666,15 @@ py::dict chunk_skeleton_impl(
             	size_t num_verts = line_obj.points.size() / 3;
                 size_t num_edges = line_obj.edges.size() / 2;
                 
-                py::array_t<VERT_T> chunk_vertices({num_verts, 3});
-                py::array_t<EDGE_T> chunk_edges({num_edges, 2});
-                
+				auto chunk_vertices = py::array_t<VERT_T>({
+					static_cast<py::ssize_t>(num_verts), 
+					static_cast<py::ssize_t>(3)
+				});
+				auto chunk_edges = py::array_t<EDGE_T>({
+					static_cast<py::ssize_t>(num_edges), 
+					static_cast<py::ssize_t>(2)
+				});
+
                 auto verts_buf = chunk_vertices.request();
                 auto edges_buf = chunk_edges.request();
                 
@@ -687,71 +693,50 @@ py::dict chunk_skeleton_impl(
 	return chunked_skeletons;
 }
 
-template <typename VERT_T>
-py::dict chunk_skeleton_dispatch_edge(
-	const py::array& vertex_arr,
-	const py::array& edges_arr,
-	const float cx, const float cy, const float cz,
-	const float origin_x, const float origin_y, const float origin_z
-) {
-	py::buffer_info ebuf = edges_arr.request();
-	int edge_width = edges_arr.dtype().itemsize();
-	
-	if (edge_width == 1) {
-		if (ebuf.strides[1] != sizeof(uint8_t)) {
-			throw std::runtime_error("Edge array must be C-contiguous");
-		}
-		return chunk_skeleton_impl<VERT_T, uint8_t>(vertex_arr, edges_arr, cx, cy, cz, origin_x, origin_y, origin_z);
-	}
-	else if (edge_width == 2) {
-		if (ebuf.strides[1] != sizeof(uint16_t)) {
-			throw std::runtime_error("Edge array must be C-contiguous");
-		}
-		return chunk_skeleton_impl<VERT_T, uint16_t>(vertex_arr, edges_arr, cx, cy, cz, origin_x, origin_y, origin_z);
-	}
-	else if (edge_width == 4) {
-		if (ebuf.strides[1] != sizeof(uint32_t)) {
-			throw std::runtime_error("Edge array must be C-contiguous");
-		}
-		return chunk_skeleton_impl<VERT_T, uint32_t>(vertex_arr, edges_arr, cx, cy, cz, origin_x, origin_y, origin_z);
-	}
-	else { // 8 bytes
-		if (ebuf.strides[1] != sizeof(uint64_t)) {
-			throw std::runtime_error("Edge array must be C-contiguous");
-		}
-		return chunk_skeleton_impl<VERT_T, uint64_t>(vertex_arr, edges_arr, cx, cy, cz, origin_x, origin_y, origin_z);
-	}
-}
-
 py::dict chunk_skeleton(
-	const py::array& vertex_arr,
+	const py::array_t<float>& vertex_arr,
 	const py::array& edges_arr,
 	const float cx, const float cy, const float cz,
 	const float origin_x, const float origin_y, const float origin_z
 ) {
 	py::buffer_info vbuf = vertex_arr.request();
 	if (vbuf.ndim != 2) {
-		throw std::runtime_error("Vertex array must be 2D and C-contiguous");
+		throw std::runtime_error("Vertex array must be 2D");
+	}
+	if (vbuf.strides[1] != sizeof(float)) {
+		throw std::runtime_error("Vertex array must be C-contiguous");
 	}
 	
 	py::buffer_info ebuf = edges_arr.request();
 	if (ebuf.ndim != 2) {
-		throw std::runtime_error("Edge array must be 2D and C-contiguous");
+		throw std::runtime_error("Edge array must be 2D");
 	}
 	
-	int vert_width = vertex_arr.dtype().itemsize();
+	int edge_width = edges_arr.dtype().itemsize();
 	
-	if (vert_width == 4) {
-		if (vbuf.strides[1] != sizeof(float)) {
-			throw std::runtime_error("Vertex array must be C-contiguous");
+	if (edge_width == 1) {
+		if (ebuf.strides[1] != sizeof(uint8_t)) {
+			throw std::runtime_error("Edge array must be C-contiguous");
 		}
-		return chunk_skeleton_dispatch_edge<float>(vertex_arr, edges_arr, cx, cy, cz, origin_x, origin_y, origin_z);
+		return chunk_skeleton_impl<float, uint8_t>(vertex_arr, edges_arr, cx, cy, cz, origin_x, origin_y, origin_z);
 	}
-	else {
-		if (vbuf.strides[1] != sizeof(double)) {
-			throw std::runtime_error("Vertex array must be C-contiguous");
+	else if (edge_width == 2) {
+		if (ebuf.strides[1] != sizeof(uint16_t)) {
+			throw std::runtime_error("Edge array must be C-contiguous");
 		}
-		return chunk_skeleton_dispatch_edge<double>(vertex_arr, edges_arr, cx, cy, cz, origin_x, origin_y, origin_z);
+		return chunk_skeleton_impl<float, uint16_t>(vertex_arr, edges_arr, cx, cy, cz, origin_x, origin_y, origin_z);
+	}
+	else if (edge_width == 4) {
+		if (ebuf.strides[1] != sizeof(uint32_t)) {
+			throw std::runtime_error("Edge array must be C-contiguous");
+		}
+		return chunk_skeleton_impl<float, uint32_t>(vertex_arr, edges_arr, cx, cy, cz, origin_x, origin_y, origin_z);
+	}
+	else { // 8 bytes
+		if (ebuf.strides[1] != sizeof(uint64_t)) {
+			throw std::runtime_error("Edge array must be C-contiguous");
+		}
+		return chunk_skeleton_impl<float, uint64_t>(vertex_arr, edges_arr, cx, cy, cz, origin_x, origin_y, origin_z);
 	}
 }
 
@@ -761,4 +746,5 @@ PYBIND11_MODULE(fastosteoid, m) {
 	m.def("decode_linked_path_edges", &decode_linked_path_edges, "Decode the linked paths edge representation.");
 	m.def("has_cycle", &has_cycle, "Check whether this connected component has a cycle.");
 	m.def("compute_components", &compute_components, "Find skeleton components.");
+	m.def("chunk_skeleton", &chunk_skeleton, "Cut a skeleton into a grid of chunks.");
 }

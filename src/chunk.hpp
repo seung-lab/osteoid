@@ -156,9 +156,10 @@ public:
 
 typedef std::pair<Vec3<float>, Vec3<float>> Line;
 
+template <typename EDGE_T>
 struct LineObject {
   std::vector<float> points;
-  std::vector<uint64_t> edges;
+  std::vector<EDGE_T> edges;
 
   void add_point(const Vec3<float>& pt) {
     points.push_back(pt.x);
@@ -167,15 +168,15 @@ struct LineObject {
   }
 
   void add_edge(
-    const uint64_t e1, 
-    const uint64_t e2
+    const EDGE_T e1, 
+    const EDGE_T e2
   ) {
     edges.push_back(e1);
     edges.push_back(e2);
   }
 
   void add_line(const Line& line) {
-    uint64_t i = last_edge();
+    EDGE_T i = last_edge();
 
     points.push_back(line.first.x);
     points.push_back(line.first.y);
@@ -189,7 +190,7 @@ struct LineObject {
     edges.push_back(i + 2);
   }
 
-  uint64_t last_edge() const {
+  EDGE_T last_edge() const {
     return (points.size() > 0) 
       ? ((points.size() - 1) / 2)
       : -1;
@@ -266,11 +267,12 @@ std::vector<Line> divide_line(
 
 // more elegant algorithmically, but not the fastest or simpliest
 // division of the triangle into subtriangles
+template <typename EDGE_T>
 void resect_line_iterative(
   const float* vertices,
   const Vec3<float>& minpt,
   const std::vector<int64_t>& zones,
-  std::vector<LineObject>& line_grid,
+  std::vector<LineObject<EDGE_T>>& line_grid,
   const Vec3<float>& cs,
   const Vec3<int64_t>& gs,
   const uint64_t e1,
@@ -357,10 +359,11 @@ void resect_line_iterative(
 }
 
 // cx = chunk size x, etc
-std::vector<LineObject> chunk_line(
+template <typename EDGE_T>
+std::vector<LineObject<EDGE_T>> chunk_line(
   const float* vertices, 
   const uint64_t num_vertices,
-  const uint64_t* edges,
+  const EDGE_T* edges,
   const uint64_t num_edges,
   const float cx, const float cy, const float cz,
   const std::optional<float> origin_x = std::nullopt, 
@@ -428,7 +431,7 @@ std::vector<LineObject> chunk_line(
     zones[j] = ix + gx * (iy + gy * iz);
   }
 
-  std::vector<LineObject> line_grid(gx * gy * gz);
+  std::vector<LineObject<EDGE_T>> line_grid(gx * gy * gz);
   
   for (uint64_t i = 0; i < num_edges * 2; i += 2) {
     auto e1 = edges[i+0];
