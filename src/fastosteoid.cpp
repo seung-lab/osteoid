@@ -11,23 +11,24 @@
 
 #include "chunk.hpp"
 #include "lib.hpp"
+#include "chunk.hpp"
 #include "unordered_dense.hpp"
 
 namespace py = pybind11;
 
 template <typename EDGE_T>
 py::list paths_to_pylist(const std::span<std::vector<EDGE_T>>& paths) {
-    py::list out(paths.size());
+	py::list out(paths.size());
 
-    for (size_t i = 0; i < paths.size(); i++) {
-        const auto& p = paths[i];
-        py::array_t<EDGE_T> arr(p.size());
-        auto* dst = static_cast<EDGE_T*>(arr.mutable_data());
-        std::memcpy(dst, p.data(), p.size() * sizeof(EDGE_T));
-        out[i] = arr;
-    }
+	for (size_t i = 0; i < paths.size(); i++) {
+		const auto& p = paths[i];
+		py::array_t<EDGE_T> arr(p.size());
+		auto* dst = static_cast<EDGE_T*>(arr.mutable_data());
+		std::memcpy(dst, p.data(), p.size() * sizeof(EDGE_T));
+		out[i] = arr;
+	}
 
-    return out;
+	return out;
 }
 
 template <typename T>
@@ -200,9 +201,9 @@ py::tuple linked_paths_impl(const py::array_t<EDGE_T>& edges_arr) {
 
 		std::vector<std::pair<EDGE_T, EDGE_T>> edge_list;
 		std::vector<std::vector<EDGE_T>> paths;
- 		std::vector<EDGE_T> path;
+		std::vector<EDGE_T> path;
 
- 		path.push_back(start);
+		path.push_back(start);
 
 		visited[start] = true;
 		for (EDGE_T child : index[start]) {
@@ -233,7 +234,7 @@ py::tuple linked_paths_impl(const py::array_t<EDGE_T>& edges_arr) {
 				continue;
 			}
 
- 			path.push_back(node);
+			path.push_back(node);
 
 			// check visited after because you can visit a node 
 			// multiple times for different parents, but you don't
