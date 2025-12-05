@@ -1371,6 +1371,32 @@ class Skeleton:
       and np.all(self.radii == other.radii) \
       and np.all(self.vertex_types == other.vertex_types))
 
+  def chunk(
+    self, 
+    chunk_size:tuple[float,float,float],
+    origin:Optional[np.ndarray] = None,
+  ) -> dict[tuple[int,int,int], "Skeleton"]:
+    """
+    Cut a skeleton into a grid.
+    """
+    vertices = self.vertices.astype(np.float32, copy=False)
+    
+    if origin is None:
+      origin = [0,0,0]
+
+    chunks = fastosteoid.chunk_skeleton(
+      vertices, self.edges,
+      chunk_size[0], chunk_size[1], chunk_size[2],
+      origin[0], origin[1], origin[2],
+    )
+    del vertices
+
+    skel_chunks = {}
+    for grid, (verts, edges) in chunks.items():
+      skel_chunks[grid] = Skeleton(verts, edges).consolidate()
+
+    return skel_chunks
+
   def __str__(self):
     template = "{}=({}, {})"
     attr_strings = []
