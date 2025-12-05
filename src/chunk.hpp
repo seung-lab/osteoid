@@ -256,6 +256,14 @@ std::vector<Line> divide_line(
     return result;
 }
 
+std::vector<Line> divide_line(
+  const int axis,
+  const float plane_value,
+  const Line& line
+) {
+  return divide_line(axis, plane_value, line.first, line.second);
+}
+
 // more elegant algorithmically, but not the fastest or simpliest
 // division of the triangle into subtriangles
 void resect_line_iterative(
