@@ -615,13 +615,13 @@ py::dict chunk_skeleton_impl(
 	const float origin_x, const float origin_y, const float origin_z
 ) {
 	py::buffer_info vbuf = vertex_arr.request();
-	if (vbuf.ndim != 3 || vbuf.strides[1] != sizeof(VERT_T)) {
+	if (vbuf.ndim != 2 || vbuf.strides[1] != sizeof(VERT_T) || vbuf.shape[1] != 3) {
 		throw std::runtime_error("Array must be 3D and C-contiguous");
 	}
 	VERT_T* vertices = static_cast<VERT_T*>(vbuf.ptr);
 
 	py::buffer_info ebuf = edges_arr.request();
-	if (ebuf.ndim != 2 || ebuf.strides[1] != sizeof(EDGE_T)) {
+	if (ebuf.ndim != 2 || ebuf.strides[1] != sizeof(EDGE_T) || ebuf.shape[1] != 2) {
 		throw std::runtime_error("Array must be 2D and C-contiguous");
 	}
 	EDGE_T* edges = static_cast<EDGE_T*>(ebuf.ptr);

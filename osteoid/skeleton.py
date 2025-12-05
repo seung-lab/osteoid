@@ -1187,6 +1187,22 @@ class Skeleton:
     from . import util
     return util.load(filename, allow_mmap=allow_mmap)
 
+  def chunk(
+    self, 
+    chunk_size:tuple[float,float,float],
+    origin:Optional[np.ndarray] = None,
+  ) -> dict[tuple[int,int,int], "Skeleton"]:
+    vertices = self.vertices.astype(np.float32, copy=False)
+    
+    if origin is None:
+      origin = [0,0,0]
+
+    return fastosteoid.chunk_skeleton(
+      vertices, self.edges,
+      chunk_size[0], chunk_size[1], chunk_size[2],
+      origin[0], origin[1], origin[2],
+    )
+
   def __eq__(self, other):
     if self.id != other.id:
       return False
