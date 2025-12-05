@@ -659,13 +659,13 @@ py::dict chunk_skeleton_impl(
 			for (int64_t gx = 0; gx < grid_x; gx++, idx++) {
 				const auto& line_obj = line_grid[idx];
 
-                if (line_obj.points.empty() || line_obj.edges.empty()) {
-                    continue;
-                }
+				if (line_obj.points.empty() || line_obj.edges.empty()) {
+					continue;
+				}
 
-            	size_t num_verts = line_obj.points.size() / 3;
-                size_t num_edges = line_obj.edges.size() / 2;
-                
+				size_t num_verts = line_obj.points.size() / 3;
+				size_t num_edges = line_obj.edges.size() / 2;
+				
 				auto chunk_vertices = py::array_t<VERT_T>({
 					static_cast<py::ssize_t>(num_verts), 
 					static_cast<py::ssize_t>(3)
@@ -675,17 +675,17 @@ py::dict chunk_skeleton_impl(
 					static_cast<py::ssize_t>(2)
 				});
 
-                auto verts_buf = chunk_vertices.request();
-                auto edges_buf = chunk_edges.request();
-                
-                VERT_T* verts_ptr = static_cast<VERT_T*>(verts_buf.ptr);
-                EDGE_T* edges_ptr = static_cast<EDGE_T*>(edges_buf.ptr);
-                
-                std::memcpy(verts_ptr, line_obj.points.data(), line_obj.points.size() * sizeof(VERT_T));
-                std::memcpy(edges_ptr, line_obj.edges.data(), line_obj.edges.size() * sizeof(EDGE_T));
-                
-                py::tuple key = py::make_tuple(gx, gy, gz);
-                chunked_skeletons[key] = py::make_tuple(chunk_vertices, chunk_edges);
+				auto verts_buf = chunk_vertices.request();
+				auto edges_buf = chunk_edges.request();
+				
+				VERT_T* verts_ptr = static_cast<VERT_T*>(verts_buf.ptr);
+				EDGE_T* edges_ptr = static_cast<EDGE_T*>(edges_buf.ptr);
+				
+				std::memcpy(verts_ptr, line_obj.points.data(), line_obj.points.size() * sizeof(VERT_T));
+				std::memcpy(edges_ptr, line_obj.edges.data(), line_obj.edges.size() * sizeof(EDGE_T));
+				
+				py::tuple key = py::make_tuple(gx, gy, gz);
+				chunked_skeletons[key] = py::make_tuple(chunk_vertices, chunk_edges);
 			}
 		}
 	}
