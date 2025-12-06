@@ -1420,26 +1420,16 @@ class Skeleton:
     if self.vertices.shape[0] == 0 or other.vertices.shape[0] == 0:
       return
 
-    # Use a closure to cleanup extra arrays automatically
-    def find_matches():
-      EPSILON = 1e-7
-      
-      self_rounded = np.round(self.vertices / EPSILON).astype(np.int64)
-      other_rounded = np.round(other.vertices / EPSILON).astype(np.int64)
+    other_dict = {
+      tuple(v): i
+      for i, v in enumerate(other.vertices)
+    }
     
-      other_view = other_rounded.view(dtype=[('x', np.int64), ('y', np.int64), ('z', np.int64)])
-      other_dict = { tuple(v[0]): i for i, v in enumerate(other_view) }
-      
-      self_view = self_rounded.view(dtype=[('x', np.int64), ('y', np.int64), ('z', np.int64)])
-      matches = [
-        (i, other_dict[tuple(v[0])])
-        for i, v in enumerate(self_view) 
-        if tuple(v[0]) in other_dict
-      ]
-      
-      return np.array(matches, dtype=np.uint64)
-
-    matches = find_matches()
+    matches = np.array([
+      (i, other_dict[tuple(v)])
+      for i, v in enumerate(self.vertices)
+      if tuple(v) in other_dict
+    ], dtype=np.uint64)
 
     if len(matches) == 0:
       return
