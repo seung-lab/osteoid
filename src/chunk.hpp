@@ -405,7 +405,7 @@ std::vector<LineObject<EDGE_T>> chunk_line(
     min_z = *origin_z;
   }
 
-  const Vec3 minpt(min_x, min_y, min_z);
+  const Vec3<float> minpt(min_x, min_y, min_z);
 
   const int64_t gx = std::max(static_cast<int64_t>(std::ceil((max_x - min_x) / cx)), static_cast<int64_t>(1));
   const int64_t gy = std::max(static_cast<int64_t>(std::ceil((max_y - min_y) / cy)), static_cast<int64_t>(1));

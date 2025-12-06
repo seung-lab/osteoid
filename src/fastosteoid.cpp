@@ -253,7 +253,7 @@ py::dict chunk_skeleton_impl(
 	int64_t idx = 0;
 	for (int64_t gz = 0; gz < gsz; gz++) {
 		for (int64_t gy = 0; gy < gsy; gy++) {
-			for (int64_t gx = 0; gx < gsz; gx++, idx++) {
+			for (int64_t gx = 0; gx < gsx; gx++, idx++) {
 				const auto& line_obj = line_grid[idx];
 
 				if (line_obj.points.empty() || line_obj.edges.empty()) {
