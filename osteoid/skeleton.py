@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Literal
 
 from collections import defaultdict
 import copy
@@ -11,6 +11,8 @@ import struct
 import sys
 
 import numpy as np
+import numpy.typing as npt
+
 import networkx as nx
 
 import fastremap
@@ -79,12 +81,22 @@ class Skeleton:
 
     Note that for backwards compatibility, skel.radius is treated 
     specially and is synonymous with skel.radii.
+
+  default_attributes: when True, ensure that radius and vertex_types
+    are initialized regardless of the content of extra_attributes.
+    This was to conform to the SWC/Neuroglancer Precomputed
+    conception of a skeleton.
   """
   def __init__(self, 
-    vertices=None, edges=None, 
-    radii=None, vertex_types=None, 
-    segid=None, transform=None,
-    space='voxel', extra_attributes=None
+    vertices:Optional[np.ndarray] = None,
+    edges:Optional[np.ndarray] = None, 
+    radii:Optional[npt.NDArray[np.float32]] = None,
+    vertex_types:Optional[npt.NDArray[np.uint8]] = None, 
+    segid:Optional[int] = None,
+    transform:Optional[npt.NDArray[np.float32]] = None,
+    space:Literal['voxel', 'physical'] = 'voxel',
+    extra_attributes:Optional[list] = None,
+    default_attributes:bool = True,
   ):
     self.id = segid
     self.space = space
@@ -94,39 +106,42 @@ class Skeleton:
     elif type(vertices) is list:
       self.vertices = np.array(vertices, dtype=np.float32)
     else:
-      self.vertices = vertices.astype(np.float32)
+      self.vertices = vertices
 
     if edges is None:
       self.edges = np.array([[]], dtype=np.uint32).reshape(0,2)
     elif type(edges) is list:
       self.edges = np.array(edges, dtype=np.uint32)
     else:
-      self.edges = edges.astype(np.uint32)
+      self.edges = edges
 
-    if radii is None:
+    if radii is None and default_attributes:
       self.radius = np.full(shape=self.vertices.shape[0], fill_value=-1, dtype=np.float32)
     elif type(radii) is list:
-      self.radius = np.array(radii, dtype=np.float32)
-    else:
+      self.radius = np.asarray(radii, dtype=np.float32)
+    elif radii is not None:
       self.radius = radii
 
-    if vertex_types is None:
+    if vertex_types is None and default_attributes:
       # 0 = undefined in SWC (http://research.mssm.edu/cnic/swc.html)
       self.vertex_types = np.zeros(shape=self.vertices.shape[0], dtype=np.uint8)
-    elif type(vertex_types) is list:
-      self.vertex_types = np.array(vertex_types, dtype=np.uint8)
-    else:
-      self.vertex_types = vertex_types.astype(np.uint8)
+    elif vertex_types is not None:
+      self.vertex_types = np.asarray(vertex_types, dtype=np.uint8)
+
+    self.default_attributes = bool(default_attributes)
 
     if extra_attributes is None:
-      self.extra_attributes = self._default_attributes()
+      if default_attributes:
+        self.extra_attributes = self._default_attributes()
+      else:
+        self.extra_attributes = []
     else:
       self.extra_attributes = extra_attributes
 
     if transform is None:
       self.transform = np.copy(IDENTITY)
     else:
-      self.transform = np.array(transform).reshape( (3, 4) )
+      self.transform = np.asarray(transform).reshape( (3, 4) )
 
   @classmethod
   def _default_attributes(self):
