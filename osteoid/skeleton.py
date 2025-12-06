@@ -1419,43 +1419,34 @@ class Skeleton:
     """
     if self.vertices.shape[0] == 0 or other.vertices.shape[0] == 0:
       return
-    
-    EPSILON = 1e-7
-    
-    self_rounded = np.round(self.vertices / EPSILON).astype(np.int64)
-    other_rounded = np.round(other.vertices / EPSILON).astype(np.int64)
-    
-    # Use lexsort for efficient matching
-    # Sort both arrays and find matching indices
-    self_sort_idx = np.lexsort(self_rounded.T)
-    other_sort_idx = np.lexsort(other_rounded.T)
-    
-    self_sorted = self_rounded[self_sort_idx]
-    other_sorted = other_rounded[other_sort_idx]
-    
-    # Find matches between sorted arrays
-    i, j = 0, 0
-    matches = []  # (self_idx, other_idx) pairs
-    
-    while i < len(self_sorted) and j < len(other_sorted):
-      cmp = np.sum((self_sorted[i] - other_sorted[j]) != 0)
+
+    # Use a closure to cleanup extra arrays automatically
+    def find_matches():
+      EPSILON = 1e-7
       
-      if cmp == 0:  # Match found
-        matches.append((self_sort_idx[i], other_sort_idx[j]))
-        i += 1
-        j += 1
-      elif np.any(self_sorted[i] < other_sorted[j]):
-        i += 1
-      else:
-        j += 1
+      self_rounded = np.round(self.vertices / EPSILON).astype(np.int64)
+      other_rounded = np.round(other.vertices / EPSILON).astype(np.int64)
     
+      other_view = other_rounded.view(dtype=[('x', np.int64), ('y', np.int64), ('z', np.int64)])
+      other_dict = { tuple(v[0]): i for i, v in enumerate(other_view) }
+      
+      self_view = self_rounded.view(dtype=[('x', np.int64), ('y', np.int64), ('z', np.int64)])
+      matches = [
+        (i, other_dict[tuple(v[0])])
+        for i, v in enumerate(self_view) 
+        if tuple(v[0]) in other_dict
+      ]
+      
+      return np.array(matches, dtype=np.uint64)
+
+    matches = find_matches()
+
     if len(matches) == 0:
       return
-    
-    matches = np.array(matches, dtype=np.uint32)
+
     self_indices = matches[:, 0]
     other_indices = matches[:, 1]
-    
+
     # Copy attribute data for matching vertices
     for attr in other.extra_attributes:
       attr_name = attr['id']
@@ -1471,6 +1462,7 @@ class Skeleton:
       
       self_buf[self_indices] = other_buf[other_indices]
       self.add_vertex_attribute(attr_name, self_buf)
+      setattr(self, attr_name, self_buf)
 
   def __str__(self):
     template = "{}=({}, {})"
