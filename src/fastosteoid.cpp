@@ -247,8 +247,6 @@ py::dict chunk_skeleton_impl(
 	int64_t gsy = std::max(static_cast<int64_t>(1), static_cast<int64_t>(std::ceil((maxy - miny) / cy)));
 	int64_t gsz = std::max(static_cast<int64_t>(1), static_cast<int64_t>(std::ceil((maxz - minz) / cz)));
 
-	printf("gsX %d %d %d\n", gsx, gsy, gsz);
-
 	py::dict chunked_skeletons;
 	int64_t idx = 0;
 	for (int64_t gz = 0; gz < gsz; gz++) {
