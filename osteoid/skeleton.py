@@ -1425,34 +1425,23 @@ class Skeleton:
       for i, v in enumerate(other.vertices)
     }
     
-    matches = np.array([
-      (i, other_dict[tuple(v)])
+    other_indices = np.array([
+      other_dict[tuple(v)]
       for i, v in enumerate(self.vertices)
       if tuple(v) in other_dict
     ], dtype=np.uint64)
 
-    if len(matches) == 0:
+    if len(other_indices) == 0:
       return
-
-    self_indices = matches[:, 0]
-    other_indices = matches[:, 1]
 
     # Copy attribute data for matching vertices
     for attr in other.extra_attributes:
       attr_name = attr['id']
       other_buf = getattr(other, attr_name)
       
-      if other_buf.ndim == 1:
-        self_buf = np.zeros(self.vertices.shape[0], dtype=other_buf.dtype)
-      else:
-        self_buf = np.zeros(
-          (self.vertices.shape[0], other_buf.shape[1]), 
-          dtype=other_buf.dtype
-        )
-      
-      self_buf[self_indices] = other_buf[other_indices]
-      self.add_vertex_attribute(attr_name, self_buf)
-      setattr(self, attr_name, self_buf)
+      buf = other_buf[other_indices]
+      self.add_vertex_attribute(attr_name, buf)
+      setattr(self, attr_name, buf)
 
   def __str__(self):
     template = "{}=({}, {})"
