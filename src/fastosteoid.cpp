@@ -195,7 +195,9 @@ py::dict chunk_skeleton_impl(
 	const py::array_t<VERT_T>& vertex_arr,
 	const py::array_t<EDGE_T>& edges_arr,
 	const float cx, const float cy, const float cz,
-	const float origin_x, const float origin_y, const float origin_z
+	const std::optional<float> origin_x = std::nullopt,
+	const std::optional<float> origin_y = std::nullopt,
+	const std::optional<float> origin_z = std::nullopt
 ) {
 	py::buffer_info vbuf = vertex_arr.request();
 	if (vbuf.ndim != 2 || vbuf.strides[1] != sizeof(VERT_T) || vbuf.shape[1] != 3) {
@@ -231,15 +233,27 @@ py::dict chunk_skeleton_impl(
 		maxz = std::max(maxz, vertices[i + 2]);
 	}
 
-	int64_t grid_x = std::max(static_cast<int64_t>(1), static_cast<int64_t>(std::ceil((maxx - origin_x) / cx)));
-	int64_t grid_y = std::max(static_cast<int64_t>(1), static_cast<int64_t>(std::ceil((maxy - origin_y) / cy)));
-	int64_t grid_z = std::max(static_cast<int64_t>(1), static_cast<int64_t>(std::ceil((maxz - origin_z) / cz)));
+	if (origin_x.has_value()) {
+		minx = *origin_x;
+	}
+	if (origin_y.has_value()) {
+		miny = *origin_y;
+	}
+	if (origin_z.has_value()) {
+		minz = *origin_z;
+	}
+
+	int64_t gsx = std::max(static_cast<int64_t>(1), static_cast<int64_t>(std::ceil((maxx - minx) / cx)));
+	int64_t gsy = std::max(static_cast<int64_t>(1), static_cast<int64_t>(std::ceil((maxy - miny) / cy)));
+	int64_t gsz = std::max(static_cast<int64_t>(1), static_cast<int64_t>(std::ceil((maxz - minz) / cz)));
+
+	printf("gsX %d %d %d\n", gsx, gsy, gsz);
 
 	py::dict chunked_skeletons;
 	int64_t idx = 0;
-	for (int64_t gz = 0; gz < grid_z; gz++) {
-		for (int64_t gy = 0; gy < grid_y; gy++) {
-			for (int64_t gx = 0; gx < grid_x; gx++, idx++) {
+	for (int64_t gz = 0; gz < gsz; gz++) {
+		for (int64_t gy = 0; gy < gsy; gy++) {
+			for (int64_t gx = 0; gx < gsz; gx++, idx++) {
 				const auto& line_obj = line_grid[idx];
 
 				if (line_obj.points.empty() || line_obj.edges.empty()) {
@@ -280,7 +294,9 @@ py::dict chunk_skeleton(
 	const py::array_t<float>& vertex_arr,
 	const py::array& edges_arr,
 	const float cx, const float cy, const float cz,
-	const float origin_x, const float origin_y, const float origin_z
+	const std::optional<float> origin_x = std::nullopt,
+	const std::optional<float> origin_y = std::nullopt,
+	const std::optional<float> origin_z = std::nullopt
 ) {
 	py::buffer_info vbuf = vertex_arr.request();
 	if (vbuf.ndim != 2) {

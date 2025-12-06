@@ -1384,7 +1384,7 @@ class Skeleton:
     vertices = self.vertices.astype(np.float32, copy=False)
     
     if origin is None:
-      origin = [0,0,0]
+      origin = [None, None, None]
 
     chunks = fastosteoid.chunk_skeleton(
       vertices, self.edges,
@@ -1392,7 +1392,7 @@ class Skeleton:
       origin[0], origin[1], origin[2],
     )
     del vertices
-
+    
     skel_chunks = {}
     for grid, (verts, edges) in chunks.items():
       skel_chunks[grid] = Skeleton(verts, edges).consolidate()
