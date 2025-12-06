@@ -1406,8 +1406,7 @@ class Skeleton:
     Copy the attributes of another skeleton
     for matching vertices.
     
-    Vertices are considered matching if they have the same coordinates
-    (within floating point tolerance).
+    Vertices are considered matching if they have the same coordinates.
     
     Assumes importing skeleton has no extra attributes initially,
     only vertices and edges.
