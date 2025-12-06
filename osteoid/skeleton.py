@@ -1392,12 +1392,85 @@ class Skeleton:
       origin[0], origin[1], origin[2],
     )
     del vertices
-    
+
     skel_chunks = {}
     for grid, (verts, edges) in chunks.items():
-      skel_chunks[grid] = Skeleton(verts, edges).consolidate()
+      sk = Skeleton(verts, edges).consolidate()
+      sk.import_attributes(self)
+      skel_chunks[grid] = sk
 
     return skel_chunks
+
+  def import_attributes(self, other:"Skeleton"):
+    """
+    Copy the attributes of another skeleton
+    for matching vertices.
+    
+    Vertices are considered matching if they have the same coordinates
+    (within floating point tolerance).
+    
+    Assumes importing skeleton has no extra attributes initially,
+    only vertices and edges.
+    
+    Parameters:
+    -----------
+    other : Skeleton
+        The skeleton to copy attributes from
+    """
+    if self.vertices.shape[0] == 0 or other.vertices.shape[0] == 0:
+      return
+    
+    EPSILON = 1e-7
+    
+    self_rounded = np.round(self.vertices / EPSILON).astype(np.int64)
+    other_rounded = np.round(other.vertices / EPSILON).astype(np.int64)
+    
+    # Use lexsort for efficient matching
+    # Sort both arrays and find matching indices
+    self_sort_idx = np.lexsort(self_rounded.T)
+    other_sort_idx = np.lexsort(other_rounded.T)
+    
+    self_sorted = self_rounded[self_sort_idx]
+    other_sorted = other_rounded[other_sort_idx]
+    
+    # Find matches between sorted arrays
+    i, j = 0, 0
+    matches = []  # (self_idx, other_idx) pairs
+    
+    while i < len(self_sorted) and j < len(other_sorted):
+      cmp = np.sum((self_sorted[i] - other_sorted[j]) != 0)
+      
+      if cmp == 0:  # Match found
+        matches.append((self_sort_idx[i], other_sort_idx[j]))
+        i += 1
+        j += 1
+      elif np.any(self_sorted[i] < other_sorted[j]):
+        i += 1
+      else:
+        j += 1
+    
+    if len(matches) == 0:
+      return
+    
+    matches = np.array(matches, dtype=np.uint32)
+    self_indices = matches[:, 0]
+    other_indices = matches[:, 1]
+    
+    # Copy attribute data for matching vertices
+    for attr in other.extra_attributes:
+      attr_name = attr['id']
+      other_buf = getattr(other, attr_name)
+      
+      if other_buf.ndim == 1:
+        self_buf = np.zeros(self.vertices.shape[0], dtype=other_buf.dtype)
+      else:
+        self_buf = np.zeros(
+          (self.vertices.shape[0], other_buf.shape[1]), 
+          dtype=other_buf.dtype
+        )
+      
+      self_buf[self_indices] = other_buf[other_indices]
+      self.add_vertex_attribute(attr_name, self_buf)
 
   def __str__(self):
     template = "{}=({}, {})"
