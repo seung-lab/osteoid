@@ -1410,7 +1410,7 @@ class Skeleton:
 
     skel_chunks = {}
     for grid, (verts, edges) in chunks.items():
-      sk = Skeleton(verts, edges).consolidate()
+      sk = Skeleton(verts, edges, default_attributes=False).consolidate()
       sk.import_attributes(self)
       skel_chunks[grid] = sk
 
