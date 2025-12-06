@@ -190,6 +190,7 @@ struct LineObject {
     edges.push_back(i + 2);
   }
 
+  // Note: exploits underflow and +1 in add_line
   EDGE_T last_edge() const {
     return (points.size() > 0) 
       ? ((points.size() - 1) / 3)
