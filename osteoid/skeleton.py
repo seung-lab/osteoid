@@ -1,3 +1,5 @@
+from typing import Optional
+
 from collections import defaultdict
 import copy
 import datetime
@@ -1370,6 +1372,75 @@ class Skeleton:
       and np.all(self.edges == other.edges) \
       and np.all(self.radii == other.radii) \
       and np.all(self.vertex_types == other.vertex_types))
+
+  def chunk(
+    self, 
+    chunk_size:tuple[float,float,float],
+    origin:Optional[np.ndarray] = None,
+  ) -> dict[tuple[int,int,int], "Skeleton"]:
+    """
+    Cut a skeleton into a grid.
+    """
+    vertices = self.vertices.astype(np.float32, copy=False)
+    
+    if origin is None:
+      origin = [None, None, None]
+
+    chunks = fastosteoid.chunk_skeleton(
+      vertices, self.edges,
+      chunk_size[0], chunk_size[1], chunk_size[2],
+      origin[0], origin[1], origin[2],
+    )
+    del vertices
+
+    skel_chunks = {}
+    for grid, (verts, edges) in chunks.items():
+      sk = Skeleton(verts, edges).consolidate()
+      sk.import_attributes(self)
+      skel_chunks[grid] = sk
+
+    return skel_chunks
+
+  def import_attributes(self, other:"Skeleton"):
+    """
+    Copy the attributes of another skeleton
+    for matching vertices.
+    
+    Vertices are considered matching if they have the same coordinates.
+    
+    Assumes importing skeleton has no extra attributes initially,
+    only vertices and edges.
+    
+    Parameters:
+    -----------
+    other : Skeleton
+        The skeleton to copy attributes from
+    """
+    if self.vertices.shape[0] == 0 or other.vertices.shape[0] == 0:
+      return
+
+    other_dict = {
+      tuple(v): i
+      for i, v in enumerate(other.vertices)
+    }
+    
+    other_indices = np.array([
+      other_dict[tuple(v)]
+      for i, v in enumerate(self.vertices)
+      if tuple(v) in other_dict
+    ], dtype=np.uint64)
+
+    if len(other_indices) == 0:
+      return
+
+    # Copy attribute data for matching vertices
+    for attr in other.extra_attributes:
+      attr_name = attr['id']
+      other_buf = getattr(other, attr_name)
+      
+      buf = other_buf[other_indices]
+      self.add_vertex_attribute(attr_name, buf)
+      setattr(self, attr_name, buf)
 
   def __str__(self):
     template = "{}=({}, {})"
