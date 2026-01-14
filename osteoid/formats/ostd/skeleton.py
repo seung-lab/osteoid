@@ -62,10 +62,15 @@ class OstdSkeletonPart:
     if self.header.vertex_compression == CompressionType.NONE:
       vertex_binary = vertices.tobytes("C")
       vertex_binary += lib.crc32c(vertex_binary).to_bytes(4, 'little')
+      return vertex_binary
+    elif self.header.vertex_compression == CompressionType.DRACO:
+      import DracoPy
+      return DracoPy.compress(vertices, preserve_order=True, quantization_bits=12)
+    elif self.header.vertex_compression == CompressionType.GZIP:
+      import deflate
+      return deflate.gzip_compress(vertices.tobytes("C"))
     else:
       raise ValueError(f"Unsupported compression type: {self.header.vertex_compression}")
-
-    return vertex_binary
 
   def _encode_edge_representation_pair(self) -> bytes:
     edge_binary = self.edges.tobytes("C")
@@ -400,10 +405,27 @@ class OstdSkeletonPart:
       off = offset + header.vertex_bytes - 4
       stored_crc32c = int.from_bytes(binary[off:off+4], 'little')
       check_crc32c(check_buf,  stored_crc32c)
+      return vertices
     else:
-      raise ValueError(f"Compression type not supported: {header.vertex_compression}")
+      buffer = np.frombuffer(
+        binary,
+        offset=offset,
+        count=header.vertex_bytes,
+        dtype=np.uint8,
+      )
 
-    return vertices
+      if header.vertex_compression == CompressionType.DRACO:
+        import DracoPy
+        return DracoPy.decode(buffer)
+      elif header.vertex_compression == CompressionType.GZIP:
+        import deflate
+        vbuf = deflate.gzip_decompress(buffer)
+        return np.frombuffer(
+          vbuf,
+          dtype=header.vertex_dtype,
+        ).reshape((header.Nv, header.num_axes), order="C")
+      else:
+        raise ValueError(f"Compression type not supported: {header.vertex_compression}")
 
   @classmethod
   def from_bytes(kls, binary:bytes, offset:int = 0) -> "OstdSkeletonPart":
