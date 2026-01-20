@@ -348,13 +348,36 @@ This is because a tree can be represented as an edge list. See edge representati
 
 ### Axis Permutation Type
 
-| System | Value |
-|--------|-------|
-| XYZ    | 0     |
-| XZY    | 1     |
-| YXZ    | 2     |
-| YZX    | 3     |
-| ZXY    | 4     |
-| ZYX    | 5     |
-| XY     | 6     |
-| YX     | 7     |
+This should work with arbitrary numbers of axes. It is the index (starting from zero) of the combination generated according to the Lehmer code, the algorithm is reproduced below. Each axis is numbered from 0 to N-1. For example, to write XYZ, you would input [0,1,2], XZY would be [0,2,1]. XYZW would be [0,1,2,3] and so on. To find the index of a given permutation, call `rank_permutation([0,2,1])`. To find the permutation corresponding to an index `k`, e.g. for three axes, call `enumerate_permutations(3,k)` and locate the index in the array containing the desired permutation.
+
+This procedure works well with the current design limit of 8 axes which fits inside a `uint16`, but can work up to 20 axes and fit inside a `uint64`.
+
+```python
+import math
+
+def unrank_permutation(num_axes:int, k:int) -> list[int]:
+	"""Convert an index into an axis permutation for a given number of axes."""
+    axes = list(range(num_axes))
+    perm = []
+
+    for i in range(num_axes, 0, -1):
+        f = math.factorial(i - 1)
+        idx = k // f
+        k %= f
+        perm.append(axes.pop(idx))
+
+    return perm
+
+def rank_permutation(perm:list[int]) -> int:
+	"""Convert an axis permutation to an index."""
+    axes = list(range(len(perm)))
+    n = len(axes)
+    rank = 0
+
+    for i in range(n):
+        idx = axes.index(perm[i])
+        rank += idx * math.factorial(n - i - 1)
+        axes.pop(idx)
+
+    return rank
+```
