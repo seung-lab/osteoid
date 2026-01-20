@@ -295,7 +295,7 @@ the original vision of this datastream is to only incorporate metadata that supp
 
 For example, Joules can be expressed as W = ma x d or kg * m^2/s^2, Watts as kg * m^2/s^3 and Amperes can be expressed as C/s. Speed is meters/sec, area is meters^2 etc, luminousity can be measured in watts or photons per a second.
 
-Since this is designed for biological use cases, the candela which is based in human perception of light is less useful, so we use a bit for photon count.
+Since this is designed for biological use cases, the candela which is based in human perception of light is less useful, so we reserve those bits for future use (e.g. one can imagine using them for signaling the use of US customary units).
 
 Therefore, for attributes, we encode the dimensions as a uint32 that represents the following structure:
 
