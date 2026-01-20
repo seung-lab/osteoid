@@ -88,14 +88,13 @@ units specified in flags.  |
 
 LSB on the left.
 
-`VVVVeeeeCCCCccccGGGppppsssssOOOOOaaatoEEAR*`
+`VVVVeeeeCCCCccccGGGpppptoEEaaassssssssOOOOOOOOOOOOOOOOR*`
 
 | Flag   | Meaning                            | Notes                                                                                |
 | ------ | ---------------------------------- | ------------------------------------------------------------------------------------ |
 | **V**  | Vertex data type                   | See *Data Types*                                                                     |
 | **e**  | Edge data type                     | See *Data Types*                                                                     |
 | **E**  | Edge representation                | See *Edge Representation*                                                            |
-| **A**  | Append mode                        | (0) Section is self-contained<br>(1) Edges continue numbering from previous sections<br>NOTE: Not implemented, and probably not advisable. |
 | **C**  | Compression algorithm for vertices | See *Compression Type*                                                               |
 | **c**  | Compression algorithm for edges    | See *Compression Type*                                                               |
 | **G**  | Graph structure (advisory)         | See *Graph Type*                                                                     |
