@@ -308,13 +308,10 @@ Therefore, for attributes, we encode the dimensions as a uint32 that represents 
 | meters          | 4                | m^x (-8 to 7)                       |
 | mols            | 4                | mol^x (-8 to 7)                     |
 | seconds         | 4                | s^x (-8 to 7)                       |
-| photon ct.      | 1                | number of photons                   |
-| SI Prefix       | 4                | signed 10^(X/3) where X is the value|
-| Reserved        | 3                | Future use                          |
+| SI Prefix       | 4                | signed 10^(X*3) where X is the value|
+| Reserved        | 4                | Future use                          |
 
-All signed values are written in 2's complement. The field is stored as little endian.
-
-One can imagine the "Reserved" bits could be used as a flag for alternative systems such as US customary units.
+All signed values are written in 2's complement. The field components are stored little endian as is the field as a whole.
 
 ### Graph Type
 
