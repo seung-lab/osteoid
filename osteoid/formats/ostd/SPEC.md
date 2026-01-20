@@ -52,7 +52,7 @@ The attributes header is located at the end so that additional attributes can be
 
 ### Combined Structure
 
-The parser should check if the stream is longer than the indicated content length. If so, it should check the subsequent section for the presence of another ostd file, and so forth. The vertices, edges, and attributes of each part then be combined after parsing. If an attribute is not present for a part, it should be filled with null values.
+The parser should check if the stream is longer than the indicated content length. If so, it should check the subsequent section for the presence of another ostd header immediately following, and so forth. The vertices, edges, and attributes of each part then be combined after parsing. If an attribute is not present for a part, it should be filled with null values.
 
 | Section | Description                  |
 |---------|------------------------------|
