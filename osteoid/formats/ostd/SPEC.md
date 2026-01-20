@@ -63,7 +63,7 @@ The parser should check if the stream is longer than the indicated content lengt
 
 ## Header
 
-All values are little endian except where noted. Total bytes: 88
+All values throughout this specification are little endian except where noted. Total bytes: 88
 
 | Field                  | Bytes | Datatype    | Value                       | Description                                                                                                       |
 |------------------------|-------|-------------|-----------------------------|-------------------------------------------------------------------------------------------------------------------|
