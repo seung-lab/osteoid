@@ -344,6 +344,8 @@ This is because a tree can be represented as an edge list. See edge representati
 | Tool                         | 10    |
 | Model                        | 11    |
 | Camera                       | 12    |
+| Reserved                     | 13-23 |
+| User Defined                 | 24-31 |
 
 ### Axis Permutation Type
 
