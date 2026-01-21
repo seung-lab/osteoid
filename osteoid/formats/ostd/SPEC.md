@@ -63,21 +63,21 @@ The parser should check if the stream is longer than the indicated content lengt
 
 ## Header
 
-All values throughout this specification are little endian except where noted. Total bytes: 88
+All values throughout this specification are little endian except where noted. Total bytes: 80
 
 | Field                  | Bytes | Datatype    | Value                       | Description                                                                                                       |
 |------------------------|-------|-------------|-----------------------------|-------------------------------------------------------------------------------------------------------------------|
 | magic                  | 4     | string      | osdt                        | File magic number.                                                                        |
 | format_version         | 1     | u8          | 0                           | Version of this file format.                                                              |
 | total_bytes            | 8     | u64         | -                           | Total byte size of this part.                                                             |
-| id                     | 16    | uuid4 / u64 | -                           | A wide enough field to accommodate both u64s and uuid4s                                   |
-| flags                  | 8     | bitfield    | -                            | See note below for definitions.   |
+| id                     | 8     | u64         | -                           |                                    |
+| flags                  | 8     | bitfield    | -                           | See note below for definitions.    |
+| dimension_flags        | 4     | bitfield    | -                           | See note below for definitions.    |
 | num_vertices (Nv)      | 8     | u64         | -                           | Number of vertices                                                                        |
 | num_edges (Ne)         | 8     | u64         | -                           | Number of edges                                                                           |
 units specified in flags.  |
 | vertex_bytes           | 8     | u64         | -                           | Content length of vertices (needed for compression).                                      |
 | edge_bytes             | 8     | u64         | -                           | Number of bytes encoding edges (needed for compression)                                   |
-| spatial_index_bytes    | 4     | u32         | -                           | Content length in bytes of the spatial index.                                                         |
 | attribute_header_bytes | 4     | u32         | -                           | Content length in bytes of the attribute header.                                                         |
 | num_components         | 4     | u32         | N or (2^32-1 if unknown)    | Number of connected components in the skeleton graph. max value of uint32 is a sentinel for unknown.              |
 | cable_length           | 4     | f32         | -                           | Physical path length of this object in SI prefixed meters (See flags for SI prefix).                           | 
@@ -86,25 +86,46 @@ units specified in flags.  |
 
 ### Flag Definitions
 
-LSB on the left.
+The least significant bit is on the left.
 
-`VVVVeeeeCCCCccccGGGpppptoEEaaassssssssOOOOOOOOOOOOOOOOR*`
+`VVVVeeeeCCCCccccppppGGGEEssssstiR*`
+
+| Flag   | Meaning                            | Notes                                         |
+| ------ | ---------------------------------- | --------------------------------------------- |
+| **V**  | Vertex data type                   | See *Data Types*                              |
+| **e**  | Edge data type                     | See *Data Types*                              |
+| **C**  | Compression algorithm for vertices | See *Compression Type*                        |
+| **c**  | Compression algorithm for edges    | See *Compression Type*                        |
+| **G**  | Graph structure (advisory)         | See *Graph Type*.                             |
+| **p**  | SI Prefix                          | signed 10^(X*3) where X is the value          |
+| **E**  | Edge representation                | See *Edge Representation*                     |
+| **s**  | Default Space Type                 | Can specify what the default space (0) means. |
+| **t**  | Transforms present                 | bool.                                         |
+| **i**  | Spatial index present.             |                                               | 
+| **R**  | RESERVED                           | From this point forward                       |
+
+## Dimension Flag Definitions
+
+We attempt to make the geometric interpretation of voxel positions unambiguous and compactly represented. There are a number of ambiguities in presenting a list of coordinates. Firstly, how are the axes ordered? Which are space-like and which are time-like? Are the positions referring to the centroid of the grid or to the corner closest to the origin? Much of the time, this is trivial because everyone knows the convention to follow. However, sometimes you are handed a file and need to figure out what it means. See the section Common Coordinate Frames for how there are many axis orientations in common use.
+
+We take the cartesian convention XYZT (three space-like dimensions followed by one time-like dimension) as a guiding example. When interpreting the dimension field, first consider each axis numbered from zero in the standard cartesian manner. In the case of XYZT, it would be `[0, 1, 2, 3]`. We support up to 8 axes, which hopefully is enough for most biological work which usually uses no more than 5 axes and typically 3 or 4. We store the number of dimensions, then the number of space-like dimensions. Dimensions greater than the number of space-like dimensions are considered time-like. For XYZT, we would note there are 4 dimensions and 3 are space-like, meaning 0,1,2 conventional axes are space-like and 3 is time-like. Dimensions that are neither space-like nor time-like should be stored as vertex attributes.
+
+Next, we need to determine the coordinate frame. There are several common frames in use, but all configurations of frames are possible and it is best to be explicit about which one is in use. Starting from our convention of XYZT arranged as a standard right-handed coordinate system with X pointing to the right, Y to the top of the page, and Z out of the page, we can negate the direction of each axis (e.g. negate Y and Z to get the standard image analysis frame of Y increases down the page and Z points into the page). 
+
+We can also establish if the axes are permuted in a non-standard way using Lehmer codes. The Axis Permutation Type tells you how the axes are permuted with respect to the standard convention. XYZT would be encoded as 0. For example, say you had ZYX instead of XYZ, this would represented as index 5 for 3 dimensions. For ZYXT it would be 14. See Axis Permutation Type for how to encode and decode the Lehmer code.
+
+The least significant bit is on the left.
+
+`aaalllssssssssoooooooooooooooocR`
 
 | Flag   | Meaning                            | Notes                                                                                |
 | ------ | ---------------------------------- | ------------------------------------------------------------------------------------ |
-| **V**  | Vertex data type                   | See *Data Types*                                                                     |
-| **e**  | Edge data type                     | See *Data Types*                                                                     |
-| **E**  | Edge representation                | See *Edge Representation*                                                            |
-| **C**  | Compression algorithm for vertices | See *Compression Type*                                                               |
-| **c**  | Compression algorithm for edges    | See *Compression Type*                                                               |
-| **G**  | Graph structure (advisory)         | See *Graph Type*                                                                     |
-| **p**  | SI Prefix                          | signed 10^(X/3) where X is the value |
+| **c*** | Voxel centered or top left corner. | Describes whether voxel coordinates are interpreted as centered or in the corner closest to the origin.                                                              |
 | **a**  | Number of Axes                     | Number of axes                       |
-| **t**  | Transforms present                 | bool                                                                                 |
-| **O**  | Coordinate Frame Orientation       | Has own structure: `sssaaa`<br>s: sign of X,Y,Z axes in that order (0: positive, 1: negative)<br>a: axis permutation<br>See Axis Permutation Type, 000000 means +X+Y+Z standard frame |
-| **s**  | Default Space Type                 | Can specify what the default space (0) means. |
-| **o*** | Voxel centered or top left corner. | Describes whether voxel coordinates are interpreted as centered or in the top left corner.                                                              |
-| **R*** | RESERVED                           | From this point forward                                                              |
+| **l**  | Number of space-like axes.         | First l axes are space-like, the following are time-like.                       |
+| **s**  | Bitfield. Sign of each axis direction compared to convention.     |  sign of X,Y,Z axes in that order (0: positive, 1: negative). Unused axes should be set to positive.                   |
+| **o**  | Coordinate Frame Orientation       | Has own structure: `8s 16a`<br>s: <br>a: axis permutation<br>See Axis Permutation Type, 000000 means +X+Y+Z standard frame. By default, the signs should be positive. |
+| **R*** | RESERVED                           | From this point forward               
 
 ## Transform
 
@@ -189,7 +210,7 @@ edge widths are based on header
 
 ## Vertex Representation
 
-Can be XY or XYZ depending on header. Datatype set depending on header. Encoded as serialized array in C order (i.e. XYZ,XYZ,XYZ).
+Number of axes determined from header. Datatype set depending on header. Encoded as serialized array in C order (i.e. XYZ,XYZ,XYZ).
 
 When the edge representation is LINKED_PATHS, the vertices will be sorted based on their connected neighbors.
 
@@ -215,9 +236,77 @@ Where the lengths are the number of vertices in each path. Each path is assigned
 
 The next section is the links between paths:
 
-num_pairs | pair_1, ..., pair_n
+pair_1, ..., pair_n
 
-Where the pairs are: e1,e2 with the data type controlled by the header, though typically it will be the smallest data type that encodes vertices. The edges refer to the vertices, not to the path ID.
+Where the pairs are: e1,e2 with the data type controlled by the header, though typically it will be the smallest data type that encodes vertices. The edges refer to the vertices, not to the path ID. 
+
+`num_pairs = (len(edge_binary) - paths_section - 4) / edge_dtype_size / 2`
+
+The 4 bytes refers to the size of the crc32c checksum.
+
+The following python pseudocode algorithms can be implemented to decode or encode linked paths.
+
+#### Decoding Linked Paths
+
+```python
+# edge_dtype is acquired from the header
+# edge_binary is calculated from header information
+def decode_linked_paths(edge_dtype, edge_binary:bytes) -> np.ndarray:
+	crc32c = int.from_bytes(edge_binary[-4:], 'little')
+	check_crc32c(edge_binary[:-4], crc32c)
+
+	num_paths = int.from_bytes(edge_binary[:8], 'little')
+	path_dtype = smallest_dtype(num_paths, [ np.uint8, np.uint16, np.uint32, np.uint64 ]) # smallest_dtype is a pseudocode function
+	path_lengths = np.frombuffer(path_lengths_binary, offset=8, count=num_path_lengths, dtype=path_dtype)
+
+	edges = []
+	edge_i = 0;
+	for i in range(num_paths):
+		if path_lengths[i] == 0:
+			continue
+		for j in range(path_lengths[i]):
+			edges.append((edge_i, edge_i+1))
+			edge_i += 1
+
+	implicit_pairs = np.array(edges, dtype=edge_dtype)
+
+	offset = 8 + num_path_lengths * np.dtype(path_dtype).itemsize
+	num_pairs = (len(edge_binary) - offset - 4) // np.dtype(edge_dtype).itemsize // 2
+	explicit_pairs = np.frombuffer(edge_binary, offset=offset, count=(num_pairs*2), dtype=edge_dtype)
+	explicit_pairs = explicit_pairs.reshape((num_pairs, 2), 'C')
+
+	return np.concatenate([ implicit_pairs, explicit_pairs ])
+```
+
+#### Extracting Linked Paths
+
+```
+DEF EXTRACT(edges)
+
+	1. Given an edge list, create an adjacency index i.e. [(5,6), (6,7)] -> { 5: [6], 6: [5,7], 7: [6] }
+	2. Create a visited lookup table that can contain all edges
+	3. For each edge, check if it is already visited, if it is not, call extract_branches(edge, adjacency_index)
+	4. return a tuple containing the paths, explicit edges, and optionally whether a cycle was detected and 
+	  the number of connected components (to get those metrics for almost free)
+
+The idea for extract branches is to traverse each edge and greedily trace a path,
+recording branches that are passed as an explicit edge. Once the path terminates,
+revisit those branches and trace them in the same fashion without backtracking.
+
+DEF EXTRACT_BRANCHES(edge, adjacency_index)
+
+	1. Create a stack for paths, parents
+	2. Create an explicit edge_list, current path, and list of already found paths
+	3. insert the starting position into the current path and mark it as visited
+	4. insert all its neighbors into the stack and also insert all but one of them into the explicit pairs list
+	5. perform a depth first search from the node that is not in the explicit pairs list
+	6. each time a new node is encountered, pick the first valid node as a successor and push the rest into
+		the stack and explicit pairs list. Valid means the node is not visited and does not match the parent.
+
+Note 1: you can integrate cycle detection to avoid calculating it later
+Note 2: other algorithms can be designed that would give different path lengths 
+		but the same number of explicit pairs
+```
 
 ## Common Coordinate Frames
 
@@ -285,8 +374,12 @@ The following tables specify the meaning of various header values.
 | bzip2     | 2     |
 | zstd      | 3     |
 | draco     | 4     |
+| xz        | 5     |
 
 Note: Only None is currently supported.
+
+Note: For Draco, preserve order must be used to preserve edge relationships to vertices. This unfortunately reduces the amount of compression possible.
+
 
 ### Unit Definitions
 
