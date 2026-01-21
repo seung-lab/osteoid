@@ -120,11 +120,11 @@ The least significant bit is on the left.
 
 | Flag   | Meaning                            | Notes                                                                                |
 | ------ | ---------------------------------- | ------------------------------------------------------------------------------------ |
-| **c*** | Voxel centered or top left corner. | Describes whether voxel coordinates are interpreted as centered or in the corner closest to the origin.                                                              |
 | **a**  | Number of Axes                     | Number of axes                       |
 | **l**  | Number of space-like axes.         | First l axes are space-like, the following are time-like.                       |
 | **s**  | Bitfield. Sign of each axis direction compared to convention.     |  sign of X,Y,Z axes in that order (0: positive, 1: negative). Unused axes should be set to positive.                   |
 | **o**  | Coordinate Frame Orientation       | Has own structure: `8s 16a`<br>s: <br>a: axis permutation<br>See Axis Permutation Type, 000000 means +X+Y+Z standard frame. By default, the signs should be positive. |
+| **c** | Voxel centered or top left corner. | Describes whether voxel coordinates are interpreted as centered or in the corner closest to the origin.                                                              |
 | **R*** | RESERVED                           | From this point forward               
 
 ## Transform
