@@ -386,7 +386,7 @@ Note: For Draco, preserve order must be used to preserve edge relationships to v
 Arbitrary SI dimensions can be encoded as a tuple of fundemental units raised to a signed exponent. While
 the original vision of this datastream is to only incorporate metadata that supports the interpretation of geometry, it seems strange to privilage length and time dimensions when all sorts of things might be measured along a skeleton, such as current or luminance.
 
-For example, Joules can be expressed as W = ma x d or kg * m^2/s^2, Watts as kg * m^2/s^3 and Amperes can be expressed as C/s. Speed is meters/sec, area is meters^2 etc, luminousity can be measured in watts or photons per a second.
+For example, Joules can be expressed as W = ma x d or kg * m^2/s^2, Watts as kg * m^2/s^3 and Coulombs can be expressed as A * s. Speed is meters/sec, area is meters^2 etc, luminousity can be measured in watts or photons per a second.
 
 Since this is designed for biological use cases, the candela which is based in human perception of light is less useful, so we reserve those bits for future use (e.g. one can imagine using them for signaling the use of US customary units).
 
@@ -394,14 +394,17 @@ Therefore, for attributes, we encode the dimensions as a uint32 that represents 
 
 | Field           | Bits             | Description                         |
 |-----------------|------------------|-------------------------------------|
-| coulombs        | 4                | c^x (-8 to 7)                       |
-| grams           | 4                | g^x (-8 to 7)                       |
-| kelvin          | 4                | k^x (-8 to 7)                       |
+| amperes         | 4                | A^x (-8 to 7)                       |
+| kelvin          | 4                | K^x (-8 to 7)                       |
+| kilograms       | 4                | kg^x (-8 to 7)                       |
 | meters          | 4                | m^x (-8 to 7)                       |
 | mols            | 4                | mol^x (-8 to 7)                     |
 | seconds         | 4                | s^x (-8 to 7)                       |
 | SI Prefix       | 4                | signed 10^(X*3) where X is the value|
-| Reserved        | 4                | Future use                          |
+| Scaling         | 2                | 00: linear, 01: log10, 10: log2, 11: ln |
+| Reserved        | 2                | Future use                          |
+
+The SI prefix is applied to the linear scaled figure and then the logarithm is applied if applicable.
 
 All signed values are written in 2's complement. The field components are stored little endian as is the field as a whole.
 
