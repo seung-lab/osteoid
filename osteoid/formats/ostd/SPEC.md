@@ -100,8 +100,8 @@ The least significant bit is on the left.
 | **p**  | SI Prefix                          | signed 10^(X*3) where X is the value          |
 | **E**  | Edge representation                | See *Edge Representation*                     |
 | **s**  | Default Space Type                 | Can specify what the default space (0) means. |
-| **t**  | Transforms present                 | bool.                                         |
-| **i**  | Spatial index present.             |                                               | 
+| **t**  | Transforms present                 | bool                                          |
+| **i**  | Spatial index present.             | bool                                          |
 | **R**  | RESERVED                           | From this point forward                       |
 
 ## Dimension Flag Definitions
@@ -180,9 +180,9 @@ Attributes can be applied to either vertices or to edges. Vertex attributes are 
 
 | Field          | Bytes     | Datatype | Value                     | Description                     |
 |----------------|-----------|----------|---------------------------|---------------------------------|
-| name           | fixed<=255| string   | e.g. "radius"             | Name of the attribute           |
+| name           | fixed<=255| string   | e.g. "radius"             | utf8, Name of the attribute     |
 | flags          | 2         | bitfield | DDDDCCCCTRRRRRRR          | Packed information              |
-| unit           | 4         | tuple    | See below.                | Physical unit.                  |
+| unit           | 8         | tuple    | See below.                | Physical unit.                  |
 | num_components | 1         | uint8    | -                         | Number of components.           |
 | content_length | 8         | uint64   | -                         | Length of compressed bitstream. |
 
@@ -392,17 +392,16 @@ Since this is designed for biological use cases, the candela which is based in h
 
 Therefore, for attributes, we encode the dimensions as a uint32 that represents the following structure:
 
-| Field           | Bits             | Description                         |
-|-----------------|------------------|-------------------------------------|
-| amperes         | 4                | A^x (-8 to 7)                       |
-| kelvin          | 4                | K^x (-8 to 7)                       |
-| kilograms       | 4                | kg^x (-8 to 7)                       |
-| meters          | 4                | m^x (-8 to 7)                       |
-| mols            | 4                | mol^x (-8 to 7)                     |
-| seconds         | 4                | s^x (-8 to 7)                       |
-| SI Prefix       | 4                | signed 10^(X*3) where X is the value|
-| Scaling         | 2                | 00: linear, 01: log10, 10: log2, 11: ln |
-| Reserved        | 2                | Future use                          |
+| Field           | Data Type        | Description                           |
+|-----------------|------------------|-------------------------------------- |
+| amperes         | int8             | A^x                                   |
+| kelvin          | int8             | K^x                                   |
+| kilograms       | int8             | kg^x                                  |
+| meters          | int8             | m^x                                   |
+| mols            | int8             | mol^x                                 |
+| seconds         | int8             | s^x                                   |
+| SI Prefix       | int8             | signed 10^(X*3) where X is the value  |
+| Scaling         | uint8            | 00: linear, 01: log10, 10: log2, 11: ln |
 
 The SI prefix is applied to the linear scaled figure and then the logarithm is applied if applicable.
 
