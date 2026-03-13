@@ -1,5 +1,6 @@
 from typing import Optional, Any
 
+from io import BytesIO
 import struct
 
 import numpy as np
@@ -97,7 +98,7 @@ def from_precomputed(
     return skeleton
 
   if vertex_attributes is None:
-    vertex_attributes = kls._default_attributes()
+    vertex_attributes = Skeleton._default_attributes()
 
   start = eend
   end = -1

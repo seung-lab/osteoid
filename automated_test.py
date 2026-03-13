@@ -522,6 +522,20 @@ def test_crop():
   res = skel.crop(bbx)
   assert np.all(res.vertices == skel.vertices)
 
+def test_precomputed():
+  skel = Skeleton(
+    [ (0,0,0), (1,0,0), (2,0,0), (0,0,1), (1,0,2), (2,0,3), ], 
+    edges=[ (0,1), (1,2), (3,4), (4,5) ],
+    segid=1,
+  )
+
+  recovered = skel.to_precomputed()
+  assert isinstance(recovered, bytes)
+  recovered = Skeleton.from_precomputed(recovered)
+  recovered.id = 1
+
+  assert skel == recovered
+
 
 
 

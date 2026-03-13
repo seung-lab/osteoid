@@ -2,7 +2,6 @@ from collections import defaultdict
 import copy
 import datetime
 
-from io import BytesIO
 import re
 import os
 import struct
