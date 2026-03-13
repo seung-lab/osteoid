@@ -1,12 +1,20 @@
 from typing import Union
 from collections import defaultdict
 import datetime
+from enum import IntEnum
 import re
 
 import numpy as np
 
 import importlib.metadata
 __VERSION__ = importlib.metadata.version("osteoid")
+
+class SWCVertexTypes(IntEnum):
+  UNDEFINED = 0
+  SOMA = 1
+  AXON = 2
+  BASAL_DENDRITE = 3
+  APICAL_DENDRITE = 4
 
 def read_header(filename:str) -> str:
   with open(filename, "rt") as f:
