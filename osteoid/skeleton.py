@@ -21,6 +21,7 @@ from .exceptions import (
   SkeletonAttributeMixingError
 )
 from .lib import Bbox, moving_average
+from . import formats
 
 IDENTITY = np.array([
   [1, 0, 0, 0],
@@ -371,34 +372,7 @@ class Skeleton:
     return G
 
   def to_precomputed(self):
-    edges = self.edges.astype(np.uint32)
-    vertices = self.vertices.astype(np.float32)
-    
-    result = BytesIO()
-
-    # Write number of positions and edges as first two uint32s
-    result.write(struct.pack('<II', vertices.size // 3, edges.size // 2))
-    result.write(vertices.tobytes('C'))
-    result.write(edges.tobytes('C'))
-
-    def writeattr(attr, dtype, text):
-      if attr is None:
-        return
-
-      attr = attr.astype(dtype)
-
-      if attr.shape[0] != vertices.shape[0]:
-        raise SkeletonEncodeError("Number of {} {} ({}) must match the number of vertices ({}).".format(
-          dtype, text, attr.shape[0], vertices.shape[0]
-        ))
-      
-      result.write(attr.tobytes('C'))
-
-    for attr in self.extra_attributes:
-      arr = getattr(self, attr['id'])
-      writeattr(arr, np.dtype(attr['data_type']), attr['id'])
-
-    return result.getvalue()
+    return formats.to_precomputed(self)
 
   @classmethod
   def from_precomputed(kls, skelbuf, segid=None, vertex_attributes=None):
@@ -429,54 +403,7 @@ class Skeleton:
     More documentation: 
     https://github.com/seung-lab/cloud-volume/wiki/Advanced-Topic:-Skeletons-and-Point-Clouds
     """
-    if len(skelbuf) < 8:
-      raise SkeletonDecodeError("{} bytes is fewer than needed to specify the number of verices and edges.".format(len(skelbuf)))
-
-    num_vertices, num_edges = struct.unpack('<II', skelbuf[:8])
-    min_format_length = 8 + 12 * num_vertices + 8 * num_edges
-
-    if len(skelbuf) < min_format_length:
-      raise SkeletonDecodeError("The input skeleton was {} bytes but the format requires {} bytes.".format(
-        len(skelbuf), min_format_length
-      ))
-
-    vstart = 2 * 4 # two uint32s in
-    vend = vstart + num_vertices * 3 * 4 # float32s
-    vertbuf = skelbuf[ vstart : vend ]
-
-    estart = vend
-    eend = estart + num_edges * 4 * 2 # 2x uint32s
-
-    edgebuf = skelbuf[ estart : eend ]
-
-    vertices = np.frombuffer(vertbuf, dtype='<f4').reshape( (num_vertices, 3) )
-    edges = np.frombuffer(edgebuf, dtype='<u4').reshape( (num_edges, 2) )
-
-    skeleton = Skeleton(vertices, edges, segid=segid)
-
-    if len(skelbuf) == min_format_length:
-      return skeleton
-
-    if vertex_attributes is None:
-      vertex_attributes = kls._default_attributes()
-
-    start = eend
-    end = -1
-    for attr in vertex_attributes:
-      num_components = int(attr['num_components'])
-      data_type = np.dtype(attr['data_type'])
-      end = start + num_vertices * num_components * data_type.itemsize
-      attrbuf = np.frombuffer(skelbuf[start : end], dtype=data_type)
-
-      if num_components > 1:
-        attrbuf = attrbuf.reshape( (num_vertices, num_components) )
-
-      setattr(skeleton, attr['id'], attrbuf)
-      start = end
-
-    skeleton.extra_attributes = vertex_attributes
-
-    return skeleton
+    return formats.from_precomputed(skelbuf, segid, vertex_attributes)
 
   @classmethod
   def equivalent(kls, first, second):
@@ -1072,23 +999,7 @@ class Skeleton:
     Convert navis skeletons to osteoid.Skeleton. This
     should be more efficient than the SWC interchange method.
     """
-    vertex_types = None
-    if len(navis_skel.nodes.type):
-      # 'root', 'slab', 'branch', 'end', first letter of each
-      vertex_types = [ ord(t[0]) for t in navis_skel.nodes.type ] 
-      mapping = np.zeros(ord('t') + 1, dtype=np.uint8)
-      mapping[ord('s')] = 7 # custom
-      mapping[ord('r')] = 8 # custom
-      mapping[ord('b')] = 5 # fork point
-      mapping[ord('t')] = 6 # end point
-      vertex_types = mapping[vertex_types]
-
-    return Skeleton(
-      vertices=navis_skel.vertices, 
-      edges=navis_skel.edges - 1,
-      radii=navis_skel.nodes.radius.to_numpy(),
-      vertex_types=vertex_types,
-    )
+    return formats.from_navis(navis_skel)
 
   @classmethod
   def from_swc(self, swcstr):
@@ -1107,58 +1018,7 @@ class Skeleton:
 
     Returns: Skeleton
     """
-    lines = swcstr.split("\n")
-    while len(lines) and (lines[0] == '' or re.match(r'[#\s]', lines[0][0])):
-      l = lines.pop(0)
-
-    if len(lines) == 0:
-      return Skeleton()
-
-    vertices = []
-    edges = []
-    radii = []
-    vertex_types = []
-
-    label_index = {}
-    
-    N = 0
-
-    for line in lines:
-      if line.replace(r"\s", '') == '':
-        continue
-      (vid, vtype, x, y, z, radius, parent_id) = line.split(" ")
-      
-      coord = ( float(x), float(y), float(z) )
-      vid = int(vid)
-      parent_id = int(parent_id)
-
-      label_index[vid] = N
-
-      if parent_id >= 0:
-        if vid < parent_id:
-          edge = [vid, parent_id]
-        else:
-          edge = [parent_id, vid]
-
-        edges.append(edge)
-
-      vertices.append(coord)
-      vertex_types.append(int(vtype))
-
-      try:
-        radius = float(radius)
-      except ValueError:
-        radius = -1 # e.g. radius = NA or N/A
-
-      radii.append(radius)
-
-      N += 1
-
-    for edge in edges:
-      edge[0] = label_index[edge[0]]
-      edge[1] = label_index[edge[1]]
-
-    return Skeleton(vertices, edges, radii, vertex_types)
+    return formats.from_swc(swcstr)
 
   def to_swc(self, contributors:str = "", soma_threshold:float = np.inf) -> str:
     """
@@ -1182,121 +1042,16 @@ class Skeleton:
 
     Returns: swc as a string
     """
-    sx, sy, sz = np.diag(self.transform)[:3]
+    return formats.to_swc(self, contributors, soma_threshold)
 
-    swc_header = f"""# ORIGINAL_SOURCE Osteoid {__VERSION__}
-# CREATURE 
-# REGION
-# FIELD/LAYER
-# TYPE
-# CONTRIBUTOR {contributors}
-# REFERENCE
-# RAW 
-# EXTRAS 
-# SOMA_AREA
-# SHINKAGE_CORRECTION 
-# VERSION_NUMBER {__VERSION__}
-# VERSION_DATE {datetime.datetime.now(datetime.timezone.utc).isoformat()}
-# SCALE {sx:.6f} {sy:.6f} {sz:.6f}
-"""
+  def save(self, filename:str):
+    from . import util
+    util.save(filename, self)
 
-    def generate_swc(skel, offset):
-      if skel.edges.size == 0:
-        return ""
-
-      index = defaultdict(set)
-      visited = defaultdict(bool)
-      for e1, e2 in skel.edges:
-        index[e1].add(e2)
-        index[e2].add(e1)
-
-      root = skel.edges[0,0]
-      if soma_threshold < np.inf and hasattr(skel, 'radii'):
-        if np.any(skel.radii >= soma_threshold):
-          root = np.argmax(skel.radii)
-
-      stack = [ root ]
-      parents = [ -1 ]
-
-      pairs = []
-
-      while stack:
-        node = stack.pop()
-        parent = parents.pop()
-
-        if visited[node]:
-          continue
-
-        pairs.append([node,parent])
-        visited[node] = True
-        
-        for child in index[node]:
-          stack.append(child)
-          parents.append(node)
-
-      return pairs
-
-    def create_row(node, parent, offset):
-      return [
-        (node + offset),
-        skel.vertex_types[node],
-        skel.vertices[node][0],
-        skel.vertices[node][1],
-        skel.vertices[node][2],
-        skel.radii[node],
-        (parent if parent == -1 else (parent + offset)),        
-      ]
-
-    def render_row(row):
-      return "{n} {T} {x:0.6f} {y:0.6f} {z:0.6f} {R:0.6f} {P}".format(
-        n=row[0],
-        T=row[1],
-        x=row[2],
-        y=row[3],
-        z=row[4],
-        R=row[5],
-        P=row[6],
-      )
-
-    def renumber(rows):
-      mapping = { -1: -1 }
-      N = 1
-      for row in rows:
-        node = row[0]
-        if node in mapping:
-          row[0] = mapping[node]
-          continue
-        else:
-          row[0] = N
-          mapping[node] = N
-          N += 1
-
-      for row in rows:
-        row[-1] = mapping[row[-1]]
-
-      return rows
-
-    skels = self.components()
-    swc = swc_header + "\n"
-    offset = 0
-    all_rows = []
-    for skel in skels: 
-      pairs = generate_swc(skel, offset)
-      rows = [ 
-        create_row(node, parent, offset)
-        for node, parent in pairs
-      ]
-      del pairs
-      all_rows.extend(rows)
-      offset += skel.vertices.shape[0]
-
-    all_rows = renumber(all_rows)
-    swc += "\n".join((
-      render_row(row)
-      for row in all_rows
-    ))
-
-    return swc
+  @classmethod
+  def load(kls, filename:str, allow_mmap:bool = False) -> "Skeleton":
+    from . import util
+    return util.load(filename, allow_mmap=allow_mmap)
 
   def viewer(
     self, units='nm', 
