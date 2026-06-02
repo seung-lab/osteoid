@@ -398,7 +398,8 @@ def test_read_duplicate_vertex_swc():
   assert skel2.vertices.shape[0] == 20
   assert Skeleton.equivalent(skel, skel2)
 
-def test_components():
+@pytest.mark.parametrize("dtype", [np.uint32, np.int64, np.uint64])
+def test_components(dtype):
   skel = Skeleton(
     [ 
       (0,0,0), (1,0,0), (2,0,0),
@@ -410,6 +411,11 @@ def test_components():
     ],
     segid=666,
   )
+
+  skel.edges = skel.edges.astype(dtype)
+  skel = skel.consolidate()
+
+  assert np.issubdtype(skel.edges.dtype, dtype)
 
   components = skel.components()
   assert len(components) == 2
