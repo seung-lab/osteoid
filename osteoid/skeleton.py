@@ -319,7 +319,7 @@ class Skeleton:
     if len(skeletons) == 0:
       return Skeleton()
 
-    ct = 0
+    ct = np.array(0, dtype=skeletons[0].edges.dtype)
     edges = []
     for skel in skeletons:
       edge = skel.edges + ct
@@ -620,7 +620,7 @@ class Skeleton:
     if idx_representative.ndim > 1:
       idx_representative = np.squeeze(idx_representative)
 
-    eff_edges = idx_representative[ edges ]
+    eff_edges = idx_representative[ edges ].astype(edges.dtype, copy=False)
     eff_edges = np.sort(eff_edges, axis=1) # sort each edge [2,1] => [1,2]
     eff_edges = eff_edges[np.lexsort(eff_edges[:,::-1].T)] # Sort rows 
     eff_edges = fastremap.unique(eff_edges, axis=0)
