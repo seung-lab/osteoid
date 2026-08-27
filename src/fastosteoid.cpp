@@ -11,7 +11,6 @@
 
 #include "chunk.hpp"
 #include "lib.hpp"
-#include "chunk.hpp"
 #include "unordered_dense.hpp"
 
 namespace py = pybind11;
@@ -471,50 +470,6 @@ bool has_cycle(const py::array& edges) {
 		}
 		return has_cycle_impl<uint64_t>(edges);
 	}
-}
-
-template <typename T>
-py::array_t<T> pairs_to_numpy(
-	const std::span<std::pair<T, T>>& pairs
-) {
-		size_t n = pairs.size();
-
-		// Create an uninitialized NumPy array of shape (n, 2)
-		py::array_t<T> arr({n, size_t(2)});
-		auto buf = arr.template mutable_unchecked<2>();
-
-		for (size_t i = 0; i < n; ++i) {
-				buf(i, 0) = pairs[i].first;
-				buf(i, 1) = pairs[i].second;
-		}
-
-		return arr;
-}
-
-template <typename T>
-std::vector<std::pair<T,T>> unique(
-	std::vector<std::pair<T,T>>& input
-) {
-	if (input.size() == 0) {
-		return std::vector<std::pair<T,T>>();
-	}
-
-	std::sort(input.begin(), input.end());
-	
-	const uint64_t N = input.size();
-
-	std::vector<std::pair<T,T>> uniq;
-	uniq.reserve(N / 10);
-
-	uniq.push_back(input[0]);
-	
-	for (uint64_t i = 1; i < N; i++) {
-		if (input[i] != input[i-1]) {
-			uniq.push_back(input[i]);
-		}
-	}
-
-	return uniq;
 }
 
 template <typename EDGE_T>
