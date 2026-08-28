@@ -24,7 +24,6 @@ from .exceptions import (
   SkeletonAttributeMixingError
 )
 from .lib import Bbox, moving_average
-from . import formats
 
 IDENTITY = np.array([
   [1, 0, 0, 0],
@@ -388,6 +387,7 @@ class Skeleton:
     return G
 
   def to_precomputed(self):
+    from . import formats
     return formats.to_precomputed(self)
 
   @classmethod
@@ -419,6 +419,7 @@ class Skeleton:
     More documentation: 
     https://github.com/seung-lab/cloud-volume/wiki/Advanced-Topic:-Skeletons-and-Point-Clouds
     """
+    from . import formats
     return formats.from_precomputed(skelbuf, segid, vertex_attributes)
 
   @classmethod
@@ -1015,6 +1016,7 @@ class Skeleton:
     Convert navis skeletons to osteoid.Skeleton. This
     should be more efficient than the SWC interchange method.
     """
+    from . import formats
     return formats.from_navis(navis_skel)
 
   @classmethod
@@ -1034,6 +1036,7 @@ class Skeleton:
 
     Returns: Skeleton
     """
+    from . import formats
     return formats.from_swc(swcstr)
 
   def to_swc(self, contributors:str = "", soma_threshold:float = np.inf) -> str:
@@ -1058,6 +1061,7 @@ class Skeleton:
 
     Returns: swc as a string
     """
+    from . import formats
     return formats.to_swc(self, contributors, soma_threshold)
 
   def save(self, filename:str):
