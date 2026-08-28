@@ -357,8 +357,6 @@ The following tables specify the meaning of various header values.
 | draco     | 4     |
 | xz        | 5     |
 
-Note: Only None is currently supported.
-
 Note: For Draco, preserve order must be used to preserve edge relationships to vertices. This unfortunately reduces the amount of compression possible.
 
 
