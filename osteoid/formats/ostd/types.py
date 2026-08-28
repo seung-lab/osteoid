@@ -325,34 +325,22 @@ class GraphType(IntEnum):
   CYCLIC = 2
 
 class SpaceType(IntEnum):
-  GENERIC = 0
+  UNKNOWN = 0
   VOXEL = 1
   PHYSICAL = 2
   SCANNER = 3
   ATLAS = 4
-  ALIGNED = 5
-  WORLD = 6
-  SOMA = 7
-  BASE = 8
-  JOINT = 9
-  TOOL = 10
-  MODEL = 11
-  CAMERA = 12
+  WORLD = 5
+  ANCHOR = 6
 
 SPACE_SYMBOLS = {
-  SpaceType.GENERIC: "GENERIC",
+  SpaceType.UNKNOWN: "UNKNOWN",
   SpaceType.VOXEL: "VOXEL",
   SpaceType.PHYSICAL: "PHYSICAL",
   SpaceType.SCANNER: "SCANNER",
   SpaceType.ATLAS: "ATLAS",
-  SpaceType.ALIGNED: "ALIGNED",
   SpaceType.WORLD: "WORLD",
-  SpaceType.SOMA: "SOMA",
-  SpaceType.BASE: "BASE",
-  SpaceType.JOINT: "JOINT",
-  SpaceType.TOOL: "TOOL",
-  SpaceType.MODEL: "MODEL",
-  SpaceType.CAMERA: "CAMERA",
+  SpaceType.WORLD: "ANCHOR",
 }
 
 SpaceType.__str__ = lambda self: SPACE_SYMBOLS[self]

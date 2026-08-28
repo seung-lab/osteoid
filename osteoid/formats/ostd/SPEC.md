@@ -402,23 +402,17 @@ This value is advisory and does not control the edge representation.
 
 5 bits
 
-| Space                        | Value |
-|------------------------------|-------|
-| Generic                      | 0     |
-| Voxel                        | 1     |
-| Physical                     | 2     |
-| Scanner                      | 3     |
-| Atlas                        | 4     |
-| Aligned                      | 5     |
-| World                        | 6     |
-| Soma                         | 7     |
-| Base                         | 8     |
-| Joint                        | 9     |
-| Tool                         | 10    |
-| Model                        | 11    |
-| Camera                       | 12    |
-| Reserved                     | 13-23 |
-| User Defined                 | 24-31 |
+| Space                        | Value | Description                                                       |
+|------------------------------|-------|-------------------------------------------------------------------|
+| Unknown                      | 0     | No semantic interpretation of the coordinate system was recorded. |
+| Voxel                        | 1     | Vertices are specified in voxels.                                 |
+| Physical                     | 2     | Vertices are specified in physical units like nanometers.         |
+| Scanner                      | 3     | Relative to the scanner origin.                                   |
+| Atlas                        | 4     | Relative to a reference atlas.                                    |
+| World                        | 5     | With reference to a specific external coordinate system not described by another category. |
+| Anchor                       | 6     | Vertices are relative to an anchor/landmark like a soma.          |
+| Reserved                     | 7-23  | These ids are reserved for future use.
+| User Defined                 | 24-31 | Users may define their own application specific spaces.           |
 
 ### Axis Permutation Type
 
