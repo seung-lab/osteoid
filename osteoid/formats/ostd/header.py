@@ -12,7 +12,6 @@ from .types import (
   CoordinateFrame,
   CompressionType,
   DataType,
-  EdgeRepresentationType,
   ElectricalType,
   EnergyType,
   GraphType,
@@ -52,7 +51,6 @@ class OstdHeader:
     crc16:Optional[int] = None,
     edge_data_type:DataType = DataType.U32,
     edge_compression:CompressionType = CompressionType.NONE,
-    edge_representation:EdgeRepresentationType = EdgeRepresentationType.PAIR,
     edge_bytes:int = 0,
     format_version:int = 0,
     graph_type:GraphType = GraphType.GRAPH,
@@ -78,7 +76,6 @@ class OstdHeader:
 
     self.vertex_data_type = vertex_data_type
     self.edge_data_type = edge_data_type
-    self.edge_representation = edge_representation
     self.graph_type = graph_type
 
     if isinstance(length_unit, str):
@@ -156,7 +153,6 @@ class OstdHeader:
     write_int(self.num_axes, 3)
     write_int(bool(self.has_transform), 1)
     write_int(self.voxel_centered, 1)
-    write_int(self.edge_representation.value, 2)
 
     return flags
 
@@ -189,7 +185,6 @@ class OstdHeader:
 
     self.has_transform = bool(read_int(1))
     self.voxel_centered = bool(read_int(1))
-    self.edge_representation = EdgeRepresentationType(read_int(2))
 
   @classmethod
   def validate_header(kls, binary:bytes, offset:int = 0, skip_total_length_check:bool = False):
@@ -315,7 +310,6 @@ num edges:         {self.Ne}
 num components:    {self.num_components}
 cable length:      {self.cable_length:.3f} {self.length_unit}
 graph type:        {self.graph_type.name}
-representation:    {self.edge_representation.name}
 
 vertex dtype:      {self.vertex_data_type.name}
 edge dtype:        {self.edge_data_type.name}

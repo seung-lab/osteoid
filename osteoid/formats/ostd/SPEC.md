@@ -88,7 +88,7 @@ units specified in flags.  |
 
 The least significant bit is on the left.
 
-`VVVVeeeeCCCCccccppppGGGEEssssstiR*`
+`VVVVeeeeCCCCccccppppGGGssssstiR*`
 
 | Flag   | Meaning                            | Notes                                         |
 | ------ | ---------------------------------- | --------------------------------------------- |
@@ -98,7 +98,6 @@ The least significant bit is on the left.
 | **c**  | Compression algorithm for edges    | See *Compression Type*                        |
 | **G**  | Graph structure (advisory)         | See *Graph Type*.                             |
 | **p**  | SI Prefix                          | signed 10^(X*3) where X is the value          |
-| **E**  | Edge representation                | See *Edge Representation*                     |
 | **s**  | Default Space Type                 | Can specify what the default space (0) means. |
 | **t**  | Transforms present                 | bool                                          |
 | **i**  | Spatial index present.             | bool                                          |
@@ -215,16 +214,6 @@ Number of axes determined from header. Datatype set depending on header. Encoded
 When the edge representation is LINKED_PATHS, the vertices will be sorted based on their connected neighbors.
 
 ## Edge Representation
-
-### Pairs
-
-The edges will be written explicitly as a serialized array of pairs in C order (i.e. (e1,e2),(e1,e3),...) in little endian with the data type controlled by the header.
-
-### Parent
-
-The edges will be written as a serialized array of parent pointers aligned with vertices. The data type is controlled by the header. This only applies to trees.
-
-### Linked Paths
 
 The skeleton is analyzed and deconstructed into disjoint paths that are connected at branch points. The vertices will be sorted so that each disjoint path is contiguously represented so that connected vertices are adjacent in the serialization.
 
@@ -357,14 +346,6 @@ The following tables specify the meaning of various header values.
 | boolean (1 byte)       | 12    |
 | packed boolean (1 bit) | 13    |
 
-### Edge Representation Type
-
-| Type                  | Value | Description                                         | Properties                                  |
-|-----------------------|-------|-----------------------------------------------------|---------------------------------------------|
-| PAIR                  | 0     | edge list [(e1,e2), ... ]                           | General, no parsing. Most space.            |
-| PARENT                | 1     | parent pointers [0,0,1] means (root<-node<-leaf)    | Trees only. Half space. Structure encoded.  |
-| LINKED_PATHS          | 2     | set of paths linked at branch points                | General, efficient if branches are sparse.  |
-
 ### Compression Algorithm Type
 
 | Algorithm | Value |
@@ -417,8 +398,7 @@ All signed values are written in 2's complement. The field components are stored
 | tree                  | 1     | Acyclic graph.             |
 | cyclic                | 2     | Contains one or more loops.|
 
-This value is advisory and does not control the edge representation. 
-This is because a tree can be represented as an edge list. See edge representation.
+This value is advisory and does not control the edge representation.
 
 ### Space Type
 

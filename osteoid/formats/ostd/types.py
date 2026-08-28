@@ -319,11 +319,6 @@ class DataType(IntEnum):
   BOOL = 12
   PACKED_BOOL = 13
 
-class EdgeRepresentationType(IntEnum):
-  PAIR = 0
-  PARENT = 1
-  LINKED_PATHS = 2
-
 class GraphType(IntEnum):
   GRAPH = 0
   TREE = 1

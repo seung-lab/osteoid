@@ -25,7 +25,6 @@ from .header import (
 from .types import (
   AttributeType,
   CompressionType, 
-  EdgeRepresentationType,
   GraphType,
   LengthType,
   PhysicalUnit,
@@ -72,16 +71,6 @@ class OstdSkeletonPart:
     else:
       raise ValueError(f"Unsupported compression type: {self.header.vertex_compression}")
 
-  def _encode_edge_representation_pair(self) -> bytes:
-    edge_binary = self.edges.tobytes("C")
-    edge_binary += lib.crc32c(edge_binary).to_bytes(4, 'little')
-
-    components = fastosteoid.compute_components(self.edges, self.header.Nv)
-    self.header.num_components = len(components)
-    self.header.graph_type = self._graph_type(components)
-
-    return edge_binary
-
   def _encode_linked_paths(self) -> tuple[bytes, bytes]:
     (all_paths, all_edges, has_cycle, N) = fastosteoid.linked_paths(self.edges)
 
@@ -125,36 +114,7 @@ class OstdSkeletonPart:
     return (vertex_binary, edge_binary, reorder)
 
   def _encode_geometry(self) -> tuple[bytes,bytes,Optional[np.ndarray]]:
-    if self.header.edge_representation == EdgeRepresentationType.PAIR:
-      return (
-        self._encode_vertices(self.vertices),
-        self._encode_edge_representation_pair(),
-        None,
-      )
-    elif self.header.edge_representation == EdgeRepresentationType.LINKED_PATHS:
       return self._encode_linked_paths()
-    else:
-      raise ValueError("Unsupported representation: ", self.header.edge_representation)
-
-  @classmethod
-  def _decode_edge_representation_pair(
-    kls,
-    header:OstdHeader,
-    binary:bytes,
-    offset:int,
-  ) -> npt.NDArray[np.unsignedinteger]:
-    edges = np.frombuffer(
-      binary, 
-      offset=offset,
-      count=header.Ne * 2, 
-      dtype=header.edge_dtype
-    ).reshape((header.Ne, 2), order="C")
-
-    check_buf = edges.view(np.uint8).reshape((edges.nbytes,))
-    crc_off = offset + header.edge_bytes - 4
-    stored_crc32c = int.from_bytes(binary[crc_off:crc_off+4], 'little')
-    check_crc32c(check_buf,  stored_crc32c)
-    return edges
 
   @classmethod
   def _decode_edge_representation_linked_paths(
@@ -190,13 +150,8 @@ class OstdSkeletonPart:
     binary:bytes,
     offset:int,
   ) -> npt.NDArray[np.unsignedinteger]:
-    if header.edge_representation == EdgeRepresentationType.PAIR:
-      return kls._decode_edge_representation_pair(header, binary, offset)
-    elif header.edge_representation == EdgeRepresentationType.LINKED_PATHS:
-      return kls._decode_edge_representation_linked_paths(header, binary, offset)
-    else:
-      raise ValueError("Unsupported representation: ", header.edge_representation)
-
+    return kls._decode_edge_representation_linked_paths(header, binary, offset)
+  
   def to_bytes(self) -> bytes:
     vertex_binary, edge_binary, reorder = self._encode_geometry()
     self.header.cable_length = self.cable_length()
@@ -713,18 +668,12 @@ class OstdSkeleton:
     else:
       raise ValueError(f"Unsupported compression type: {vertex_compression}")
 
-    if edge_representation == "linked_paths":
-      edge_repr = EdgeRepresentationType.LINKED_PATHS
-    else:
-      edge_repr = EdgeRepresentationType.PAIR
-
     header = OstdHeader(
       Nv = Nv,
       Ne = edges.shape[0],
       coordinate_frame_orientation = coordinate_frame_orientation,
       edge_data_type = TO_DATATYPE[np.dtype(edge_dtype).type],
       edge_compression = CompressionType.NONE,
-      edge_representation = edge_repr,
       has_transform = False,
       id = id,
       length_unit = TO_LENGTH_UNIT[length_unit.lower()],

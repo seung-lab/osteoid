@@ -6,7 +6,6 @@ from .types import (
   AxisPermutationType,
   CompressionType,
   DataType,
-  EdgeRepresentationType,
   ElectricalType,
   EnergyType,
   GraphType,
