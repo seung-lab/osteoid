@@ -67,7 +67,7 @@ All values throughout this specification are little endian except where noted. T
 
 | Field                  | Bytes | Datatype    | Value                       | Description                                                                                                       |
 |------------------------|-------|-------------|-----------------------------|-------------------------------------------------------------------------------------------------------------------|
-| magic                  | 4     | string      | osdt                        | File magic number.                                                                        |
+| magic                  | 4     | string      | ostd                        | File magic number.                                                                        |
 | format_version         | 1     | u8          | 0                           | Version of this file format.                                                              |
 | total_bytes            | 8     | u64         | -                           | Total byte size of this part.                                                             |
 | id                     | 8     | u64         | -                           |                                    |
