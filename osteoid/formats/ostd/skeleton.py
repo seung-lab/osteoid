@@ -656,7 +656,6 @@ class OstdSkeleton:
     spaces:list = [],
     coordinate_frame_orientation:str = "+X+Y+Z",
     voxel_centered:bool = True,
-    edge_representation:Literal["linked_paths", "pairs"] = "linked_paths",
     attributes:dict[str,npt.NDArray[np.generic]] = {},
     vertex_compression:Optional[str] = None,
   ):
