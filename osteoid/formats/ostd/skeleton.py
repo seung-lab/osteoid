@@ -525,11 +525,20 @@ class OstdSkeleton:
       for name, (unit, arr) in self.parts[0].attributes.items()
     }
 
-  def get_attribute_unit(self, key:str) -> SIUnit:
-     return self.parts[0].attributes.get(key, (None,None))[0]
+  def attribute(self, key:str) -> tuple[SIUnit, np.ndarray]:
+    return self.parts[0].attributes.get(key, None)
 
-  def get_attribute_value(self, key:str) -> np.ndarray:
-     return self.parts[0].attributes.get(key, (None,None))[1]
+  def attribute_unit(self, key:str) -> SIUnit:
+    attr = self.attribute(key)
+    if attr is None:
+      return None
+    return attr[0]
+
+  def attribute_value(self, key:str) -> np.ndarray:
+    attr = self.attribute(key)
+    if attr is None:
+      return None
+    return attr[1]
 
   @property
   def unit(self) -> SIUnit:
