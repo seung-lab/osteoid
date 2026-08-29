@@ -56,12 +56,15 @@ class OstdSkeletonPart:
       return vertex_binary
     elif self.header.vertex_compression == CompressionType.DRACO:
       import DracoPy
-      return DracoPy.compress(vertices, preserve_order=True, quantization_bits=12)
+      vertex_binary = DracoPy.compress(vertices, preserve_order=True, quantization_bits=12)
     elif self.header.vertex_compression == CompressionType.GZIP:
       import deflate
-      return deflate.gzip_compress(vertices.tobytes("C"))
+      vertex_binary = deflate.gzip_compress(vertices.tobytes("C"))
     else:
       raise ValueError(f"Unsupported compression type: {self.header.vertex_compression}")
+
+    vertex_binary += lib.crc32c(vertex_binary).to_bytes(4, 'little')
+    return vertex_binary
 
   def _encode_linked_paths(self) -> tuple[bytes, bytes]:
     (all_paths, all_edges, has_cycle, N) = fastosteoid.linked_paths(self.edges)
@@ -342,9 +345,13 @@ class OstdSkeletonPart:
       buffer = np.frombuffer(
         binary,
         offset=offset,
-        count=header.vertex_bytes,
+        count=header.vertex_bytes - 4,
         dtype=np.uint8,
       )
+
+      off = offset + header.vertex_bytes - 4
+      stored_crc32c = int.from_bytes(binary[off:off+4], 'little')
+      check_crc32c(buffer,  stored_crc32c)
 
       if header.vertex_compression == CompressionType.DRACO:
         import DracoPy
