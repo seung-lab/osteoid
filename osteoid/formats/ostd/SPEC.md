@@ -19,16 +19,16 @@ ostd takes ideas from Precomputed, SWC, Trk, and other formats to compactly repr
 - Support skeletons larger than 2^32 vertices
 - A header for each serialized object
 - Includes a format version number to enable smooth version upgrades
-- Has 128 bits for an object ID, tagging each object with a UUID4 by default but accepts uint64 ids (important for connectomics)
+- Has 64 bits for an object ID, important for connectomics.
 - Incorporates up to 255 4x4 transform matrices and tracks which state (e.g. voxel, physical) the vertices are in
 - Tracks the main physical unit of the vertices.
 - Tracks which orientation the coordinate frame is in.
 - Blocks individually guarded against file corruption by CRCs to enable extraction of remaining good data if one block is damaged
-- Supports representing edges as an edge list, parent pointers, or a path graph, saving space while retaining generality
+- Supports representing edges as a path graph saving space while retaining generality
 - Advisory fields to tell you the number of connected components, path length, and the graph structure
 - (Single-Part) Attributes header is located at the end of the file to enable efficient appending of more vertex attributes on POSIX systems
 - Efficiently support both vertex and edge attributes and tracks physical units.
-- Support optional spatial index
+- Support optional spatial index (in the future)
 - Concatenate multiple ostd files together to append vertices and edges together (inhibits adding more vertex attributes)
 
 ## File Structure
@@ -82,7 +82,42 @@ units specified in flags.  |
 | attribute_header_bytes | 4     | u32         | -                           | Content length in bytes of the attribute header.                                                         |
 | num_components         | 4     | u32         | N or (2^32-1 if unknown)    | Number of connected components in the skeleton graph. max value of uint32 is a sentinel for unknown.              |
 | cable_length           | 4     | f32         | -                           | Physical path length of this object in SI prefixed meters (See flags for SI prefix). This quantity should always be set, but if it is not set, it should be NaN.                           | 
-| crc16                  | 2     | uint16      | -                           | crc16 using 0xFFFF init and implicit polynomial 0xd175 of header bytes excluding magic number.                    |
+| crc16                  | 2     | uint16      | -                           | crc16, see below |
+
+Note: parsers should reject format versions above the version they were designed for.
+
+### CRC16 Code
+
+This CRC16 polynomial was chosen from the CRC Zoo. The header is 80 bytes (640 bits) which exceeds
+the maximum capacity of a crc8 at hamming distance 2. This crc supports detection of at least 4 flipped
+bits.
+
+using 0xFFFF init
+implicit polynomial 0xd175
+refin true
+refout true
+xorout = 0x0000 of header bytes excluding magic number.
+
+```python
+# selected from https://users.ece.cmu.edu/~koopman/crc/index.html
+# based on a header that is larger than what a crc8 can handle
+def crc16(data:bytes) -> int:
+  # use implicit +1 representation for right shift, LSB first
+  # use explicit +1 representation for left shit, MSB first
+  polynomial = 0xd175 # implicit
+  crc = 0xFFFF # detects zeroed data better than 0x0000
+  for i in range(len(data)):
+    crc ^= data[i]
+    for k in range(8):
+      if crc & 1:
+        crc = (crc >> 1) ^ polynomial
+      else:
+        crc = crc >> 1
+
+  return int(crc & 0xFFFF)
+
+ assert crc16("123456789".encode("utf8")) == 0x97DE
+```
 
 ### Flag Definitions
 
@@ -122,7 +157,7 @@ The least significant bit is on the left.
 | **a**  | Number of Axes                     | Number of axes                       |
 | **l**  | Number of space-like axes.         | First l axes are space-like, the following are time-like.                       |
 | **s**  | Bitfield. Sign of each axis direction compared to convention.     |  sign of X,Y,Z axes in that order (0: positive, 1: negative). Unused axes should be set to positive.                   |
-| **o**  | Coordinate Frame Orientation       | Has own structure: `8s 16a`<br>s: <br>a: axis permutation<br>See Axis Permutation Type, 000000 means +X+Y+Z standard frame. By default, the signs should be positive. |
+| **o**  | Coordinate Frame Orientation       | See Axis Permutation Type, 000000 means +X+Y+Z standard frame. Lehmer code. |
 | **c** | Voxel centered or top left corner. | Describes whether voxel coordinates are interpreted as centered or in the corner closest to the origin.                                                              |
 | **R*** | RESERVED                           | From this point forward               
 
@@ -137,7 +172,7 @@ The default space (0) is set in the header. Transforms listed below should be wr
 | space                  | 1     | uint8       | -                           | The kind of space the transform represents. See *Space Type* |
 | units                  | 8     | tuple       | See physical units.         | The physical unit this transform maps to. |
 | transform              | 64    | 4x4 f32s    | [ f32, f32, f32, f32, ... ] | Homogenous transform matrix from voxel to physical coordinates. Written in row major (C) order little endian.                   |
-| crc16                  | 2     | uint16      | -                          | 16-bit CRC using 0xFF init and 0xd175 implicit polynomial                  |
+| crc16                  | 2     | uint16      | -                          | 16-bit CRC using 0xFFFF init and 0xd175 implicit polynomial                  |
 
 
 ## Spatial Index
@@ -213,6 +248,8 @@ edge widths are based on header
 Number of axes determined from header. Datatype set depending on header. Encoded as serialized array in C order (i.e. XYZ,XYZ,XYZ).
 
 When the edge representation is LINKED_PATHS, the vertices will be sorted based on their connected neighbors.
+
+The vertex section is followed by a crc32c regardless of compression algorithm.
 
 ## Edge Representation
 
@@ -332,20 +369,19 @@ The following tables specify the meaning of various header values.
 
 | Data Type              | Value |
 |------------------------|-------|
-| float8                 | 0     |
-| float16                | 1     |
-| float32                | 2     |
-| float64                | 3     |
-| uint8                  | 4     |
-| uint16                 | 5     |
-| uint32                 | 6     |
-| uint64                 | 7     |
-| int8                   | 8     |
-| int16                  | 9     |
-| int32                  | 10    |
-| int64                  | 11    |
-| boolean (1 byte)       | 12    |
-| packed boolean (1 bit) | 13    |
+| float16                | 0     |
+| float32                | 1     |
+| float64                | 2     |
+| uint8                  | 3     |
+| uint16                 | 4     |
+| uint32                 | 5     |
+| uint64                 | 6     |
+| int8                   | 7     |
+| int16                  | 8     |
+| int32                  | 9    |
+| int64                  | 10    |
+| boolean (1 byte)       | 11    |
+| packed boolean (1 bit) | 12    |
 
 ### Compression Algorithm Type
 

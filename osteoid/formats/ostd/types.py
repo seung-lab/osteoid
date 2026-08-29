@@ -17,20 +17,19 @@ class CompressionType(IntEnum):
   DRACO = 4
 
 class DataType(IntEnum):
-  F8 = 0
-  F16 = 1
-  F32 = 2
-  F64 = 3
-  U8 = 4
-  U16 = 5
-  U32 = 6
-  U64 = 7
-  I8 = 8
-  I16 = 9
-  I32 = 10
-  I64 = 11
-  BOOL = 12
-  PACKED_BOOL = 13
+  F16 = 0
+  F32 = 1
+  F64 = 2
+  U8 = 3
+  U16 = 4
+  U32 = 5
+  U64 = 6
+  I8 = 7
+  I16 = 8
+  I32 = 9
+  I64 = 10
+  BOOL = 11
+  PACKED_BOOL = 12
 
 TO_DATATYPE = {
   np.float16: DataType.F16,

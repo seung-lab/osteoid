@@ -107,14 +107,14 @@ class OstdHeader:
   def encode_flags(self) -> int:
     flags = np.uint64(0)
     offset = 0
-    def write_int(value:int, nbits:int):
+    def write_uint(value:int, nbits:int):
       nonlocal flags
       nonlocal offset
       mask = (1 << nbits) - 1
       flags |= np.uint64(value & mask) << offset
       offset += nbits
 
-    def write_signed_int(value: int, nbits: int):
+    def write_int(value: int, nbits: int):
       nonlocal flags
       nonlocal offset
 
@@ -128,19 +128,19 @@ class OstdHeader:
       flags |= np.uint64(value) << offset
       offset += nbits
 
-    write_int(self.vertex_data_type.value, 4)
-    write_int(self.edge_data_type.value, 4)
+    write_uint(self.vertex_data_type.value, 4)
+    write_uint(self.edge_data_type.value, 4)
 
-    write_int(self.vertex_compression.value, 4)
-    write_int(self.edge_compression.value, 4)
+    write_uint(self.vertex_compression.value, 4)
+    write_uint(self.edge_compression.value, 4)
 
-    write_int(self.graph_type.value, 3)
+    write_uint(self.graph_type.value, 3)
 
-    write_signed_int(self.length_unit.si_prefix // 3, 4)
-    write_int(self.length_unit.scale.value, 2)
+    write_int(self.length_unit.si_prefix // 3, 4)
+    write_uint(self.length_unit.scale.value, 2)
 
-    write_int(self.space_type.value, 5)
-    write_int(bool(self.has_transform), 1)
+    write_uint(self.space_type.value, 5)
+    write_uint(bool(self.has_transform), 1)
 
     return flags
 
