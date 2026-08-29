@@ -109,7 +109,7 @@ class OstdSkeletonPart:
       return self._encode_linked_paths()
 
   @classmethod
-  def _decode_edge_representation_linked_paths(
+  def _decode_edge_representation(
     kls,
     header:OstdHeader,
     binary:bytes,
@@ -135,15 +135,6 @@ class OstdSkeletonPart:
     edge_width = np.dtype(header.edge_dtype).itemsize
     return fastosteoid.decode_linked_path_edges(edges_buf, header.Nv, edge_width)
 
-  @classmethod
-  def _decode_edge_representation(
-    kls, 
-    header:OstdHeader,
-    binary:bytes,
-    offset:int,
-  ) -> npt.NDArray[np.unsignedinteger]:
-    return kls._decode_edge_representation_linked_paths(header, binary, offset)
-  
   def to_bytes(self) -> bytes:
     vertex_binary, edge_binary, reorder = self._encode_geometry()
     self.header.cable_length = self.cable_length()
