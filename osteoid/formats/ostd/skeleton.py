@@ -326,43 +326,36 @@ class OstdSkeletonPart:
 
   @classmethod
   def _decode_vertices(kls, header:OstdHeader, binary:bytes, offset:int) -> np.ndarray:
-    if header.vertex_compression == CompressionType.NONE: 
-      vertices = np.frombuffer(
+    buffer = np.frombuffer(
+      binary,
+      offset=offset,
+      count=header.vertex_bytes - 4,
+      dtype=np.uint8,
+    )
+
+    off = offset + header.vertex_bytes - 4
+    stored_crc32c = int.from_bytes(binary[off:off+4], 'little')
+    check_crc32c(buffer,  stored_crc32c)
+
+    if header.vertex_compression == CompressionType.NONE:
+      return np.frombuffer(
         binary,
         offset=offset,
         count=(header.Nv * header.num_axes),
         dtype=header.vertex_dtype,
       ).reshape((header.Nv, header.num_axes), order="C")
-
-      check_buf = vertices.view(np.uint8).reshape((vertices.nbytes,))
-      off = offset + header.vertex_bytes - 4
-      stored_crc32c = int.from_bytes(binary[off:off+4], 'little')
-      check_crc32c(check_buf,  stored_crc32c)
-      return vertices
+    if header.vertex_compression == CompressionType.DRACO:
+      import DracoPy
+      return DracoPy.decode(buffer)
+    elif header.vertex_compression == CompressionType.GZIP:
+      import deflate
+      vbuf = deflate.gzip_decompress(buffer)
+      return np.frombuffer(
+        vbuf,
+        dtype=header.vertex_dtype,
+      ).reshape((header.Nv, header.num_axes), order="C")
     else:
-      buffer = np.frombuffer(
-        binary,
-        offset=offset,
-        count=header.vertex_bytes - 4,
-        dtype=np.uint8,
-      )
-
-      off = offset + header.vertex_bytes - 4
-      stored_crc32c = int.from_bytes(binary[off:off+4], 'little')
-      check_crc32c(buffer,  stored_crc32c)
-
-      if header.vertex_compression == CompressionType.DRACO:
-        import DracoPy
-        return DracoPy.decode(buffer)
-      elif header.vertex_compression == CompressionType.GZIP:
-        import deflate
-        vbuf = deflate.gzip_decompress(buffer)
-        return np.frombuffer(
-          vbuf,
-          dtype=header.vertex_dtype,
-        ).reshape((header.Nv, header.num_axes), order="C")
-      else:
-        raise ValueError(f"Compression type not supported: {header.vertex_compression}")
+      raise ValueError(f"Compression type not supported: {header.vertex_compression}")
 
   @classmethod
   def from_bytes(kls, binary:bytes, offset:int = 0) -> "OstdSkeletonPart":
