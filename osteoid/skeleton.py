@@ -1000,6 +1000,7 @@ class Skeleton:
 
   @classmethod
   def from_ostd(self, binary:bytes) -> "Skeleton":
+    from . import formats
     oskel = formats.ostd.OstdSkeleton.from_bytes(binary)
     return Skeleton(
       vertices=oskel.vertices,
