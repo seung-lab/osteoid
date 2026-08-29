@@ -200,3 +200,22 @@ def test_serialization_roundtrip2():
 
     assert Skeleton.equivalent(skel, restored)
 
+def test_thorny():
+    skel = Skeleton.load("tests/test_data/thorny.swc")
+    recovered = Skeleton.from_ostd(skel.to_ostd())
+
+    verts = skel.vertices.copy()
+    verts.sort(axis=0)
+
+    verts2 = recovered.vertices.copy()
+    verts2.sort(axis=0)
+
+    assert np.all(verts == verts2)
+
+    skel = skel.downsample(100)
+    recovered = Skeleton.from_ostd(skel.to_ostd())
+
+    assert Skeleton.equivalent(skel, recovered)
+
+
+
