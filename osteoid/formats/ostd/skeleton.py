@@ -52,8 +52,6 @@ class OstdSkeletonPart:
   def _encode_vertices(self, vertices:np.ndarray) -> bytes:
     if self.header.vertex_compression == CompressionType.NONE:
       vertex_binary = vertices.tobytes("C")
-      vertex_binary += lib.crc32c(vertex_binary).to_bytes(4, 'little')
-      return vertex_binary
     elif self.header.vertex_compression == CompressionType.DRACO:
       import DracoPy
       vertex_binary = DracoPy.compress(vertices, preserve_order=True, quantization_bits=12)
