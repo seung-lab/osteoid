@@ -1014,7 +1014,6 @@ class Skeleton:
     self, 
     unit:str = "nm", 
     coordinate_frame:str = "+X-Y-Z",
-    edge_representation:Literal["linked_paths", "pairs"] = "linked_paths",
     vertex_compression:Optional[Literal["draco"]] = None,
   ) -> bytes:
     """
@@ -1026,10 +1025,6 @@ class Skeleton:
     coordinate_frame: save how the coordinate space
       is oriented. This can differ in computer graphics,
       neurology, radiology, etc.
-    edge_representation: picks a representation mode for edges.
-      pairs: easiest to parse, just writes the edge list literally
-      linked_paths: arranges the vertices into paths and only writes
-        the edges that connect the paths.
     """
     from .formats.ostd import OstdSkeleton
     from .formats.ostd.types import (
