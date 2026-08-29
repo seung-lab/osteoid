@@ -129,6 +129,10 @@ class SIUnit:
       rendered = rendered[3:] # strip first * or /
 
     prefix = SI_PREFIX.get(self.si_prefix, '?')
+
+    if rendered == '':
+      rendered = 'dimensionless'
+
     return f"{prefix}{rendered}"
 
   @classmethod

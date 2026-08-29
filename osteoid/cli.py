@@ -51,7 +51,7 @@ def info(src):
     for i, space in enumerate(oskel.spaces):
       click.echo(f"{i}: {space.space}, {space.unit}")
 
-    attrs = [ f"{attr} ({unit})" for attr, unit in oskel.attributes ]
+    attrs = [ f"{attr} ({unit})" for attr, (unit, arr) in oskel.attributes.items() ]
     click.echo("\nattributes: " + ", ".join(attrs))
     click.echo(f"num parts: {len(oskel.parts)}")
 
