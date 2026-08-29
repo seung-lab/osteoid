@@ -516,7 +516,7 @@ class OstdAttributeSection:
                  f"{attr.compression.name}, {attr.unit}, {attr.num_components},"
                  f"{attr.content_length} bytes")
       details += "\n"
-    return detials
+    return details
 
 
 
