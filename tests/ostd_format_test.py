@@ -15,7 +15,7 @@ from osteoid.formats.ostd import (
     SIUnit,
     SpaceType,
 )
-from osteoid.formats.ostd.types import TRANSLATE_UNIT
+from osteoid.formats.ostd.types import TRANSLATE_UNIT, CoordinateFrame
 
 @pytest.fixture
 def sample_header():
@@ -123,8 +123,7 @@ def test_create_properties(sample_skeleton):
     assert skel.edges.shape == (2, 2)
     assert skel.edges.dtype == np.uint8
     assert skel.id == 42
-    assert skel.coordinate_frame == "+X+Y+Z"
-    assert skel.voxel_centered is True
+    assert skel.coordinate_frame == CoordinateFrame.parse("+X+Y+Z", voxel_centered=True)
 
 def test_serialization_roundtrip(sample_skeleton):
     skel = sample_skeleton
