@@ -166,22 +166,6 @@ class CompressionType(IntEnum):
   ZSTD = 3
   DRACO = 4
 
-class DataType(IntEnum):
-  F8 = 0
-  F16 = 1
-  F32 = 2
-  F64 = 3
-  U8 = 4
-  U16 = 5
-  U32 = 6
-  U64 = 7
-  I8 = 8
-  I16 = 9
-  I32 = 10
-  I64 = 11
-  BOOL = 12
-  PACKED_BOOL = 13
-
 class GraphType(IntEnum):
   GRAPH = 0
   TREE = 1
