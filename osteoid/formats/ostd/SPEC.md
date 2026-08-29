@@ -212,7 +212,7 @@ crc16
 
 ### Attribute Listing
 
-Attributes can be applied to either vertices or to edges. Vertex attributes are naturally dense since they scale linearly with the number of vertices, while edge attributes are naturally sparse because the number of possible combinations is the square of the number of vertices, but skeletons are paths with branches (and rarely loops).
+Attributes can be applied to either vertices or to edges. Vertex attributes are naturally dense since they scale linearly with the number of vertices, while edge attributes are naturally sparse because the number of possible combinations is the square of the number of vertices, but skeletons are paths with branches (and rarely loops). Trailing right space on a name should be truncated after decoding to utf8.
 
 | Field          | Bytes     | Datatype | Value                     | Description                     |
 |----------------|-----------|----------|---------------------------|---------------------------------|
