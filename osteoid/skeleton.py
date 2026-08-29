@@ -1037,7 +1037,7 @@ class Skeleton:
     transform = np.vstack((transform, bottom))
 
     attributes = OrderedDict([
-      (attr["id"], (PhysicalUnit(SIPrefixType.NONE, DimensionlessType.UNKNOWN), getattr(self, attr["id"])))
+      (attr["id"], (SIUnit(), getattr(self, attr["id"])))
       for attr in self.extra_attributes
     ])
 
