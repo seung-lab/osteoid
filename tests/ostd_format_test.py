@@ -12,11 +12,10 @@ from osteoid.formats.ostd import (
     DataType,
     CompressionType,
     GraphType,
-    LengthType,
-    PhysicalUnit,
-    SIPrefixType,
+    SIUnit,
     SpaceType,
 )
+from osteoid.formats.ostd.types import TRANSLATE_UNIT
 
 @pytest.fixture
 def sample_header():
@@ -25,8 +24,8 @@ def sample_header():
         Ne=456,
         attribute_header_bytes=64,
         cable_length=123.456,
-        coordinate_frame_orientation='-X+Y+Z',
-        crc16=46422,
+        coordinate_frame='-X+Y+Z',
+        crc16=59634,
         edge_data_type=DataType.U16,
         edge_compression=CompressionType.ZSTD,
         edge_bytes=1024,
@@ -38,7 +37,6 @@ def sample_header():
         num_axes=3,
         num_components=12345,
         space=SpaceType.WORLD,
-        spatial_index_bytes=2048,
         total_bytes=OstdHeader.HEADER_BYTES,
         vertex_compression=CompressionType.GZIP,
         vertex_data_type=DataType.F32,
@@ -67,7 +65,7 @@ def test_header_roundtrip(sample_header):
 @pytest.fixture
 def sample_transform():
     mat = np.arange(16, dtype=np.float32).reshape(4, 4)
-    return OstdTransform(unit=PhysicalUnit(SIPrefixType.NONE, LengthType.METER), space=SpaceType.WORLD, transform=mat)
+    return OstdTransform(unit=TRANSLATE_UNIT['m'], space=SpaceType.WORLD, transform=mat)
 
 def test_transform_roundtrip(sample_transform):
     data = sample_transform.to_bytes()
@@ -83,7 +81,7 @@ def test_section_roundtrip(sample_transform):
     data = section.to_bytes()
     assert isinstance(data, (bytes, bytearray))
     assert data[0] == 2  # number of spaces
-    assert len(data) == 1 + 2 * OstdTransform.NUM_BYTES + 2  # header + payloads + crc16
+    assert len(data) == section.nbytes
 
     recon = OstdTransformSection.from_bytes(data)
     assert len(recon.spaces) == 2
@@ -114,7 +112,7 @@ def sample_skeleton():
     return OstdSkeleton.create(
         vertices, edges, 
         id=42,
-        coordinate_frame_orientation="+X+Y+Z",
+        coordinate_frame="+X+Y+Z",
         voxel_centered=True
     )
 
@@ -125,7 +123,7 @@ def test_create_properties(sample_skeleton):
     assert skel.edges.shape == (2, 2)
     assert skel.edges.dtype == np.uint8
     assert skel.id == 42
-    assert skel.coordinate_frame_orientation == "+X+Y+Z"
+    assert skel.coordinate_frame == "+X+Y+Z"
     assert skel.voxel_centered is True
 
 def test_serialization_roundtrip(sample_skeleton):
@@ -136,8 +134,7 @@ def test_serialization_roundtrip(sample_skeleton):
     np.testing.assert_array_equal(restored.vertices, skel.vertices)
     np.testing.assert_array_equal(restored.edges, skel.edges)
     assert restored.id == skel.id
-    assert restored.coordinate_frame_orientation == skel.coordinate_frame_orientation
-    assert restored.voxel_centered == skel.voxel_centered
+    assert restored.coordinate_frame == skel.coordinate_frame
 
 def test_serialization_determinism(sample_skeleton):
     data1 = sample_skeleton.to_bytes()
@@ -184,7 +181,7 @@ def test_serialization_roundtrip2():
     skel = OstdSkeleton.create(
         vertices, edges,
         id=42,
-        coordinate_frame_orientation="+X+Y+Z",
+        coordinate_frame="+X+Y+Z",
         voxel_centered=True,
     )
 

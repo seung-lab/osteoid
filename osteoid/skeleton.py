@@ -1033,8 +1033,8 @@ class Skeleton:
     """
     from .formats.ostd import OstdSkeleton
     from .formats.ostd.types import (
-      TO_LENGTH_UNIT, SIPrefixType, 
-      DimensionlessType, LengthType, AreaType, PhysicalUnit, SpaceType,
+      TRANSLATE_UNIT, SIPrefixType, 
+      SIUnit, SpaceType,
     )
     transform = self.transform
     bottom = np.zeros((1, 4), dtype=transform.dtype)
@@ -1047,15 +1047,14 @@ class Skeleton:
     ])
 
     if "radius" in attributes:
-      radius_unit = TO_LENGTH_UNIT[unit]
+      radius_unit = TRANSLATE_UNIT[unit]
       attributes["radius"] = (radius_unit, self.radii)
 
     if "cross_sectional_area" in attributes:
-      xs_unit = TO_LENGTH_UNIT[unit]
-      xs_unit = (xs_unit[0], AreaType(xs_unit[1].value))
+      xs_unit = TRANSLATE_UNIT[unit]
       attributes["cross_sectional_area"] = (xs_unit, self.cross_sectional_area)
 
-    physical_unit = TO_LENGTH_UNIT[unit]
+    physical_unit = TRANSLATE_UNIT[unit]
 
     if np.all(transform == np.eye(4)):
       spaces = []
@@ -1083,7 +1082,7 @@ class Skeleton:
       space=space,
       length_unit=length_unit, # defines space=0
       space_type=space_type, # defines space=0
-      coordinate_frame_orientation=coordinate_frame,
+      coordinate_frame=coordinate_frame,
       voxel_centered=True,
       attributes=attributes,
       vertex_compression=vertex_compression,

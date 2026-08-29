@@ -1,300 +1,160 @@
 from dataclasses import dataclass
 from enum import IntEnum
+import math
+import struct
 
 import numpy as np
 
-SI_PREFIXES = {}
-LENGTH_SYMBOLS = {}
+class AttributeType(IntEnum):
+  VERTEX = 0
+  EDGE = 1
 
-class SIPrefixType(IntEnum):
-  ZEPTO = 0
-  ATTO = 1 
-  FEMTO = 2 
-  PICO = 3
-  NANO = 4 
-  MICRO = 5
-  MILLI = 6
-  CENTI = 7
-  NONE = 8
-  KILO = 9
-  MEGA = 10
-  GIGA = 11
-  TERA = 12
-  PETA = 13
-  EXA = 14
-  ZETTA = 15
+class CompressionType(IntEnum):
+  NONE = 0
+  GZIP = 1
+  BZIP2 = 2
+  ZSTD = 3
+  DRACO = 4
 
-  def __str__(self):
-    return SI_PREFIXES[self.value]
+class DataType(IntEnum):
+  F8 = 0
+  F16 = 1
+  F32 = 2
+  F64 = 3
+  U8 = 4
+  U16 = 5
+  U32 = 6
+  U64 = 7
+  I8 = 8
+  I16 = 9
+  I32 = 10
+  I64 = 11
+  BOOL = 12
+  PACKED_BOOL = 13
 
-SI_PREFIXES = {
-  SIPrefixType.NONE: "",
-  SIPrefixType.ZEPTO: "z",
-  SIPrefixType.ATTO: "a",
-  SIPrefixType.FEMTO: "f",
-  SIPrefixType.PICO: "p",
-  SIPrefixType.NANO: "n",
-  SIPrefixType.MICRO: "u",
-  SIPrefixType.MILLI: "m",
-  SIPrefixType.CENTI: "c",
-  SIPrefixType.KILO: "k",
-  SIPrefixType.MEGA: "M",
-  SIPrefixType.GIGA: "G",
-  SIPrefixType.TERA: "T",
-  SIPrefixType.PETA: "P",
-  SIPrefixType.EXA: "E",
-  SIPrefixType.ZETTA: "Z",
+TO_DATATYPE = {
+  np.float16: DataType.F16,
+  np.float32: DataType.F32,
+  np.float64: DataType.F64,
+  np.uint8: DataType.U8,
+  np.uint16: DataType.U16,
+  np.uint32: DataType.U32,
+  np.uint64: DataType.U64,
+  np.int8: DataType.I8,
+  np.int16: DataType.I16,
+  np.int32: DataType.I32,
+  np.int64: DataType.I64,
+  np.bool_: DataType.BOOL,
 }
+FROM_DATATYPE = { v:k for k,v in TO_DATATYPE.items() }
 
-SI_PREFIX_VALUE = {
-  SIPrefixType.ZEPTO: 1e-21,
-  SIPrefixType.ATTO: 1e-18,
-  SIPrefixType.FEMTO: 1e-15,
-  SIPrefixType.PICO: 1e-12,
-  SIPrefixType.NANO: 1e-9,
-  SIPrefixType.MICRO: 1e-6,
-  SIPrefixType.MILLI: 0.001,
-  SIPrefixType.CENTI: 0.01,
-  SIPrefixType.NONE: 1.0,
-  SIPrefixType.KILO: 1000.0,
-  SIPrefixType.MEGA: 1e6,
-  SIPrefixType.GIGA: 1e9,
-  SIPrefixType.TERA: 1e12,
-  SIPrefixType.PETA: 1e15,
-  SIPrefixType.EXA: 1e18,
-  SIPrefixType.ZETTA: 1e21,
+class GraphType(IntEnum):
+  GRAPH = 0
+  TREE = 1
+  CYCLIC = 2
+
+class LogEnum(IntEnum):
+  LINEAR = 0
+  LOG10 = 1
+  LOG2 = 2
+  LN = 3
+
+SI_PREFIX = {
+  -30: 'q', # quecto
+  -27: 'r', # ronto
+  -24: 'y', # yocto
+  -21: 'z', # zepto
+  -18: 'a', # atto
+  -15: 'f', # femto
+  -12: 'p', # pico
+  -9: 'n', # nano
+  -6: 'u', # micro
+  -3: 'm', # milli
+  -2: 'c', # centi
+  0: '',
+  3: 'k', # kilo
+  6: 'M', # mega
+  9: 'G', # giga
+  12: 'T', # tera
+  15: 'P', # peta
+  18: 'E', # exa
+  21: 'Z', # zetta
+  24: 'Y', # yotta
+  27: 'R', # ronna
+  30: 'Q', # quetta
 }
-
-class LengthType(IntEnum):
-  UNKNOWN = 0
-  VOXEL = 1
-  ANGSTROM = 2
-  MIL = 3
-  INCH = 4
-  FOOT = 5
-  YARD = 6
-  METER = 7
-  STATUTE_MILE = 8
-  NAUTICAL_MILE = 9
-  ASTRONOMICAL_UNIT = 10
-  LIGHTYEAR = 11
-  PARSEC = 12
-
-LENGTH_SYMBOLS = {
-  LengthType.UNKNOWN: "",
-  LengthType.VOXEL: "vx",
-  LengthType.METER: "m",
-  LengthType.ANGSTROM: "Å",
-  LengthType.ASTRONOMICAL_UNIT: "amu",
-  LengthType.LIGHTYEAR: "ly",
-  LengthType.PARSEC: "pc",
-  LengthType.MIL: "mil",
-  LengthType.INCH: "in",
-  LengthType.FOOT: "ft",
-  LengthType.YARD: "yd",
-  LengthType.STATUTE_MILE: "mi",
-  LengthType.NAUTICAL_MILE: "nmi",
-}
-
-LengthType.__str__ = lambda self: LENGTH_SYMBOLS[self]
 
 @dataclass
-class PhysicalUnit:
-  prefix:SIPrefixType
-  base:IntEnum
-
-  def tuple(self) -> tuple[SIPrefixType, IntEnum]:
-    return (self.prefix, self.base)
-
-  def __hash__(self):
-    return self.prefix.value + 31 * self.base.value
-
-  def __eq__(self, other) -> bool:
-    return self.prefix == other.prefix and self.base == other.base
+class SIUnit:
+  si_prefix:int = 0
+  amperes:int = 0
+  kelvin:int = 0
+  kilograms:int = 0
+  meters:int = 0
+  moles:int = 0
+  seconds:int = 0
+  scale:LogEnum = LogEnum.LINEAR
 
   def __str__(self) -> str:
-    return f"{self.prefix}{self.base}"
+    dimensions = [
+      (self.amperes, f"A"),
+      (self.kelvin, f"K"),
+      (self.kilograms, f"kg"),
+      (self.meters, f"m"),
+      (self.moles, f"mol"),
+      (self.seconds, f"s"),
+    ]
 
-LENGTH_CONVERSION_FACTORS = {
-  (LengthType.UNKNOWN, LengthType.METER): float('NaN'),
-  (LengthType.VOXEL, LengthType.METER): float('NaN'),
-  (LengthType.METER, LengthType.METER): 1.0,
-  (LengthType.ANGSTROM, LengthType.METER): 1e-10,
-  (LengthType.ASTRONOMICAL_UNIT, LengthType.METER): 149597870691,
-  (LengthType.LIGHTYEAR, LengthType.METER): 9.460528405e15,
-  (LengthType.PARSEC, LengthType.METER): 3.0856778570831e16,
-  (LengthType.MIL, LengthType.METER): 0.0000254,
-  (LengthType.INCH, LengthType.METER): 0.0254,
-  (LengthType.FOOT, LengthType.METER): 0.3048,
-  (LengthType.YARD, LengthType.METER): 0.9144,
-  (LengthType.STATUTE_MILE, LengthType.METER): 1609.344,
-  (LengthType.NAUTICAL_MILE, LengthType.METER): 1852,
-}
+    rendered = ""
+    for exp, symbol in dimensions:
+      if exp == 0:
+        continue
+      elif exp == 1:
+        rendered += f" * {symbol}"
+      elif exp == -1:
+        rendered += f" / {symbol}"
+      elif exp < 0:
+        rendered += f" / {symbol}^{abs(exp)}"
+      else:
+        rendered += f" * {symbol}^{abs(exp)}"
 
-def length_conversion_factor(unit1:LengthType, unit2:LengthType) -> float:
-  if unit1 == unit2:
-    return 1.0
+    if self.scale == LogEnum.LOG10:
+      rendered += " (log10)"
+    elif self.scale == LogEnum.LOG2:
+      rendered += " (log2)"
+    elif self.scale == LogEnum.LN:
+      rendered += " (ln)"
 
-  u1_meters = LENGTH_CONVERSION_FACTORS[(unit1, LengthType.METER)]
-  u2_meters = LENGTH_CONVERSION_FACTORS[(unit2, LengthType.METER)]
+    if len(rendered) > 0:
+      rendered = rendered[3:] # strip first * or /
 
-  return u2_meters / u1_meters
+    prefix = SI_PREFIX.get(self.si_prefix, '?')
+    return f"{prefix}{rendered}"
 
-class AreaType(IntEnum):
-  UNKNOWN = 0
-  VOXEL = 1
-  ANGSTROM = 2
-  MIL = 3
-  INCH = 4
-  FOOT = 5
-  YARD = 6
-  METER = 7
-  STATUTE_MILE = 8
-  NAUTICAL_MILE = 9
-  ASTRONOMICAL_UNIT = 10
-  LIGHTYEAR = 11
-  PARSEC = 12
+  @classmethod
+  def from_bytes(kls, binary:bytes) -> "SIUnit":
+    return kls(
+      si_prefix=int.from_bytes(binary[0:1], 'little', signed=True),
+      amperes=int.from_bytes(binary[1:2], 'little', signed=True),
+      kelvin=int.from_bytes(binary[2:3], 'little', signed=True),
+      kilograms=int.from_bytes(binary[3:4], 'little', signed=True),
+      meters=int.from_bytes(binary[4:5], 'little', signed=True),
+      moles=int.from_bytes(binary[5:6], 'little', signed=True),
+      seconds=int.from_bytes(binary[6:7], 'little', signed=True),
+      scale=LogEnum(int.from_bytes(binary[7:8], 'little', signed=False)),
+    )
 
-AreaType.__str__ = lambda self: f"{LENGTH_SYMBOLS[self]}^2"
-
-class VolumeType(IntEnum):
-  UNKNOWN = 0
-  VOXEL = 1
-  ANGSTROM = 2
-  MIL = 3
-  INCH = 4
-  FOOT = 5
-  YARD = 6
-  METER = 7
-  STATUTE_MILE = 8
-  NAUTICAL_MILE = 9
-  ASTRONOMICAL_UNIT = 10
-  LIGHTYEAR = 11
-  PARSEC = 12
-  LITER = 13
-
-VOLUME_SYMBOLS = {**LENGTH_SYMBOLS, VolumeType.LITER: "L"}
-VolumeType.__str__ = lambda self: "L" if self == VolumeType.LITER else f"{LENGTH_SYMBOLS[self]}^3"
-
-class TemperatureType(IntEnum):
-  UNKNOWN = 0
-  CELSIUS = 1
-  FAHRENHEIT = 2
-  RANKINE = 3
-  KELVIN = 4
-
-TEMPERATURE_SYMBOLS = {
-  TemperatureType.UNKNOWN: "",
-  TemperatureType.CELSIUS: "°C",
-  TemperatureType.FAHRENHEIT: "°F",
-  TemperatureType.RANKINE: "°R",
-  TemperatureType.KELVIN: "K",
-}
-
-TemperatureType.__str__ = lambda self: TEMPERATURE_SYMBOLS[self]
-
-class TimeType(IntEnum):
-  UNKNOWN = 0
-  SECOND = 1
-  MINUTE = 2
-  HOUR = 3
-  DAY = 4
-  MONTH = 5
-  YEAR = 6
-  HERTZ = 7
-
-TIME_SYMBOLS = {
-  TimeType.UNKNOWN: "",
-  TimeType.SECOND: "s",
-  TimeType.MINUTE: "min",
-  TimeType.HOUR: "h",
-  TimeType.DAY: "d",
-  TimeType.MONTH: "mo",
-  TimeType.YEAR: "y",
-  TimeType.HERTZ: "Hz",
-}
-
-TimeType.__str__ = lambda self: TIME_SYMBOLS[self]
-
-class LuminosityType(IntEnum):
-  UNKNOWN = 0
-  CANDELA = 1
-  LUMEN = 2
-  LUX = 3
-  PHOTON = 4
-  PHOTONS_PER_SECOND = 5
-
-LUMINOSITY_SYMBOLS = {
-  LuminosityType.UNKNOWN: "",
-  LuminosityType.CANDELA: "cd",
-  LuminosityType.LUMEN: "lm",
-  LuminosityType.LUX: "lx",
-  LuminosityType.PHOTON: "photons",
-  LuminosityType.PHOTONS_PER_SECOND: "pps",
-}
-
-LuminosityType.__str__ = lambda self: LUMINOSITY_SYMBOLS[self]
-
-
-class ElectricalType(IntEnum):
-  UNKNOWN = 0
-  VOLT = 1
-  AMPERE = 2
-  OHM = 3
-  SIEMEN = 4
-  FARAD = 5
-  HENRY = 6
-  COULOMB = 7
-
-ELECTRICAL_SYMBOLS = {
-  ElectricalType.UNKNOWN: "",
-  ElectricalType.VOLT: "V",
-  ElectricalType.AMPERE: "A",
-  ElectricalType.OHM: "Ω",
-  ElectricalType.SIEMEN: "S",
-  ElectricalType.FARAD: "F",
-  ElectricalType.HENRY: "H",
-  ElectricalType.COULOMB: "C",
-}
-
-ElectricalType.__str__ = lambda self: ELECTRICAL_SYMBOLS[self]
-
-class MassType(IntEnum):
-  UNKNOWN = 0
-  GRAM = 1
-  DALTON = 2
-
-MASS_SYMBOLS = {
-  MassType.UNKNOWN: "",
-  MassType.GRAM: "g",
-  MassType.DALTON: "da",
-}
-
-MassType.__str__ = lambda self: MASS_SYMBOLS[self]
-
-class SubstanceAmount(IntEnum):
-  UNKNOWN = 0
-  MOLE = 1
-
-SUBSTANCE_AMOUNT_SYMBOLS = {
-  SubstanceAmount.UNKNOWN: "",
-  SubstanceAmount.MOLE: "mol",
-}
-
-SubstanceAmount.__str__ = lambda self: SUBSTANCE_AMOUNT_SYMBOLS[self]
-
-class EnergyType(IntEnum):
-  UNKNOWN = 0
-  JOULE = 1
-  WATT = 2
-
-ENERGY_SYMBOLS = {
-  EnergyType.UNKNOWN: "",
-  EnergyType.JOULE: "J",
-  EnergyType.WATT: "W",
-}
-
-EnergyType.__str__ = lambda self: ENERGY_SYMBOLS[self]
+  def to_bytes(self) -> bytes:
+    return b''.join([
+      int(self.si_prefix).to_bytes(1, 'little', signed=True),
+      int(self.amperes).to_bytes(1, 'little', signed=True),
+      int(self.kelvin).to_bytes(1, 'little', signed=True),
+      int(self.kilograms).to_bytes(1, 'little', signed=True),
+      int(self.meters).to_bytes(1, 'little', signed=True),
+      int(self.moles).to_bytes(1, 'little', signed=True),
+      int(self.seconds).to_bytes(1, 'little', signed=True),
+      int(self.scale).to_bytes(1, 'little'),
+    ])
 
 class CompressionType(IntEnum):
   NONE = 0
@@ -345,190 +205,226 @@ SPACE_SYMBOLS = {
 
 SpaceType.__str__ = lambda self: SPACE_SYMBOLS[self]
 
-class AxisPermutationType(IntEnum):
-  XYZ = 0
-  XZY = 1
-  YXZ = 2
-  YZX = 3
-  ZXY = 4
-  ZYX = 5
-  XY = 6
-  YX = 7
-
 @dataclass
 class CoordinateFrame:
-  sign_x:bool
-  sign_y:bool
-  sign_z:bool
-  permutation:AxisPermutationType
+  signs:list[bool]
+  lehmer_code:int
+  num_space_like:int
+  voxel_centered:bool
+
+  @classmethod
+  def from_bytes(kls, binary:bytes) -> "CoordinateFrame":
+    if len(binary) != 4:
+        raise ValueError(f"Expected 4 bytes, got {len(binary)}")
+
+    # B = unsigned char
+    header, sign_bits, lehmer_lo, lehmer_hi = struct.unpack('BBBB', binary)
+    lehmer_code = lehmer_lo | (lehmer_hi << 8)
+
+    n_axes = (header & 0b111) + 1
+    num_space_like = (header >> 3) & 0b111
+    voxel_centered = bool((header >> 6) & 1)
+    # reserved bit (header >> 7) is ignored
+
+    signs = []
+    for i in range(n_axes):
+        signs.append(bool((sign_bits >> i) & 1))
+
+    return kls(
+      signs=signs,
+      lehmer_code=lehmer_code,
+      num_space_like=num_space_like,
+      voxel_centered=voxel_centered,
+    )
+
+  def to_bytes(self) -> bytes:
+    n_axes = len(self.signs)
+    if n_axes > 8:
+        raise ValueError("Supports up to 8 axes")
+
+    header = ((n_axes - 1) & 0b111)          # 3 bits for axes
+    header |= ((self.num_space_like & 0b111) << 3)  # next 3 bits for space-like
+    header |= ((int(self.voxel_centered) & 1) << 6) # bit 6: voxel_centered
+    # bit 7 reserved as 0
+
+    sign_bits = 0
+    for i, s in enumerate(self.signs):
+        if s:
+            sign_bits |= (1 << i)
+
+    # pack Lehmer code as 2 bytes (assuming <= 8 axes, max 8! = 40320 fits in 2 bytes)
+    lehmer_bytes = struct.pack('<H', self.lehmer_code) # H = unsigned short
+
+    # B = unsigned char
+    return struct.pack('BB', header, sign_bits) + lehmer_bytes
+
+  @classmethod
+  def rank_permutation(kls, permutation:list[int]) -> int:
+    """Convert an axis permutation to an index."""
+    axes = list(range(len(permutation)))
+    n = len(axes)
+    rank = 0
+
+    for i in range(n):
+        idx = axes.index(permutation[i])
+        rank += idx * math.factorial(n - i - 1)
+        axes.pop(idx)
+
+    return rank
+
+  @classmethod
+  def unrank_permutation(kls, num_axes:int, k:int) -> list[int]:
+    """Convert an index into an axis permutation for a given number of axes."""
+    axes = list(range(num_axes))
+    perm = []
+
+    for i in range(num_axes, 0, -1):
+        f = math.factorial(i - 1)
+        idx = k // f
+        k %= f
+        perm.append(axes.pop(idx))
+
+    return perm
 
   def __str__(self) -> str:
     def sgn(x):
       return "+" if not x else "-"
 
-    signs = {
-      'X': sgn(self.sign_x),
-      'Y': sgn(self.sign_y),
-      'Z': sgn(self.sign_z),
-    }
+    signs = [ sgn(x) for x in self.signs ]
+    axes = self.unrank_permutation(len(signs), self.lehmer_code)
 
-    axes = FROM_AXIS_PERMUTATION[self.permutation]
+    if self.num_space_like == 1:
+      convention = [ 'X', 'T', '2', '3', '4', '5', '6', '7' ]
+    elif self.num_space_like == 2:
+      convention = [ 'X', 'Y', 'T', '3', '4', '5', '6', '7' ]  
+    else:
+      convention = [ 'X', 'Y', 'Z', 'T', '4', '5', '6', '7' ]
+
     out = ""
     for i in range(len(axes)):
-      out += f"{signs[axes[i]]}{axes[i]}"
+      out += f"{signs[axes[i]]}{convention[axes[i]]}"
     return out
 
   @classmethod
-  def parse(kls, orientation:str) -> "CoordinateFrame":
+  def parse(kls, orientation:str, voxel_centered:bool) -> "CoordinateFrame":
     if len(orientation) > 6:
       raise ValueError(f"Unable to parse orientation: {orientation[:100]}")
 
     orientation = orientation.upper()
     normalized = orientation.replace('+', '').replace('-', '')
 
-    if not (2 <= len(normalized) <= 3):
+    if not (1 <= len(normalized) <= 8):
       raise ValueError(f"Unable to parse orientation: {normalized}")
 
     POSITIVE = 0
     NEGATIVE = 1
 
-    signs = [ POSITIVE, POSITIVE, POSITIVE ]
-    mapping = { "X": 0, "Y": 1, "Z": 2 }
+    signs = [ POSITIVE, POSITIVE, POSITIVE, POSITIVE ]
+    mapping = { 
+      "X": 0, "Y": 1, "Z": 2, "T": 3, 
+      "0": 0, "1": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7 
+    }
+
+    space_like = {'X', 'Y', 'Z'}
+    num_space_like = 0
 
     for i in range(len(orientation) - 1):
       if orientation[i] == "-":
         signs[mapping[orientation[i+1]]] = NEGATIVE
 
-    permutation = TO_AXIS_PERMUTATION[normalized]
+    code = kls.rank_permutation([ mapping[axis] for axis in normalized ])
 
-    return CoordinateFrame(*signs, permutation)
+    for axis in normalized:
+      num_space_like += int(axis in space_like)
+
+    return kls(
+      signs=signs, 
+      lehmer_code=code, 
+      num_space_like=num_space_like,
+      voxel_centered=voxel_centered,
+    )
 
   def __eq__(self, other) -> bool:
     if isinstance(other, str):
       return str(self) == other.upper()
 
     return (
-      self.sign_x == other.sign_x and
-      self.sign_y == other.sign_y and
-      self.sign_z == other.sign_z and
-      self.permutation == other.permutation
+      self.signs == other.signs and
+      self.lehmer_code == other.lehmer_code
     )
 
+TRANSLATE_UNIT = {
+  # LENGTH
+  "vx": SIUnit(),
+  "voxel": SIUnit(),
+  
+  "fm": SIUnit(si_prefix=-15, meters=1),
+  "femtometer": SIUnit(si_prefix=-5, meters=1),
+  
+  "pm": SIUnit(si_prefix=-12, meters=1),
+  "picometer": SIUnit(si_prefix=-4, meters=1),
+  
+  "nm": SIUnit(si_prefix=-9, meters=1),
+  "nanometer": SIUnit(si_prefix=-9, meters=1),
+  
+  "um": SIUnit(si_prefix=-6, meters=1),
+  "micrometer": SIUnit(si_prefix=-6, meters=1),
+  "micron": SIUnit(si_prefix=-6, meters=1),
+  
+  "mm": SIUnit(si_prefix=-3, meters=1),
+  "millimeter": SIUnit(si_prefix=-3, meters=1),
 
-class AttributeType(IntEnum):
-  VERTEX = 0
-  EDGE = 1
+  "cm": SIUnit(si_prefix=-2, meters=1),
+  "centimeter": SIUnit(si_prefix=-2, meters=1),
 
-TO_AXIS_PERMUTATION = {
-  'XYZ': AxisPermutationType.XYZ,
-  'XZY': AxisPermutationType.XZY,
-  'YXZ': AxisPermutationType.YXZ,
-  'YZX': AxisPermutationType.YZX,
-  'ZXY': AxisPermutationType.ZXY,
-  'ZYX': AxisPermutationType.ZYX,
-  'XY': AxisPermutationType.XY,
-  'YX': AxisPermutationType.YX,
+  "m": SIUnit(si_prefix=0, meters=1),
+  "meter": SIUnit(si_prefix=0, meters=1),
+  
+  "km": SIUnit(si_prefix=3, meters=1),
+  "kilometer": SIUnit(si_prefix=3, meters=1),
+
+  "Mm": SIUnit(si_prefix=6, meters=1),
+
+  # Area
+  "fm^2": SIUnit(si_prefix=-15, meters=2),
+  "pm^2": SIUnit(si_prefix=-12, meters=2),
+  "nm^2": SIUnit(si_prefix=-9, meters=2),  
+  "um^2": SIUnit(si_prefix=-6, meters=2),  
+  "mm^2": SIUnit(si_prefix=-3, meters=2),
+  "cm^2": SIUnit(si_prefix=-2, meters=2),
+  "m^2": SIUnit(si_prefix=0, meters=2),  
+  "km^2": SIUnit(si_prefix=3, meters=2),
+  "Mm^2": SIUnit(si_prefix=6, meters=2),
+
+  # VOLUME
+  "cc": SIUnit(si_prefix=-6, meters=3), # cubic centimeter
+  "ccm": SIUnit(si_prefix=-6, meters=3), # cubic centimeter
+  "mL": SIUnit(si_prefix=-6, meters=3),
+  "milliliters": SIUnit(si_prefix=-6, meters=3),
+  
+  "L": SIUnit(si_prefix=-3, meters=3),
+  "liters": SIUnit(si_prefix=-3, meters=3),
+
+  # MASS
+  "ug": SIUnit(si_prefix=-9, kilograms=1),
+  "micrograms": SIUnit(si_prefix=-9, kilograms=1),
+
+  "mg": SIUnit(si_prefix=-6, kilograms=1),
+  "milligrams": SIUnit(si_prefix=-6, kilograms=1),
+  
+  "g": SIUnit(si_prefix=-3, kilograms=1),
+  "grams": SIUnit(si_prefix=-3, kilograms=1),
+  
+  "kg": SIUnit(si_prefix=0, kilograms=1),
+  "kilograms": SIUnit(si_prefix=0, kilograms=1),
+
+  # FORCE
+  "N": SIUnit(kilograms=1, meters=1, seconds=-2), # newtons
+
+  # ENERGY
+  "J": SIUnit(kilograms=1, meters=2, seconds=-2), # joules
+
+  "mW": SIUnit(si_prefix=-3, kilograms=1, meters=2, seconds=-3), 
+  "W": SIUnit(kilograms=1, meters=2, seconds=-3), # watts
 }
-FROM_AXIS_PERMUTATION = {
-  v:k for k,v in TO_AXIS_PERMUTATION.items()
-}
-
-TO_DATATYPE = {
-  np.float16: DataType.F16,
-  np.float32: DataType.F32,
-  np.float64: DataType.F64,
-  np.uint8: DataType.U8,
-  np.uint16: DataType.U16,
-  np.uint32: DataType.U32,
-  np.uint64: DataType.U64,
-  np.int8: DataType.I8,
-  np.int16: DataType.I16,
-  np.int32: DataType.I32,
-  np.int64: DataType.I64,
-  np.bool_: DataType.BOOL,
-
-}
-FROM_DATATYPE = { v:k for k,v in TO_DATATYPE.items() }
-
-class DimensionlessType(IntEnum):
-  UNKNOWN = 0
-
-TO_QUANTITY_TYPE = {
-  0: AreaType,
-  1: DimensionlessType,
-  2: ElectricalType,
-  3: EnergyType,
-  4: LengthType,
-  5: LuminosityType,
-  6: MassType,
-  7: SubstanceAmount,
-  8: TemperatureType,
-  9: TimeType,
-  10: VolumeType,
-}
-FROM_QUANTITY_TYPE = { v:k for k,v in TO_QUANTITY_TYPE.items() }
-
-TO_LENGTH_UNIT = {
-  "vx": PhysicalUnit(SIPrefixType.NONE, LengthType.VOXEL),
-  "voxel": PhysicalUnit(SIPrefixType.NONE, LengthType.VOXEL),
-
-  "A": PhysicalUnit(SIPrefixType.NONE, LengthType.ANGSTROM),
-  "angstrom": PhysicalUnit(SIPrefixType.NONE, LengthType.ANGSTROM),
-  
-  "fm": PhysicalUnit(SIPrefixType.FEMTO, LengthType.METER),
-  "femtometer": PhysicalUnit(SIPrefixType.FEMTO, LengthType.METER),
-  
-  "pm": PhysicalUnit(SIPrefixType.PICO, LengthType.METER),
-  "picometer": PhysicalUnit(SIPrefixType.PICO, LengthType.METER),
-  
-  "nm": PhysicalUnit(SIPrefixType.NANO, LengthType.METER),
-  "nanometer": PhysicalUnit(SIPrefixType.NANO, LengthType.METER),
-  
-  "um": PhysicalUnit(SIPrefixType.MICRO, LengthType.METER),
-  "micrometer": PhysicalUnit(SIPrefixType.MICRO, LengthType.METER),
-  "micron": PhysicalUnit(SIPrefixType.MICRO, LengthType.METER),
-  
-  "mm": PhysicalUnit(SIPrefixType.MILLI, LengthType.METER),
-  "millimeter": PhysicalUnit(SIPrefixType.MILLI, LengthType.METER),
-
-  "cm": PhysicalUnit(SIPrefixType.CENTI, LengthType.METER),
-  "centimeter": PhysicalUnit(SIPrefixType.CENTI, LengthType.METER),
-  
-  "m": PhysicalUnit(SIPrefixType.NONE, LengthType.METER),
-  "meter": PhysicalUnit(SIPrefixType.NONE, LengthType.METER),
-  
-  "km": PhysicalUnit(SIPrefixType.KILO, LengthType.METER),
-  "kilometer": PhysicalUnit(SIPrefixType.KILO, LengthType.METER),
-
-  "Mm": PhysicalUnit(SIPrefixType.MEGA, LengthType.METER),
-  
-  "ly": PhysicalUnit(SIPrefixType.NONE, LengthType.LIGHTYEAR),
-  "lightyear": PhysicalUnit(SIPrefixType.NONE, LengthType.LIGHTYEAR),
-
-  "pc": PhysicalUnit(SIPrefixType.NONE, LengthType.PARSEC),
-  "parsec": PhysicalUnit(SIPrefixType.NONE, LengthType.PARSEC),
-
-  "mil": PhysicalUnit(SIPrefixType.NONE, LengthType.MIL),
-  
-  "in": PhysicalUnit(SIPrefixType.NONE, LengthType.INCH),
-  "inch": PhysicalUnit(SIPrefixType.NONE, LengthType.INCH),
-  "inches": PhysicalUnit(SIPrefixType.NONE, LengthType.INCH),
-  
-  "ft": PhysicalUnit(SIPrefixType.NONE, LengthType.FOOT),
-  "foot": PhysicalUnit(SIPrefixType.NONE, LengthType.FOOT),
-  "feet": PhysicalUnit(SIPrefixType.NONE, LengthType.FOOT),
-
-  "yd": PhysicalUnit(SIPrefixType.NONE, LengthType.YARD),
-  "yard": PhysicalUnit(SIPrefixType.NONE, LengthType.YARD),
-  
-  "mi": PhysicalUnit(SIPrefixType.NONE, LengthType.STATUTE_MILE),
-  "mile": PhysicalUnit(SIPrefixType.NONE, LengthType.STATUTE_MILE),
-  
-  "nmi": PhysicalUnit(SIPrefixType.NONE, LengthType.NAUTICAL_MILE),
-}
-FROM_LENGTH_UNIT = {
-  v:k for k,v in TO_LENGTH_UNIT.items()
-}
-
-
 

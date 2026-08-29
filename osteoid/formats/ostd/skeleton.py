@@ -26,18 +26,11 @@ from .types import (
   AttributeType,
   CompressionType, 
   GraphType,
-  LengthType,
-  PhysicalUnit,
-  SIPrefixType,
+  SIUnit,
   SpaceType,
-  length_conversion_factor,
   TO_DATATYPE,
-  SI_PREFIX_VALUE,
-  TO_LENGTH_UNIT,
-  FROM_LENGTH_UNIT,
+  TRANSLATE_UNIT,
 )
-
-from .spatial_index import OstdSpatialIndex
 
 def check_crc32c(binary:bytes, stored_crc:int):
     computed_crc = lib.crc32c(binary)    
@@ -52,9 +45,8 @@ class OstdSkeletonPart:
   vertices:npt.NDArray[np.generic]
   edges:npt.NDArray[np.unsignedinteger]
   spaces:Optional[OstdTransformSection] = None
-  spatial_index:Optional[OstdSpatialIndex] = None
   attributes:Optional[
-    OrderedDict[str,tuple[PhysicalUnit, npt.NDArray[np.generic]]]
+    OrderedDict[str,tuple[SIUnit, npt.NDArray[np.generic]]]
   ] = None
 
   def _encode_vertices(self, vertices:np.ndarray) -> bytes:
@@ -162,10 +154,6 @@ class OstdSkeletonPart:
       transform_binary = self.spaces.to_bytes()
       self.header.has_transform = True
 
-    spatial_index_binary = b''
-    if self.header.spatial_index_bytes > 0:
-      spatial_index_binary = self.spatial_index.to_bytes()
-
     self.header.attribute_header_bytes = 0
     attributes_header_binary = b''
     if self.attributes is not None and len(self.attributes) > 0:
@@ -190,7 +178,6 @@ class OstdSkeletonPart:
     self.header.total_bytes = (
       OstdHeader.HEADER_BYTES +
       len(transform_binary) +  
-      self.header.spatial_index_bytes +
       self.header.vertex_bytes + 
       self.header.edge_bytes + 
       len(attributes_binary)
@@ -199,7 +186,6 @@ class OstdSkeletonPart:
     return b''.join([
       self.header.to_bytes(),
       transform_binary,
-      spatial_index_binary,
       vertex_binary,
       edge_binary,
       attributes_binary,
@@ -315,7 +301,7 @@ class OstdSkeletonPart:
   def unit(self):
     return self.get_space_unit(self.header.space)
 
-  def get_space_unit(self, idx:int) -> PhysicalUnit:
+  def get_space_unit(self, idx:int) -> SIUnit:
     if idx == 0:
       return self.header.length_unit
     return self.spaces.spaces[idx-1].unit
@@ -394,11 +380,6 @@ class OstdSkeletonPart:
     else:
       spaces = OstdTransformSection([])
       off += 0
-
-    spatial_index = None
-    off += 0
-    if header.spatial_index_bytes > 0:
-      raise ValueError("Spatial index not implemented.")
 
     if header.edge_compression != CompressionType.NONE:
       raise ValueError(f"Compression not yet supported.")
@@ -490,8 +471,8 @@ class OstdSkeleton:
     return [ np.eye(4, dtype=np.float32) ] + [ space.transform for space in self.parts[0].spaces.spaces ]
 
   @property
-  def coordinate_frame_orientation(self):
-    return self.parts[0].header.coordinate_frame_orientation
+  def coordinate_frame(self):
+    return self.parts[0].header.coordinate_frame
 
   @property
   def voxel_centered(self):
@@ -545,9 +526,9 @@ class OstdSkeleton:
     ]
 
   @property
-  def unit(self) -> PhysicalUnit:
+  def unit(self) -> SIUnit:
     if len(self.parts) == 0:
-      return PhysicalUnit(SIPrefixType.NONE, LengthType.VOXEL)
+      return SIUnit()
     return self.parts[0].get_space_unit(self.parts[0].header.space)
 
   @property
@@ -557,9 +538,6 @@ class OstdSkeleton:
   @property
   def cable_length(self) -> float:
     master_unit = self.parts[0].unit
-    master_si_unit, master_base_unit = master_unit.tuple()
-    master_si_value = SI_PREFIX_VALUE[master_si_unit]
-
     master_space_type = self.parts[0].current_space_type()
 
     physical_length = 0
@@ -572,19 +550,14 @@ class OstdSkeleton:
         physical_length += part_length
         continue
 
-      si_unit, base_unit = part.unit.tuple()
-      si_conversion = (master_si_value / SI_PREFIX_VALUE[si_unit])
-      base_conversion = length_conversion_factor(base_unit, master_base_unit)
-      physical_length += part_length * (si_conversion * base_conversion)
+      conversion = 1000 ** (master_unit.si_prefix - part.unit.si_prefix)
+      physical_length += part_length * conversion
 
     return physical_length
 
   @property
   def vertices(self) -> npt.NDArray[Any]:
     master_unit = self.parts[0].unit
-    master_si_prefix, master_base_unit = self.parts[0].unit.tuple()
-    master_si_value = SI_PREFIX_VALUE[master_si_prefix]
-
     master_space_type = self.parts[0].current_space_type()
 
     verts = []
@@ -594,10 +567,11 @@ class OstdSkeleton:
         verts.append(part.vertices)
         continue
 
-      si_prefix, base_unit = part.unit.tuple()
-      factor = (master_si_value / SI_PREFIX_VALUE[si_prefix])
+      # si_prefix, base_unit = part.unit.tuple()
+      # factor = (master_si_value / SI_PREFIX_VALUE[si_prefix])
 
-      factor *= length_conversion_factor(base_unit, master_base_unit)
+      # factor *= length_conversion_factor(base_unit, master_base_unit)
+      factor = 1000 ** (master_unit.si_prefix - part.unit.si_prefix)
       if np.issubdtype(part.vertices.dtype, np.floating):
         verts.append(
           part.vertices * factor
@@ -650,11 +624,11 @@ class OstdSkeleton:
     vertices:npt.NDArray[np.generic], 
     edges:npt.NDArray[np.unsignedinteger],
     length_unit:str = "nm",
-    space_type:SpaceType = SpaceType.GENERIC,
+    space_type:SpaceType = SpaceType.UNKNOWN,
     id:Optional[int] = None,
     space:int = 0,
     spaces:list = [],
-    coordinate_frame_orientation:str = "+X+Y+Z",
+    coordinate_frame:str = "+X+Y+Z",
     voxel_centered:bool = True,
     attributes:dict[str,npt.NDArray[np.generic]] = {},
     vertex_compression:Optional[str] = None,
@@ -670,12 +644,12 @@ class OstdSkeleton:
     header = OstdHeader(
       Nv = Nv,
       Ne = edges.shape[0],
-      coordinate_frame_orientation = coordinate_frame_orientation,
+      coordinate_frame = coordinate_frame,
       edge_data_type = TO_DATATYPE[np.dtype(edge_dtype).type],
       edge_compression = CompressionType.NONE,
       has_transform = False,
       id = id,
-      length_unit = TO_LENGTH_UNIT[length_unit.lower()],
+      length_unit = TRANSLATE_UNIT[length_unit.lower()],
       num_axes = vertices.shape[1],
       space=int(space),
       space_type=space_type,
@@ -687,7 +661,7 @@ class OstdSkeleton:
     spaces = OstdTransformSection([
         OstdTransform(unit=transform[0], space=transform[1], transform=transform[2])
         if isinstance(transform, tuple)
-        else OstdTransform(space=SpaceType.GENERIC, transform=transform)
+        else OstdTransform(space=SpaceType.UNKNOWN, transform=transform)
       for transform in spaces
     ])
 

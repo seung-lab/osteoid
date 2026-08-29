@@ -72,7 +72,8 @@ All values throughout this specification are little endian except where noted. T
 | total_bytes            | 8     | u64         | -                           | Total byte size of this part.                                                             |
 | id                     | 8     | u64         | -                           |                                    |
 | flags                  | 8     | bitfield    | -                           | See note below for definitions.    |
-| dimension_flags        | 4     | bitfield    | -                           | See note below for definitions.    |
+| coordinate_frame       | 4     | bitfield    | -                           | See note below for definitions.    |
+| current_space          | 1     | u8          | 0                           | The current transform space the vertices are in. By default 0. Every +1 means selecting the next transform from the transform list. See *Transform* | 
 | num_vertices (Nv)      | 8     | u64         | -                           | Number of vertices                                                                        |
 | num_edges (Ne)         | 8     | u64         | -                           | Number of edges                                                                           |
 units specified in flags.  |
@@ -81,14 +82,13 @@ units specified in flags.  |
 | attribute_header_bytes | 4     | u32         | -                           | Content length in bytes of the attribute header.                                                         |
 | num_components         | 4     | u32         | N or (2^32-1 if unknown)    | Number of connected components in the skeleton graph. max value of uint32 is a sentinel for unknown.              |
 | cable_length           | 4     | f32         | -                           | Physical path length of this object in SI prefixed meters (See flags for SI prefix). This quantity should always be set, but if it is not set, it should be NaN.                           | 
-| current_space          | 1     | u8          | 0                           | The current transform space the vertices are in. By default 0. Every +1 means selecting the next transform from the transform list. See *Transform* | 
 | crc16                  | 2     | uint16      | -                           | crc16 using 0xFFFF init and implicit polynomial 0xd175 of header bytes excluding magic number.                    |
 
 ### Flag Definitions
 
 The least significant bit is on the left.
 
-`VVVVeeeeCCCCccccppppGGGssssstiR*`
+`VVVVeeeeCCCCccccddddDDGGGssssstR*`
 
 | Flag   | Meaning                            | Notes                                         |
 | ------ | ---------------------------------- | --------------------------------------------- |
@@ -97,10 +97,10 @@ The least significant bit is on the left.
 | **C**  | Compression algorithm for vertices | See *Compression Type*                        |
 | **c**  | Compression algorithm for edges    | See *Compression Type*                        |
 | **G**  | Graph structure (advisory)         | See *Graph Type*.                             |
-| **p**  | SI Prefix                          | signed 10^(X*3) where X is the value          |
+| **d**  | SI Prefix                          | signed 10^(X*3) where X is the value          |
+| **D**  | Scaling                            | 0: linear 1: log10 2: log2 3: ln              |
 | **s**  | Default Space Type                 | Can specify what the default space (0) means. |
 | **t**  | Transforms present                 | bool                                          |
-| **i**  | Spatial index present.             | bool                                          |
 | **R**  | RESERVED                           | From this point forward                       |
 
 ## Dimension Flag Definitions
@@ -133,8 +133,9 @@ The default space (0) is set in the header. Transforms listed below should be wr
 | Field                  | Bytes | Datatype    | Value                       | Description                                                                                                       |
 |------------------------|-------|-------------|-----------------------------|-------------------------------------------------------------------------------------------------------------------|
 | num_spaces             | 1     | uint8       | -                           | Number of transformations available. matrices.                  |
-| units                  | 4     | tuple       | See physical units.         | The physical unit this transform maps to. |
+
 | space                  | 1     | uint8       | -                           | The kind of space the transform represents. See *Space Type* |
+| units                  | 8     | tuple       | See physical units.         | The physical unit this transform maps to. |
 | transform              | 64    | 4x4 f32s    | [ f32, f32, f32, f32, ... ] | Homogenous transform matrix from voxel to physical coordinates. Written in row major (C) order little endian.                   |
 | crc16                  | 2     | uint16      | -                          | 16-bit CRC using 0xFF init and 0xd175 implicit polynomial                  |
 
@@ -369,7 +370,7 @@ For example, Joules can be expressed as W = ma x d or kg * m^2/s^2, Watts as kg 
 
 Since this is designed for biological use cases, the candela which is based in human perception of light is less useful, so we reserve those bits for future use (e.g. one can imagine using them for signaling the use of US customary units).
 
-Therefore, for attributes, we encode the dimensions as a uint32 that represents the following structure:
+Therefore, for attributes, we encode the dimensions as a uint64 that represents the following structure:
 
 | Field           | Data Type        | Description                           |
 |-----------------|------------------|-------------------------------------- |
@@ -380,11 +381,28 @@ Therefore, for attributes, we encode the dimensions as a uint32 that represents 
 | mols            | int8             | mol^x                                 |
 | seconds         | int8             | s^x                                   |
 | SI Prefix       | int8             | signed 10^(X*3) where X is the value  |
-| Scaling         | uint8            | 00: linear, 01: log10, 10: log2, 11: ln |
+| Scaling         | uint8            | 0: linear, 1: log10, 2: log2, 3: ln   |
 
-The SI prefix is applied to the linear scaled figure and then the logarithm is applied if applicable.
+This allows you to specify an arbitrary SI derived unit as follows. The SI prefix is applied to the linear scaled figure and then the logarithm is applied if applicable.
 
 All signed values are written in 2's complement. The field components are stored little endian as is the field as a whole.
+
+For example, let's demonstrate km/s^2 as an acceleration value.
+
+| Field           | Value            | Description                           |
+|-----------------|------------------|-------------------------------------- |
+| amperes         | 0                | A^x                                   |
+| kelvin          | 0                | K^x                                   |
+| kilograms       | 0                | kg^x                                  |
+| meters          | 1                | m^x                                   |
+| mols            | 0                | mol^x                                 |
+| seconds         | -2               | s^x                                   |
+| SI Prefix       | 1                | signed 10^(X*3) where X is the value  |
+| Scaling         | 0                | 00: linear, 01: log10, 10: log2, 11: ln |
+
+This means SI Prefix kilo (10^(1 * 3) = 1000), seconds -2 = 1/s^2, meters 1 = m. 0 scaling means the value should be read as linear.
+
+kilo(m * 1/s^2) = km/s^2, an acceleration value
 
 ### Graph Type
 
