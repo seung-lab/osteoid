@@ -1028,8 +1028,7 @@ class Skeleton:
     """
     from .formats.ostd import OstdSkeleton
     from .formats.ostd.types import (
-      TRANSLATE_UNIT, SIPrefixType, 
-      SIUnit, SpaceType,
+      TRANSLATE_UNIT, SIUnit, SpaceType,
     )
     transform = self.transform
     bottom = np.zeros((1, 4), dtype=transform.dtype)
@@ -1069,7 +1068,7 @@ class Skeleton:
       space_type = SpaceType.VOXEL
       vertices = self.voxel_space().vertices
 
-    return formats.ostd.OstdSkeleton.create(
+    return OstdSkeleton.create(
       id=self.id,
       vertices=vertices,
       edges=self.edges,

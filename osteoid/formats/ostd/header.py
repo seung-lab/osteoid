@@ -88,8 +88,7 @@ class OstdHeader:
     self.format_version = format_version
 
     if id is None:
-      self.id = uuid.uuid4().bytes
-      self.id = int.from_bytes(self.id, 'little')
+      self.id = 0
     elif isinstance(id, (bytes, bytearray)):
       self.id = int.from_bytes(id, 'little')
     else:
