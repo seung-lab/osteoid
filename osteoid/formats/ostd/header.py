@@ -407,7 +407,7 @@ class OstdAttribute:
 
   @classmethod
   def num_bytes(kls, name_width:int) -> int:
-    return name_width + 13
+    return name_width + 19
 
   def to_bytes(self, name_width:int):
     if self.num_components >= 16:
