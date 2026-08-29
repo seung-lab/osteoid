@@ -417,12 +417,11 @@ class OstdAttribute:
     name = bytearray(name_width)
     name[:len(self.name)] = self.name.encode('utf8')
     flags = self.encode_flags()
-    units = self.encode_units()
-
+    
     return b''.join([ 
       name, 
       flags.tobytes(),
-      units.tobytes(),
+      self.unit.to_bytes(),
       int(self.num_components).to_bytes(1, 'little'),
       int(self.content_length).to_bytes(8, 'little'),
     ])

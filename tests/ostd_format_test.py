@@ -177,18 +177,26 @@ def test_serialization_roundtrip2():
         [2, 10],  # side branch D
     ], dtype=np.uint64)
 
+    radii = np.array([ float(i) for i in range(vertices.shape[0]) ], dtype=np.float32)
+
     skel = OstdSkeleton.create(
         vertices, edges,
         id=42,
         coordinate_frame="+X+Y+Z",
         voxel_centered=True,
+        attributes={
+            "radii": ('nm', radii),
+        },
     )
 
     data = skel.to_bytes()
     restored = OstdSkeleton.from_bytes(data)
+
+    radii1 = skel.get_attribute_value("radii")
+    radii2 = restored.get_attribute_value("radii")
     
-    skel = Skeleton(skel.vertices, skel.edges, default_attributes=False)
-    restored = Skeleton(restored.vertices, restored.edges, default_attributes=False)
+    skel = Skeleton(skel.vertices, skel.edges, radii1, default_attributes=False)
+    restored = Skeleton(restored.vertices, restored.edges, radii2, default_attributes=False)
 
     assert Skeleton.equivalent(skel, restored)
 

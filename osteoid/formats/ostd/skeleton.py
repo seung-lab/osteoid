@@ -520,10 +520,16 @@ class OstdSkeleton:
 
   @property
   def attributes(self) -> list[OstdAttribute]:
-    return [ 
-      (name, str(unit))
+    return {
+      name: (unit, arr)
       for name, (unit, arr) in self.parts[0].attributes.items()
-    ]
+    }
+
+  def get_attribute_unit(self, key:str) -> SIUnit:
+     return self.parts[0].attributes.get(key, (None,None))[0]
+
+  def get_attribute_value(self, key:str) -> np.ndarray:
+     return self.parts[0].attributes.get(key, (None,None))[1]
 
   @property
   def unit(self) -> SIUnit:
@@ -664,6 +670,11 @@ class OstdSkeleton:
         else OstdTransform(space=SpaceType.UNKNOWN, transform=transform)
       for transform in spaces
     ])
+
+    for attr_name, attr_value in attributes.items():
+      if isinstance(attr_value, tuple):
+        if isinstance(attr_value[0], str):
+          attributes[attr_name] = (TRANSLATE_UNIT[attr_value[0]], attr_value[1])
 
     return OstdSkeleton([  
       OstdSkeletonPart(
