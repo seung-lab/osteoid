@@ -34,7 +34,8 @@ ostd takes ideas from Precomputed, SWC, Trk, and other formats to compactly repr
 ## File Structure
 
 An ostd skeleton file can be composed of multiple parts that have an identical structure in order to allow appending vertices and edges to an existing file.
-The key difference with an appended section is that its edge list is numbered such that it includes vertices in the preceeding sections.
+
+Each part should have its edges numbered such that they reference the vertices within its section. If there are vertices that appear in both sections, simply duplicate the vertex in both parts. For single-part ostd files, num_components and is precise. for multi-part files, which may contain duplicated vertices, the sum of num_components across parts is an upper bound. cable length sums remain accurate.
 
 ### Individual Part Structure
 
@@ -172,7 +173,7 @@ The default space (0) is set in the header. Transforms listed below should be wr
 | space                  | 1     | uint8       | -                           | The kind of space the transform represents. See *Space Type* |
 | units                  | 8     | tuple       | See physical units.         | The physical unit this transform maps to. |
 | transform              | 64    | 4x4 f32s    | [ f32, f32, f32, f32, ... ] | Homogenous transform matrix from voxel to physical coordinates. Written in row major (C) order little endian.                   |
-| crc16                  | 2     | uint16      | -                          | 16-bit CRC using 0xFFFF init and 0xd175 implicit polynomial                  |
+| crc16                  | 2     | uint16      | -                          | see above crc16 definition. |
 
 
 ## Spatial Index
