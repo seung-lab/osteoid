@@ -79,7 +79,7 @@ All values throughout this specification are little endian except where noted. T
 | num_edges (Ne)         | 8     | u64         | -                           | Number of edges                                                                           |
 units specified in flags.  |
 | vertex_bytes           | 8     | u64         | -                           | Content length of vertices (needed for compression).                                      |
-| edge_bytes             | 8     | u64         | -                           | Number of bytes encoding edges (needed for compression)                                   |
+| edge_bytes             | 8     | u64         | -                           | Number of bytes encoding edges (either pairs or compressed data stream)                                     |
 | attribute_header_bytes | 4     | u32         | -                           | Content length in bytes of the attribute header.                                                         |
 | num_components         | 4     | u32         | N or (2^32-1 if unknown)    | Number of connected components in the skeleton graph. max value of uint32 is a sentinel for unknown.              |
 | cable_length           | 4     | f32         | -                           | Physical path length of this object in SI prefixed meters (See flags for SI prefix). This quantity should always be set, but if it is not set, it should be NaN.                           | 
