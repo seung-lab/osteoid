@@ -1010,21 +1010,21 @@ class Skeleton:
       vertex_types=(oskel.a.vertex_types if "vertex_types" in oskel.a else None),
     )
 
-  def to_ostd(
+  def as_ostd(
     self, 
     unit:str = "nm", 
     coordinate_frame:str = "+X-Y-Z",
-    vertex_compression:Optional[Literal["draco"]] = None,
-  ) -> bytes:
+    vertex_compression:Optional[Literal["draco", "gzip"]] = None,
+  ) -> "formats.ostd.OstdSkeleton":
     """
-    Serializes the skeleton to osdt format, defined
-    at https://github.com/seung-lab/osteoid/
+    Converts this skeleton into an OstdSkeleton.
 
     unit: which physical unit the vertices represent
       when transformed into physical space.
     coordinate_frame: save how the coordinate space
       is oriented. This can differ in computer graphics,
       neurology, radiology, etc.
+    vertex_compression: None, draco, gzip
     """
     from .formats.ostd import OstdSkeleton
     from .formats.ostd.types import (
@@ -1081,7 +1081,31 @@ class Skeleton:
       voxel_centered=True,
       attributes=attributes,
       vertex_compression=vertex_compression,
+    )
+
+  def to_ostd(
+    self, 
+    unit:str = "nm", 
+    coordinate_frame:str = "+X-Y-Z",
+    vertex_compression:Optional[Literal["draco", "gzip"]] = None,
+  ) -> bytes:
+    """
+      Serializes the skeleton to osdt format, defined
+      at https://github.com/seung-lab/osteoid/
+
+      unit: which physical unit the vertices represent
+        when transformed into physical space.
+      coordinate_frame: save how the coordinate space
+        is oriented. This can differ in computer graphics,
+        neurology, radiology, etc.
+      vertex_compression: None, draco, gzip
+    """
+    return self.as_ostd(
+      unit,
+      coordinate_frame,
+      vertex_compression,
     ).to_bytes()
+
 
   @classmethod
   def from_swc(self, swcstr:str) -> "Skeleton":
