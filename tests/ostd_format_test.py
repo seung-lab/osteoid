@@ -192,8 +192,8 @@ def test_serialization_roundtrip2():
     data = skel.to_bytes()
     restored = OstdSkeleton.from_bytes(data)
 
-    radii1 = skel.get_attribute_value("radii")
-    radii2 = restored.get_attribute_value("radii")
+    radii1 = skel.attribute_value("radii")
+    radii2 = restored.attribute_value("radii")
     
     skel = Skeleton(skel.vertices, skel.edges, radii1, default_attributes=False)
     restored = Skeleton(restored.vertices, restored.edges, radii2, default_attributes=False)
