@@ -118,7 +118,7 @@ def convertall(src, type, verbose, force, dir):
 @click.argument("filename")
 @click.option('-c', '--color-by', type=click.Choice(['r', 'c', 'x', 's']), default='r', help="For skeleton visualization. r = radius, c = components, x = cross sectional area (if available), s = solid color (for performance).", show_default=True)
 def view(filename, color_by):
-  """Visualize a .swc or .npy file."""
+  """Visualize an .swc, .ostd, or .npy file."""
   import microviewer
   from .util import load
 
