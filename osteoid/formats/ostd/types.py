@@ -306,7 +306,7 @@ class CoordinateFrame:
     POSITIVE = 0
     NEGATIVE = 1
 
-    signs = [ POSITIVE, POSITIVE, POSITIVE, POSITIVE ]
+    signs = [ POSITIVE ] * len(normalized)
     mapping = { 
       "X": 0, "Y": 1, "Z": 2, "T": 3, 
       "0": 0, "1": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7 
