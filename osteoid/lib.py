@@ -9,6 +9,9 @@ import google_crc32c
 
 import numpy as np
 
+integer_types = (int, np.integer)
+floating_types = (float, np.floating)
+
 def compute_byte_width(x:int) -> int:
   byte_width = 8
   if x <= np.iinfo(np.uint8).max:

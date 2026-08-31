@@ -816,8 +816,12 @@ class Skeleton:
 
     paths = []
 
-    stack = [ terminal_nodes[0] ]
-    criticals = [ terminal_nodes[0] ]
+    if len(terminal_nodes) > 0:
+      stack = [ terminal_nodes[0] ]
+      criticals = [ terminal_nodes[0] ]
+    else:
+      stack = [ unique_nodes[0] ]
+      criticals = [ unique_nodes[0] ]
     # Saving the path stack is memory intensive
     # There might be a way to do it more linearly
     # via a DFS rather than BFS strategy.

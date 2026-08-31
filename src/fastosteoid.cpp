@@ -753,6 +753,35 @@ py::dict chunk_skeleton(
 	}
 }
 
+py::array_t<int64_t> vertices_in_bbox(
+	const py::array_t<float>& vertex_arr,
+	const float x_start, const float x_end,
+	const float y_start, const float y_end,
+	const float z_start, const float z_end
+) {
+	auto v = vertex_arr.unchecked<2>();
+	const uint64_t Nv = v.shape(0);
+	
+	std::vector<int64_t> result;
+	result.reserve(Nv / 10);
+
+	for (uint64_t i = 0; i < Nv; ++i) {
+		const float x = v(i, 0);
+		const float y = v(i, 1);
+		const float z = v(i, 2);
+
+		if (x >= x_start && x < x_end &&
+			y >= y_start && y < y_end &&
+			z >= z_start && z < z_end) {
+
+			result.push_back(static_cast<int64_t>(i));
+		}
+	}
+
+	return py::array_t<int64_t>(result.size(), result.data());
+}
+
+
 PYBIND11_MODULE(fastosteoid, m) {
 	m.doc() = "Accelerated osteoid functions."; 
 	m.def("linked_paths", &linked_paths, "Compute the linked paths edge representation.");
@@ -760,4 +789,5 @@ PYBIND11_MODULE(fastosteoid, m) {
 	m.def("has_cycle", &has_cycle, "Check whether this connected component has a cycle.");
 	m.def("compute_components", &compute_components, "Find skeleton components.");
 	m.def("chunk_skeleton", &chunk_skeleton, "Cut a skeleton into a grid of chunks.");
+	m.def("vertices_in_bbox", &vertices_in_bbox, "Extract vertex indices that are in a bbox.");
 }

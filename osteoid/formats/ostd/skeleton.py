@@ -1,6 +1,7 @@
 from typing import Optional, Any, Literal
 
 from collections import OrderedDict, defaultdict
+import copy
 from dataclasses import dataclass
 from functools import partial
 
@@ -13,6 +14,7 @@ import fastremap
 import fastosteoid
 
 from ... import lib
+from ...lib import Bbox
 
 from .header import (
   OstdAttribute,
@@ -234,6 +236,11 @@ class OstdSkeletonPart:
       fastosteoid.compute_components(self.edges, self.header.Nv)
     )
 
+  def bbox(self) -> Bbox:
+    min_pt = np.min(self.vertices, axis=0)
+    max_pt = np.max(self.vertices, axis=0)
+    return Bbox(min_pt, max_pt)
+
   def num_components(self) -> int:
     sentinel = np.iinfo(np.uint32).max
 
@@ -413,6 +420,41 @@ class OstdSkeletonPart:
       spaces=spaces,
       vertices=vertices,
       edges=edges,
+      attributes=attributes,
+    )
+
+  def cutout(self, bbox:Bbox) -> "OstdSkeletonPart":
+    selected_vertices = fastosteoid.vertices_in_bbox(
+      self.vertices, 
+      bbox.minpt.x, bbox.maxpt.x,
+      bbox.minpt.y, bbox.maxpt.y,
+      bbox.minpt.z, bbox.maxpt.z,
+    )
+    selected_vertices.sort()
+
+    verts = self.vertices[selected_vertices]
+    mask = np.isin(self.edges, selected_vertices).all(axis=1)
+    filtered_edges = self.edges[mask]
+    del mask
+    local_edges = np.searchsorted(selected_vertices, filtered_edges)
+
+    header = copy.deepcopy(self.header)
+    header.Nv = verts.shape[0]
+    header.Ne = local_edges.shape[0]
+
+    header.vertex_bytes = 0
+    header.edge_bytes = 0
+
+    attributes = {}
+    if self.attributes is not None and len(self.attributes) > 0:
+      for name, (unit, arr) in self.attributes.items():
+        attributes[name] = (unit, arr[verts])
+
+    return OstdSkeletonPart(
+      header,
+      verts,
+      local_edges,
+      spaces=copy.deepcopy(self.spaces),
       attributes=attributes,
     )
 
@@ -715,4 +757,21 @@ class OstdSkeleton:
   def drop_attribute(self, name:str):
     for part in self.parts:
       del part.attributes[name]
+
+  def cutout(self, bbox:Bbox) -> "OstdSkeleton":
+    parts = []
+    for part in self.parts:
+      parts.append(part.cutout(bbox))
+    return OstdSkeleton(parts)
+
+  def bbox(self) -> Bbox:
+    bbxs = [
+      part.bbox() for part in self.parts
+    ]
+    return Bbox.expand(*bbxs)
+
+  def __getitem__(self, slices):
+    bbx = Bbox.create(slices, context=self.bbox())
+    return self.cutout(bbx)
+
 
