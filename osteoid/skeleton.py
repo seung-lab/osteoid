@@ -1335,6 +1335,35 @@ class Skeleton:
       self.add_vertex_attribute(attr_name, buf)
       setattr(self, attr_name, buf)
 
+  def cutout(self, bbox:Bbox) -> "Skeleton":
+    selected_vertices = fastosteoid.vertices_in_bbox(
+      self.vertices, 
+      bbox.minpt.x, bbox.maxpt.x,
+      bbox.minpt.y, bbox.maxpt.y,
+      bbox.minpt.z, bbox.maxpt.z,
+    )
+    selected_vertices.sort()
+
+    verts = self.vertices[selected_vertices]
+    mask = np.isin(self.edges, selected_vertices).all(axis=1)
+    filtered_edges = self.edges[mask]
+    del mask
+    local_edges = np.searchsorted(selected_vertices, filtered_edges)
+
+    return Skeleton(
+      verts,
+      local_edges,
+    )
+
+  def bbox(self) -> Bbox:
+    min_pt = np.min(self.vertices, axis=0)
+    max_pt = np.max(self.vertices, axis=0)
+    return Bbox(min_pt, max_pt)
+  
+  def __getitem__(self, slices):
+    bbx = Bbox.create(slices, context=self.bbox())
+    return self.cutout(bbx)
+
   def __str__(self):
     template = "{}=({}, {})"
     attr_strings = []
