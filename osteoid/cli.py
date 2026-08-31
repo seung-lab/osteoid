@@ -52,7 +52,8 @@ def info(src):
       click.echo(f"{i}: {space.space}, {space.unit}")
 
     attrs = [ f"{attr} ({unit}, {arr.dtype})" for attr, (unit, arr) in oskel.attributes.items() ]
-    click.echo("\nattributes:\n" + "\n".join(attrs))
+    attr_info = "\n".join(attrs) or "none"
+    click.echo("\nattributes:\n" + attr_info)
     click.echo(f"\nnum parts: {len(oskel.parts)}")
 
 @main.command()
