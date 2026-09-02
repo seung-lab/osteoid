@@ -10,7 +10,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "osteoid"
-version = "0.7.1"
+version = "0.7.3"
 description = "Skeleton object used for representing neurons, adjacent cells, and organelles."
 authors = [
     {name = "William Silversmith",email = "william.silversmith@gmail.com"}
@@ -30,4 +30,4 @@ dependencies = [
 ostd = "osteoid.cli:main"
 
 [tool.setuptools]
-packages = ["osteoid"]
+packages = ["osteoid", "osteoid.formats", "osteoid.formats.ostd"]
