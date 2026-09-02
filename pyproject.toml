@@ -25,4 +25,4 @@ dependencies = [
 ]
 
 [tool.setuptools]
-packages = ["osteoid"]
+packages = ["osteoid", "osteoid.formats"]
