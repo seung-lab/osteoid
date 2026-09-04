@@ -78,7 +78,7 @@ All values throughout this specification are little endian except where noted. T
 | num_vertices (Nv)      | 8     | u64         | -                           | Number of vertices                                                                        |
 | num_edges (Ne)         | 8     | u64         | -                           | Number of edges                                                                           |
 units specified in flags.  |
-| vertex_bytes           | 8     | u64         | -                           | Content length of vertices (needed for compression).                                      |
+| vertex_bytes           | 8     | u64         | -                           | Content length of compressed vertex stream.                                      |
 | edge_bytes             | 8     | u64         | -                           | Number of bytes encoding edges (either pairs or compressed data stream)                                     |
 | attribute_header_bytes | 4     | u32         | -                           | Content length in bytes of the attribute header.                                                         |
 | num_components         | 4     | u32         | N or (2^32-1 if unknown)    | Number of connected components in the skeleton graph. max value of uint32 is a sentinel for unknown.              |
