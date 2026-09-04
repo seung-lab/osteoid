@@ -25,7 +25,7 @@ def sample_header():
         attribute_header_bytes=64,
         cable_length=123.456,
         coordinate_frame='-X+Y+Z',
-        crc16=33370,
+        crc16=57875,
         edge_data_type=DataType.U16,
         edge_compression=CompressionType.ZSTD,
         edge_bytes=1024,
