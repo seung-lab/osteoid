@@ -110,11 +110,11 @@ All values throughout this specification are little endian except where noted. T
 | num_edges (Ne)         | 8     | u64         | -                           | Number of edges                                                                           |
 units specified in flags.  |
 | vertex_bytes           | 8     | u64         | -                           | Content length of compressed vertex stream.                                      |
-| edge_bytes             | 8     | u64         | -                           | Number of bytes encoding edges (either pairs or compressed data stream)                                     |
+| edge_bytes             | 8     | u64         | -                           | Total byte length of the edge section, comprising the polyline-offset array, the explicit-edge pair list, and the trailing CRC-32C. |                                     |
 | attribute_header_bytes | 4     | u32         | -                           | Content length in bytes of the attribute header.                                                         |
 | num_components         | 4     | u32         | N or (2^32-1 if unknown)    | Number of connected components in the skeleton graph. max value of uint32 is a sentinel for unknown.              |
 | cable_length           | 4     | f32         | -                           | Physical path length of this object in SI prefixed meters (See flags for SI prefix). This quantity should always be set, but if it is not set, it should be NaN.                           | 
-| crc16                  | 2     | uint16      | -                           | crc16, see below |
+| crc16                  | 2     | uint16      | -                           | crc16, see below. The checksum is computed over bytes 4 to 77. |
 
 Note: parsers should reject format versions above the version they were designed for.
 
@@ -122,7 +122,7 @@ Note: parsers should reject format versions above the version they were designed
 
 This CRC16 polynomial was chosen from the CRC Zoo. The header is 80 bytes (640 bits) which exceeds
 the maximum capacity of a crc8 at hamming distance 2. This crc supports detection of at least 4 flipped
-bits.
+bits. 
 
 using 0xFFFF init
 implicit polynomial 0xd175
