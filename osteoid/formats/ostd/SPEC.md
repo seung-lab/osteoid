@@ -67,7 +67,7 @@ The vertex attributes are listed at the end of the file with a table appended at
 
 An ostd skeleton file can be composed of multiple parts that have an identical structure in order to allow appending vertices and edges to an existing file.
 
-Each part should have its edges numbered such that they reference the vertices within its section. If there are vertices that appear in both sections, simply duplicate the vertex in both parts. For single-part ostd files, num_components and is precise. for multi-part files, which may contain duplicated vertices, the sum of num_components across parts is an upper bound. cable length sums remain accurate.
+Each part should have its edges numbered such that they reference the vertices within its section. If there are vertices that appear in both sections, simply duplicate the vertex in both parts. For single-part ostd files, num_components is precise. for multi-part files, which may contain duplicated vertices, the sum of num_components across parts is an upper bound. cable length sums remain accurate.
 
 ### Individual Part Structure
 
@@ -135,7 +135,7 @@ xorout = 0x0000 of header bytes excluding magic number.
 # based on a header that is larger than what a crc8 can handle
 def crc16(data:bytes) -> int:
   # use implicit +1 representation for right shift, LSB first
-  # use explicit +1 representation for left shit, MSB first
+  # use explicit +1 representation for left shift, MSB first
   polynomial = 0xd175 # implicit
   crc = 0xFFFF # detects zeroed data better than 0x0000
   for i in range(len(data)):
@@ -557,7 +557,7 @@ Path Graph = 3 Nv Dv + 9
 Path Graph / Naive = 12009 bytes / 27984 bytes = 43%
 ```
 
-In this simple example, we have produced a binary 43% the size of the original. With numerous polylines and branches, this advantage shrinks slightly. If every polyine consists of a single voxel, it becomes obvious the naive approach becomes better due to the size of the polyline offset buffer. We can calculate the crossover point at which this representation becomes more expensive. Let P again be the number of polylines and note P <= Nv. We can take our single polyline example, and arbitrarily break it into up to Nv polylines, which adds both an offset entry and an explicit edge per a polyline.
+In this simple example, we have produced a binary 43% the size of the original. With numerous polylines and branches, this advantage shrinks slightly. If every polyline consists of a single voxel, it becomes obvious the naive approach becomes better due to the size of the polyline offset buffer. We can calculate the crossover point at which this representation becomes more expensive. Let P again be the number of polylines and note P <= Nv. We can take our single polyline example, and arbitrarily break it into up to Nv polylines, which adds both an offset entry and an explicit edge per a polyline.
 
 ```
 Path Graph = 3NvDv + (8+2*8*P) + 2 De P
