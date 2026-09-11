@@ -273,7 +273,11 @@ This buffer may be compressed using e.g. gzip, zstandard, or Draco. In the case 
 
 The vertex section is followed by a crc32c that is computed from the encoded stream.
 
-### Polyline Offsets
+### Edges
+
+The edge binary size covers both the polyline and explicit edges. A crc32c covers both of them as well.
+
+#### Polyline Offsets
 
 This section describes how to extract the polylines (paths) from the vertex buffer. It consists of an array of integers indicating the length of each polyline in vertices in order of appearence in the vertex buffer.
 This array is preceeded by a uint64 le number of paths. The data type used for the path length should be the smallest integer that can contain the total number of vertices in the ostd section.
@@ -285,9 +289,7 @@ e.g.
 
 `num_paths, len_1, len_2, ..., len_n`
 
-Should this section be protected by a crc32c?
-
-### Explicit Edges
+#### Explicit Edges
 
 The next section is the links between paths:
 
