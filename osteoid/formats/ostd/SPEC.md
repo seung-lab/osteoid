@@ -323,7 +323,7 @@ def decode_linked_paths(num_vertices:int, edge_dtype, edge_binary:bytes) -> np.n
 
 	num_paths = int.from_bytes(edge_binary[:8], 'little')
 	path_dtype = smallest_dtype(num_vertices, [ np.uint8, np.uint16, np.uint32, np.uint64 ]) # smallest_dtype is a pseudocode function
-	path_lengths = np.frombuffer(path_lengths_binary, offset=8, count=num_path_lengths, dtype=path_dtype)
+	path_lengths = np.frombuffer(edge_binary, offset=8, count=num_paths, dtype=path_dtype)
 
 	edges = []
 	edge_i = 0;
