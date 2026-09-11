@@ -107,7 +107,7 @@ All values throughout this specification are little endian except where noted. T
 | coordinate_frame       | 4     | bitfield    | -                           | See note below for definitions.    |
 | current_space          | 1     | u8          | 0                           | The current transform space the vertices are in. By default 0. Every +1 means selecting the next transform from the transform list. See *Transform* | 
 | num_vertices (Nv)      | 8     | u64         | -                           | Number of vertices                                                                        |
-| num_edges (Ne)         | 8     | u64         | -                           | Number of edges                                                                           |
+| num_edges (Ne)         | 8     | u64         | -                           | Number of edges (explicit + implicit)                                                                           |
 units specified in flags.  |
 | vertex_bytes           | 8     | u64         | -                           | Content length of compressed vertex stream.                                      |
 | edge_bytes             | 8     | u64         | -                           | Total byte length of the edge section, comprising the polyline-offset array, the explicit-edge pair list, and the trailing CRC-32C. |                                     |
