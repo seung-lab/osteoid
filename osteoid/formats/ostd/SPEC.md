@@ -194,16 +194,23 @@ The coordinate frame information is encoded as a uint32 le.
 
 ## Transform
 
-The default space (0) is set in the header. Transforms listed below should be written such that they are a mapping from space 0 to the selected space. Transforms can then be dynamically composed to create efficient arbitrary mappings. The
+The default space (0) is set in the header. Transforms listed below should be written such that they are a mapping from space 0 to the selected space. Transforms can then be dynamically composed to create efficient arbitrary mappings.
+
+### Section Structure
 
 | Field                  | Bytes | Datatype    | Value                       | Description                                                                                                       |
 |------------------------|-------|-------------|-----------------------------|-------------------------------------------------------------------------------------------------------------------|
-| num_spaces             | 1     | uint8       | -                           | Number of transformations available. matrices.                  |
+| num_spaces             | 1     | uint8       | -                           | Number of transformations available. matrices.                   |
+| Transforms             | see below | see below | -                           | A list of 4x4 transform matrices where the space number - 1 is the index (since there is a default space defined in the header).  |
+| crc32c                 | 4     | uint32      | -                          |   |
 
+### Transform Structure
+
+| Field                  | Bytes | Datatype    | Value                       | Description                                                                                                       |
+|------------------------|-------|-------------|-----------------------------|-------------------------------------------------------------------------------------------------------------------|
 | space                  | 1     | uint8       | -                           | The kind of space the transform represents. See *Space Type* |
 | units                  | 8     | tuple       | See physical units.         | The physical unit this transform maps to. |
 | transform              | 64    | 4x4 f32s    | [ f32, f32, f32, f32, ... ] | Homogenous transform matrix from voxel to physical coordinates. Written in row major (C) order little endian.                   |
-| crc32c                 | 4     | uint32      | -                          |  |
 
 ## Attribute Section
 
