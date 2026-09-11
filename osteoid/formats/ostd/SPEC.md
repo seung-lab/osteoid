@@ -537,7 +537,7 @@ def rank_permutation(perm:list[int]) -> int:
 
 ### Path Graph Efficiency Analysis
 
-To give a quick analysis, in a 3D dataset using float32 vertices and uint32 edges, a vertex is 4x3 (12) bytes. An edge is 8x2 (16) bytes. In the naive approach, a polyline with Nv vertices (holding Nv > 2), would have 12xNv bytes in its vertex buffer, and 16x(Nv-1) bytes in its edge buffer. By contrast the new approach would have 12 x Nv bytes and 24 additional bytes to indicate the size of the offsets (size of buffer, start, end). 
+To give a quick analysis, in a 3D dataset using float32 vertices and uint64 edges, a vertex is 4x3 (12) bytes. An edge is 8x2 (16) bytes. In the naive approach, a polyline with Nv vertices (holding Nv > 2), would have 12xNv bytes in its vertex buffer, and 16x(Nv-1) bytes in its edge buffer. By contrast the new approach would have 12 x Nv bytes and 24 additional bytes to indicate the size of the offsets (size of buffer, start, end). 
 
 Assume a polyline of Nv = 1000 vertices with no branches, vertex datatype Dv = 4 bytes, and edge datatype De = 8 bytes.
 
