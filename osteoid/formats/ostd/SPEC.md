@@ -194,7 +194,7 @@ The coordinate frame information is encoded as a uint32 le.
 
 ## Transform
 
-The default space (0) is set in the header. Transforms listed below should be written such that they are a mapping from space 0 to the selected space. Transforms can then be dynamically composed to create efficient arbitrary mappings.
+The default space (0) is set in the header. Transforms listed below should be written such that they are a mapping from space 0 to the selected space. Transforms can then be dynamically composed to create efficient arbitrary mappings. The
 
 | Field                  | Bytes | Datatype    | Value                       | Description                                                                                                       |
 |------------------------|-------|-------------|-----------------------------|-------------------------------------------------------------------------------------------------------------------|
@@ -203,7 +203,7 @@ The default space (0) is set in the header. Transforms listed below should be wr
 | space                  | 1     | uint8       | -                           | The kind of space the transform represents. See *Space Type* |
 | units                  | 8     | tuple       | See physical units.         | The physical unit this transform maps to. |
 | transform              | 64    | 4x4 f32s    | [ f32, f32, f32, f32, ... ] | Homogenous transform matrix from voxel to physical coordinates. Written in row major (C) order little endian.                   |
-| crc16                  | 2     | uint16      | -                          | see above crc16 definition. |
+| crc16                  | 2     | uint16      | -                          | see above crc16 definition. Note, one crc covers the whole field. |
 
 ## Attribute Section
 
@@ -308,12 +308,12 @@ The following python pseudocode algorithms can be implemented to decode or encod
 ```python
 # edge_dtype is acquired from the header
 # edge_binary is calculated from header information
-def decode_linked_paths(edge_dtype, edge_binary:bytes) -> np.ndarray:
+def decode_linked_paths(num_vertices:int, edge_dtype, edge_binary:bytes) -> np.ndarray:
 	crc32c = int.from_bytes(edge_binary[-4:], 'little')
 	check_crc32c(edge_binary[:-4], crc32c)
 
 	num_paths = int.from_bytes(edge_binary[:8], 'little')
-	path_dtype = smallest_dtype(num_paths, [ np.uint8, np.uint16, np.uint32, np.uint64 ]) # smallest_dtype is a pseudocode function
+	path_dtype = smallest_dtype(num_vertices, [ np.uint8, np.uint16, np.uint32, np.uint64 ]) # smallest_dtype is a pseudocode function
 	path_lengths = np.frombuffer(path_lengths_binary, offset=8, count=num_path_lengths, dtype=path_dtype)
 
 	edges = []
@@ -472,7 +472,7 @@ kilo(m * 1/s^2) = km/s^2, an acceleration value
 
 ### Graph Type
 
-2 bit
+3 bit
 
 | Graph Structure       | Value | Description                |
 |-----------------------|-------|----------------------------|
@@ -481,6 +481,7 @@ kilo(m * 1/s^2) = km/s^2, an acceleration value
 | cyclic                | 2     | Contains one or more loops.|
 
 This value is advisory and does not control the edge representation.
+An extra bit is reserved in case additional useful categories are identified.
 
 ### Space Type
 
