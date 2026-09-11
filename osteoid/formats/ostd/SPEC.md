@@ -45,6 +45,32 @@ The header indicates what space the skeleton is in from a generic but somewhat i
 
 The vertex attributes are listed at the end of the file with a table appended at the end that describes them well. For single-part files, this allows for efficient appending of vertex attributes. Each vertex attribute is annotated with information about its dimensions using SI fundemental units. For simplicity, only SI units are supported.
 
+## Definitions
+
+ostd: The name of the file format. May refer to a valid file serialized in the ostd format.
+
+File: A series of bytes that could be saved on disk representing a valid ostd format. This file may contain one or more ostd segments appended end-to-end representing one or more skeletons.
+
+Vertex: A coordinate in space and/or time. Most frequently an X,Y,Z triple of float32 numbers, though the data type and number of dimensions are configurable.
+
+Edge: An undirected linkage between two vertices usually represented as a pair of integers referring to the index of each vertex in the edge.
+
+Graph: A set of vertices and connected edges.
+
+Connected Component: A set of vertices that are all mutually reachable by following their undirected edges.
+
+Vertex Attribute: A number associated with each vertex. For example, the radius to the nearest membrane or measured signal intensity.
+
+Skeleton: A graph of points in space and/or time representing a stick figure representation of a biological object or traced path. It may have multiple connected components.
+
+ID: A 64-bit integer that uniquely identifies a skeleton within the context of a particular dataset.
+
+Single-Part File: A file that contains only a single ostd segment.
+
+Multi-Part File: A file that contains multiple ostd segments. Segments that have the same ID should be considered to be additive to the same skeleton.
+
+Collection: A multi-part file containing multiple skeleton IDs.
+
 ## File Structure
 
 An ostd skeleton file can be composed of multiple parts that have an identical structure in order to allow appending vertices and edges to an existing file.
