@@ -203,7 +203,7 @@ The default space (0) is set in the header. Transforms listed below should be wr
 | space                  | 1     | uint8       | -                           | The kind of space the transform represents. See *Space Type* |
 | units                  | 8     | tuple       | See physical units.         | The physical unit this transform maps to. |
 | transform              | 64    | 4x4 f32s    | [ f32, f32, f32, f32, ... ] | Homogenous transform matrix from voxel to physical coordinates. Written in row major (C) order little endian.                   |
-| crc16                  | 2     | uint16      | -                          | see above crc16 definition. Note, one crc covers the whole field. |
+| crc32c                 | 4     | uint32      | -                          |  |
 
 ## Attribute Section
 
