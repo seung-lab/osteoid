@@ -3,33 +3,47 @@ ostd ("osteoid") File Format
 
 Skeletons (medial paths) may be represented as a possibly cyclic undirected graph with per vertex annotations and possibly edge annotations.
 
-The `ostd` file format fills a gap in existing skeleton file formats by offering a self-contained, high performance, small, safe, binary format that supports optional vertex attributes for the serialization of arbitrary skeletal structures. Incorporating metadata is not a design goal, as this core file is intended to be wrapped in a container file format for that purpose.
+The `ostd` file format fills a gap in existing skeleton file formats by offering a self-contained, high performance, small, safe, binary format that supports optional vertex attributes for the serialization of arbitrary skeletal structures. Incorporating metadata is not a design goal, as this core file is intended to be wrapped in a container file format for that purpose. It also is not intended to replace large scale chunked representations of large datasets, though it could serve as a base serialization target for those chunks.
 
-Typically skeleton file formats represent the geometry in either text, JSON, or XML which uses excess space and requires a comparatively slow parser. Examples include SWC, CSV/TSV, NML, OBJ. In the case of SWC, it is not easily extensible with additional attributes. Other file formats are designed to handle multiple kinds of objects. SWC only supports trees, when some skeletons may include loops. Other formats, e.g. TRK, only support paths. Precomputed only supports a fully general (and space hungry) edge list.
+Typically skeleton file formats represent the geometry in either text, JSON, or XML which uses excess space and requires a comparatively slow parser. Examples include SWC, CSV/TSV, NML, OBJ. In the case of SWC, it is not easily extensible with additional attributes that can be read universally (usually user-defined columns are added). Other file formats are designed to handle multiple kinds of objects. SWC only supports trees, when some skeletons may include loops (it is possible to represent loops as a forest of related trees though). Other formats, e.g. TRK, only support paths. Precomputed only supports a fully general (and space hungry) edge list.
 
-Precomputed has most of the features one would desire, but is inflexible on the vertex and edge data types and also requires a separate info file to interpret the binary, so is not stand-alone. Furthermore, there is no indication of which physical scale to use (nanometers? micrometers?) which is a weakness of most of the other formats too. Precomputed also only supports an edge list representation, which is space inefficient. Precomputed smartly includes a 3x4 transform matrix for affine transforms to map from, e.g. voxel to physical space, but a fully forward-compatible design would use a 4x4 matrix capable of transforms using homogeneous coordinates, perspective transforms, and is more broadly compatible with graphics pipelines, especially since the matrix remains square.
+Precomputed has most of the features one would desire, but is inflexible on the vertex and edge data types and also requires a separate info file to interpret the binary, so is not stand-alone. Furthermore, there is no indication of which physical scale to use (nanometers? micrometers?) which is a weakness of the other formats too. Precomputed only supports an edge list representation, which is space inefficient. It smartly includes a 3x4 transform matrix for affine transforms to map from, e.g. voxel to physical space, but a fully forward-compatible design would use a 4x4 matrix capable of transforms using homogeneous coordinates, perspective transforms, and is more broadly compatible with graphics pipelines, especially since the matrix remains square.
 
-Another design issue in Precomputed is that it specifies edges lists must be uint32 le, which on its face is a sensible tradeoff between space and maximum representable size, but many years later, we are finally encountering skeletons that are > 2^32 vertices (at least at certain stages of processing).
+The data type inflexibility in Precomputed causes issues because edges lists must be uint32 le, which on its face is a sensible tradeoff between space and maximum representable size, but many years later, we are finally encountering skeletons that are > 2^32 vertices (at least at certain stages of processing).
 
-# The Design
+# The Design Requirements
 
-ostd takes ideas from Precomputed, SWC, Trk, and other formats to compactly represent skeletons in a stand-alone, efficiently parsable file format.
+`ostd` takes ideas from Precomputed, SWC, Trk, and other formats to compactly represent skeletons in a stand-alone, efficiently parsable file format.
 
 - A 3D (XYZ) binary skeleton format allowing any data type for vertices
 - Support skeletons larger than 2^32 vertices
 - A header for each serialized object
 - Includes a format version number to enable smooth version upgrades
 - Has 64 bits for an object ID, important for connectomics.
-- Incorporates up to 255 4x4 transform matrices and tracks which state (e.g. voxel, physical) the vertices are in
+- Incorporates up to 255 4x4 transform matrices for space-like dimensions and tracks which state (e.g. voxel, physical) the vertices are in
 - Tracks the main physical unit of the vertices.
 - Tracks which orientation the coordinate frame is in.
 - Blocks individually guarded against file corruption by CRCs to enable extraction of remaining good data if one block is damaged
-- Supports representing edges as a path graph saving space while retaining generality
+- Represents edges as a path graph saving space while retaining generality
 - Advisory fields to tell you the number of connected components, path length, and the graph structure
 - (Single-Part) Attributes header is located at the end of the file to enable efficient appending of more vertex attributes on POSIX systems
 - Efficiently support both vertex and edge attributes and tracks physical units.
 - Support optional spatial index (in the future)
 - Concatenate multiple ostd files together to append vertices and edges together (inhibits adding more vertex attributes)
+
+## The Design Overview
+
+A skeleton is a graph of N-dimensional vertices consisting of a set of zero or more connected components with a numerical ID. Most skeletons are anticipated to be 3d spatial coordinates, though 4-tuple (space + time) or 5D (space + time + channel) is also possible. We support up to 8 dimensions to enable use cases that were not anticipated.
+
+An `ostd` file may contain one or more separate skeletons with potentially different IDs. Files containing one serialized skeleton are called "single-part" files, while a file containing multiple skeletons are called "multi-part" files. Parts of a skeleton that have the same ID, should have their decoded skeletons concatenated together. This enables storing multiple skeleton and/or appending to a skeleton on disk. Most files will likely be single-part.
+
+As image derived skeletons often consist of many adjacent points, we efficiently represent the skeleton as a 3 part mathematical object that has full graph generality. First, we decompose an existing graph into a set of non-intersecting polylines with unique vertices and maintain an edge list linking these polylines. Each polyline is written into the vertex buffer one-after-another in traversal order, meaning that within each polyline, the vertex ordering implies the edges. We then write down the start and end of each polyline as integers in a Px2 list, where P is the number of polylines. Lastly, we write down the explicit edge list such that it indexes into the vertex buffer. In testing on a real 3D dataset, we found this reduced the size of the edge list to about 3% of the size of the file. For more information see the analysis below.
+
+The header of the skeleton includes basic information about how to parse it, like buffer sizes, number of vertices, compression types, and also records information for ease of high speed reading like path length and number of connected components. It also provides an advisory field for whether the skeleton is cyclic, acyclic, or unknown. This enables the automatic application of appropriate algorithms without scanning the entire skeleton first.
+
+The header indicates what space the skeleton is in from a generic but somewhat informative list (e.g. voxel space, physical space) and indicates the presence of any transform matricies that allow you to perform an affine projection to an arbitrary linear coordinate system. The units of length are noted, as well as the coordinate frame, whether vertices are voxel centered or corner centered. This allows the easy geometric reconstruction of the skeleton from files of unknown provenance.
+
+The vertex attributes are listed at the end of the file with a table appended at the end that describes them well. For single-part files, this allows for efficient appending of vertex attributes. Each vertex attribute is annotated with information about its dimensions using SI fundemental units. For simplicity, only SI units are supported.
 
 ## File Structure
 
@@ -504,3 +518,32 @@ def rank_permutation(perm:list[int]) -> int:
 
     return rank
 ```
+
+### Path Graph Efficiency Analysis
+
+To give a quick analysis, in a 3D dataset using float32 vertices and uint32 edges, a vertex is 4x3 (12) bytes. An edge is 8x2 (16) bytes. In the naive approach, a polyline with Nv vertices (holding Nv > 2), would have 12xNv bytes in its vertex buffer, and 16x(Nv-1) bytes in its edge buffer. By contrast the new approach would have 12 x Nv bytes and 24 additional bytes to indicate the size of the offsets (size of buffer, start, end). 
+
+Assume a polyline of Nv = 1000 vertices with no branches, vertex datatype Dv = 4 bytes, and edge datatype De = 8 bytes.
+
+```
+Naive Approach = 3 Nv Dv + 2 De (Nv - 1)
+Path Graph = 3 Nv Dv + 24
+
+Path Graph / Naive = 12024 bytes / 27984 bytes = 43%
+```
+
+In this simple example, we have produced a binary 43% the size of the original. With numerous polylines and branches, this advantage shrinks slightly. If every polyine consists of a single voxel, it becomes obvious the naive approach becomes better due to the size of the polyline offset buffer. We can calculate the crossover point at which this representation becomes more expensive. Let P again be the number of polylines and note P <= Nv. We can take our single polyline example, and arbitrarily break it into up to Nv polylines, which adds both an offset entry and an explicit edge per a polyline.
+
+```
+Path Graph = 3NvDv + (8+2*8*P) + 2 De P
+
+Let path graph = naive and solve for P.
+
+P = 2 De (Nv - 1) / (16 + 2 De) - 8
+
+Plugging in our numbers to find this crossover point.
+
+P = 491.5
+```
+
+That's just under Nv/2. This analysis is very conservative, because if you take it too literally, you might think, well then if my data look like a binary tree, then I should go elsewhere. However, if you look at a diagram of a full binary tree, there are many nodes connected in chains! So you can elide explicitly representing edges to depth (d-1) (left) + (d-2) (right) at the first level, and so on as you progress down the tree. I think you need a pretty high depth before this becomes reasonable, but there are some possible savings here. At d=4, there are 14 edges in the graph, and 7 that can be represented implicitly (though it is offset by the polyline buffer). (Note: This is a empirically testable property.)
