@@ -180,18 +180,17 @@ Next, we need to determine the coordinate frame. There are several common frames
 
 We can also establish if the axes are permuted in a non-standard way using Lehmer codes. The Axis Permutation Type tells you how the axes are permuted with respect to the standard convention. XYZT would be encoded as 0. For example, say you had ZYX instead of XYZ, this would represented as index 5 for 3 dimensions. For ZYXT it would be 14. See Axis Permutation Type for how to encode and decode the Lehmer code.
 
-The least significant bit is on the left.
+The coordinate frame information is encoded as a uint32 le.
 
-`aaalllssssssssoooooooooooooooocR`
-
-| Flag   | Meaning                            | Notes                                                                                |
-| ------ | ---------------------------------- | ------------------------------------------------------------------------------------ |
-| **a**  | Number of Axes                     | Number of axes                       |
-| **l**  | Number of space-like axes.         | First l axes are space-like, the following are time-like.                       |
-| **s**  | Bitfield. Sign of each axis direction compared to convention.     |  sign of X,Y,Z axes in that order (0: positive, 1: negative). Unused axes should be set to positive.                   |
-| **o**  | Coordinate Frame Orientation       | See Axis Permutation Type, 000000 means +X+Y+Z standard frame. Lehmer code. |
-| **c** | Voxel centered or top left corner. | Describes whether voxel coordinates are interpreted as centered or in the corner closest to the origin.                                                              |
-| **R*** | RESERVED                           | From this point forward               
+| Property        | Bit Position | Meaning                      | Notes                    |
+|-----------------|--------------|------------------------------|--------------------------|
+| Num Axes        | 0-2          | Vertex dimensions - 1        | Counts from 0 to make space since 0 is useless. |
+| Space-Like      | 3-5          | Number of space-like dimensions. Following dimensions are time-like.                       | This lets you set the number of spatial dimensions. e.g. XYT, XYZT, etc. |
+| Voxel Centered  | 6            | If 1, vertices are located at voxel centers. If 0, top left corner. |  |
+| Reserved        | 7            | Reserved for future use. Pads out to a byte.                        |   |
+| Signs           | 8-(8+num_axes-1) | Whether each axis is reflected or not. 1 is positive direction, 0 is negative direction. | Unused axes should be set to positive.    |
+| Reserved        | up to bit 15 | Reserved for future use.     |                          |
+| Lehmer Code     | 16-31        | See Axis Permutation Type, 000000 means +X+Y+Z standard frame. |   |      
 
 ## Transform
 
