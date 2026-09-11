@@ -59,7 +59,6 @@ The attributes header is located at the end so that additional attributes can be
 |--------------------------|----------|-----------------------------------------------------------------------------|
 | Header                   | Y        | Basic information about the file                                            |
 | Transform                |          | List of 4x4 float32 le C order matrix describing voxel to different spaces, such as physical or atlas space.             |
-| Spatial Index            |          | Octree describing locations of vertices.                                    |
 | Vertices                 | Y        | Serialized XY pairs or XYZ triples.                                         |
 | Edges                    | Y        | Edge representation.                                                        |
 | Vertex & Edge Attributes |          | Serialized vertex and attributes presented in order of the following table. |
@@ -188,29 +187,6 @@ The default space (0) is set in the header. Transforms listed below should be wr
 | units                  | 8     | tuple       | See physical units.         | The physical unit this transform maps to. |
 | transform              | 64    | 4x4 f32s    | [ f32, f32, f32, f32, ... ] | Homogenous transform matrix from voxel to physical coordinates. Written in row major (C) order little endian.                   |
 | crc16                  | 2     | uint16      | -                          | see above crc16 definition. |
-
-
-## Spatial Index
-
-This optional section provides an optimized way to fetch vertices when the edge representation is LINKED_PATHS. During path generation,
-the chunk size will be used to break long paths at chunk boundaries, creating more numerous paths connected by new edge pairs. This will
-make it simple to fetch paths in a given region of space.
-
-| Name       | Type        | Description                                            |
-|------------|-------------|--------------------------------------------------------|
-| num_bytes  | uint64      | Number of bytes in this section                        |
-| minpt      | 3 x float32 | Minimum point of the bounding box.                     |
-| maxpt      | 3 x float32 | Maximum point of the bounding box.                     |
-| chunk_size | 3 x float32 | Chunked division of this space.                        |
-| index      | list[(32,u32)] |  |
-| paths      |             | Array of path ids. |
-| crc32c     | uint32      | Checksum for spatial index.                            |
-
-
-Since generally speaking, a skeleton may be elongated and curved, a dense representation of the spatial index will frequently be wasteful as many grid spaces will be empty. The grid will be numbered in fortran order (`x + cx * (y + cy * z)`) where x,y,z are grid points and cx,cy,cz are chunk sizes with 0 being the gridpoint that touches the minpt.
-
-The format of the index is an array of `gridpoint,offset` pairs, both being uint32s sorted in eytzinger order. Offset is defined as the byte offset into the spatial index section. This section is followed by the paths section which contains lists of branch ids.
-
 
 ## Attribute Section
 
