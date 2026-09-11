@@ -251,29 +251,49 @@ N | (e1,e2) ... | attr12 ...
 N is uint64
 edge widths are based on header
 
-## Vertex Representation
+## Geometry Representation
 
-Number of axes determined from header. Datatype set depending on header. Encoded as serialized array in C order (i.e. XYZ,XYZ,XYZ).
+The skeleton graph is analyzed and deconstructed into disjoint paths that are connected via an explicit edge at branch points. The vertices of each disjoint path are written in path traversal order so that connected vertices are adjacent in the serialization and imply an edge between each other.
 
-When the edge representation is LINKED_PATHS, the vertices will be sorted based on their connected neighbors.
+The graph is embedded in three buffers that are written one after another.
 
-The vertex section is followed by a crc32c regardless of compression algorithm.
+| Buffer           | Size                                      | Note              |
+|------------------|-------------------------------------------|-------------------|
+| Vertices         | verted_datatype * num_axes * num_vertices | size in header    |
+| Polyline Offsets | 8 + 2 * fit(Nv) * num_polylines           |                   |
+| Explicit Edges   | 2 * edge_datatype * num_edges             | size in header    |
 
-## Edge Representation
+### Vertices
 
-The skeleton is analyzed and deconstructed into disjoint paths that are connected at branch points. The vertices will be sorted so that each disjoint path is contiguously represented so that connected vertices are adjacent in the serialization.
+Vertices are written as a sequence of serialized arrays in C order (i.e. X,Y,Z,X,Y,Z,X,Y,Z,...) where the data type is specified by the header (e.g. float32). Each polyline is written in traversal order from one of its terminal points. Polylines of length 1 are permitted.
 
-The first section of the edges is then written as:
+This means that the order of the vertices matters for decoding the skeleton. However, if reconstructing the edges is not important, the vertices can be read simply as a point cloud. Vertices are guaranteed to be unique.
 
-num_paths | len_1, len_2, ..., len_n
+This buffer may be compressed using e.g. gzip, zstandard, or Draco. In the case of Draco, since order matters, you must use the preserve_order flag in the encoder.
 
-Where the lengths are the number of vertices in each path. Each path is assigned an ID numbering from 0. num_paths is a u64 little endian. Each len is the smallest data type that will hold Nv, the number of vertices in the skeleton part.
+The vertex section is followed by a crc32c that is computed from the encoded stream.
+
+### Polyline Offsets
+
+This section describes how to extract the polylines (paths) from the vertex buffer. It consists of an array of integers indicating the length of each polyline in vertices in order of appearence in the vertex buffer.
+This array is preceeded by a uint64 le number of paths. The data type used for the path length should be the smallest integer that can contain the total number of vertices in the ostd section.
+
+1. num_paths (u64le)
+2. path lengths (fit(Nv))
+
+e.g. 
+
+`num_paths, len_1, len_2, ..., len_n`
+
+Should this section be protected by a crc32c?
+
+### Explicit Edges
 
 The next section is the links between paths:
 
 pair_1, ..., pair_n
 
-Where the pairs are: e1,e2 with the data type controlled by the header, though typically it will be the smallest data type that encodes vertices. The edges refer to the vertices, not to the path ID. 
+Where the pairs are positive integers: e1,e2 that indicate which vertices should be linked. The data type is controlled by the header, though typically it will be the smallest data type that can contain the number of vertices. The edges refer to the vertices numbered from 0. Duplicate edges and self-loops are disallowed.
 
 `num_pairs = (len(edge_binary) - paths_section - 4) / edge_dtype_size / 2`
 
