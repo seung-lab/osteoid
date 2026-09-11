@@ -170,6 +170,8 @@ The least significant bit is on the left.
 | **t**  | Transforms present                 | bool                                          |
 | **R**  | RESERVED                           | From this point forward                       |
 
+The SI prefix is a restricted subset compared to the attribute version for reasons of space (and you aren't going to need a scale factor of more than 10^(3\*8) meters). The exponents in the attributes section are 8-bit for ease of parsing.
+
 ## Dimension Flag Definitions
 
 We attempt to make the geometric interpretation of voxel positions unambiguous and compactly represented. There are a number of ambiguities in presenting a list of coordinates. Firstly, how are the axes ordered? Which are space-like and which are time-like? Are the positions referring to the centroid of the grid or to the corner closest to the origin? Much of the time, this is trivial because everyone knows the convention to follow. However, sometimes you are handed a file and need to figure out what it means. See the section Common Coordinate Frames for how there are many axis orientations in common use.
