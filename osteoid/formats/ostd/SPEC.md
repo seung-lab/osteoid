@@ -562,11 +562,11 @@ Path Graph = 3NvDv + (8+2*8*P) + 2 De P
 
 Let path graph = naive and solve for P.
 
-P = 2 De (Nv - 1) / (16 + 2 De) - 8
+P = (2 De (Nv - 1) - 8) / (16 + 2 De)
 
 Plugging in our numbers to find this crossover point.
 
-P = 491.5
+P = 499.25
 ```
 
 That's just under Nv/2. This analysis is very conservative, because if you take it too literally, you might think, well then if my data look like a binary tree, then I should go elsewhere. However, if you look at a diagram of a full binary tree, there are many nodes connected in chains! So you can elide explicitly representing edges to depth (d-1) (left) + (d-2) (right) at the first level, and so on as you progress down the tree. I think you need a pretty high depth before this becomes reasonable, but there are some possible savings here. At d=4, there are 14 edges in the graph, and 7 that can be represented implicitly (though it is offset by the polyline buffer). (Note: This is a empirically testable property.)
