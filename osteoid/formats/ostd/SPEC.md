@@ -440,13 +440,13 @@ Therefore, for attributes, we encode the dimensions as a uint64 that represents 
 
 | Field           | Data Type        | Description                           |
 |-----------------|------------------|-------------------------------------- |
+| SI Prefix       | int8             | signed 10^(X*3) where X is the value  |
 | amperes         | int8             | A^x                                   |
 | kelvin          | int8             | K^x                                   |
 | kilograms       | int8             | kg^x                                  |
 | meters          | int8             | m^x                                   |
 | mols            | int8             | mol^x                                 |
 | seconds         | int8             | s^x                                   |
-| SI Prefix       | int8             | signed 10^(X*3) where X is the value  |
 | Scaling         | uint8            | 0: linear, 1: log10, 2: log2, 3: ln   |
 
 This allows you to specify an arbitrary SI derived unit as follows. The SI prefix is applied to the linear scaled figure and then the logarithm is applied if applicable.
@@ -457,13 +457,13 @@ For example, let's demonstrate km/s^2 as an acceleration value.
 
 | Field           | Value            | Description                           |
 |-----------------|------------------|-------------------------------------- |
+| SI Prefix       | 1                | signed 10^(X*3) where X is the value  |
 | amperes         | 0                | A^x                                   |
 | kelvin          | 0                | K^x                                   |
 | kilograms       | 0                | kg^x                                  |
 | meters          | 1                | m^x                                   |
 | mols            | 0                | mol^x                                 |
 | seconds         | -2               | s^x                                   |
-| SI Prefix       | 1                | signed 10^(X*3) where X is the value  |
 | Scaling         | 0                | 00: linear, 01: log10, 10: log2, 11: ln |
 
 This means SI Prefix kilo (10^(1 * 3) = 1000), seconds -2 = 1/s^2, meters 1 = m. 0 scaling means the value should be read as linear.
