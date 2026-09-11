@@ -41,9 +41,9 @@ As image derived skeletons often consist of many adjacent points, we efficiently
 
 The header of the skeleton includes basic information about how to parse it, like buffer sizes, number of vertices, compression types, and also records information for ease of high speed reading like path length and number of connected components. It also provides an advisory field for whether the skeleton is cyclic, acyclic, or unknown. This enables the automatic application of appropriate algorithms without scanning the entire skeleton first.
 
-The header indicates what space the skeleton is in from a generic but somewhat informative list (e.g. voxel space, physical space) and indicates the presence of any transform matricies that allow you to perform an affine projection to an arbitrary linear coordinate system. The units of length are noted, as well as the coordinate frame, whether vertices are voxel centered or corner centered. This allows the easy geometric reconstruction of the skeleton from files of unknown provenance.
+The header indicates what space the skeleton is in from a generic but somewhat informative list (e.g. voxel space, physical space) and indicates the presence of any transform matrices that allow you to perform an affine projection to an arbitrary linear coordinate system. The units of length are noted, as well as the coordinate frame, whether vertices are voxel centered or corner centered. This allows the easy geometric reconstruction of the skeleton from files of unknown provenance.
 
-The vertex attributes are listed at the end of the file with a table appended at the end that describes them well. For single-part files, this allows for efficient appending of vertex attributes. Each vertex attribute is annotated with information about its dimensions using SI fundemental units. For simplicity, only SI units are supported.
+The vertex attributes are listed at the end of the file with a table appended at the end that describes them well. For single-part files, this allows for efficient appending of vertex attributes. Each vertex attribute is annotated with information about its dimensions using SI fundamental units. For simplicity, only SI units are supported.
 
 ## Definitions
 
@@ -288,7 +288,7 @@ The edge binary size covers both the polyline and explicit edges. A crc32c cover
 
 #### Polyline Lengths
 
-This section describes how to extract the polylines (paths) from the vertex buffer. It consists of an array of integers indicating the length of each polyline in vertices in order of appearence in the vertex buffer.
+This section describes how to extract the polylines (paths) from the vertex buffer. It consists of an array of integers indicating the length of each polyline in vertices in order of appearance in the vertex buffer.
 This array is preceeded by a uint64 le number of paths. The data type used for the path length should be the smallest integer that can contain the total number of vertices in the ostd section.
 
 1. num_paths (u64le)
@@ -439,9 +439,9 @@ Note: For Draco, preserve order must be used to preserve edge relationships to v
 ### Unit Definitions
 
 Arbitrary SI dimensions can be encoded as a tuple of fundemental units raised to a signed exponent. While
-the original vision of this datastream is to only incorporate metadata that supports the interpretation of geometry, it seems strange to privilage length and time dimensions when all sorts of things might be measured along a skeleton, such as current or luminance.
+the original vision of this datastream is to only incorporate metadata that supports the interpretation of geometry, it seems strange to privilege length and time dimensions when all sorts of things might be measured along a skeleton, such as current or luminance.
 
-For example, Joules can be expressed as W = ma x d or kg * m^2/s^2, Watts as kg * m^2/s^3 and Coulombs can be expressed as A * s. Speed is meters/sec, area is meters^2 etc, luminousity can be measured in watts or photons per a second.
+For example, Joules can be expressed as W = ma x d or kg * m^2/s^2, Watts as kg * m^2/s^3 and Coulombs can be expressed as A * s. Speed is meters/sec, area is meters^2 etc, luminosity can be measured in watts or photons per a second.
 
 Since this is designed for biological use cases, the candela which is based in human perception of light is less useful, so we reserve those bits for future use (e.g. one can imagine using them for signaling the use of US customary units).
 
