@@ -37,7 +37,7 @@ A skeleton is a graph of N-dimensional vertices consisting of a set of zero or m
 
 An `ostd` file may contain one or more separate skeletons with potentially different IDs. Files containing one serialized skeleton are called "single-part" files, while a file containing multiple skeletons are called "multi-part" files. Parts of a skeleton that have the same ID, should have their decoded skeletons concatenated together. This enables storing multiple skeleton and/or appending to a skeleton on disk. Most files will likely be single-part.
 
-As image derived skeletons often consist of many adjacent points, we efficiently represent the skeleton as a 3 part mathematical object that has full graph generality. First, we decompose an existing graph into a set of non-intersecting polylines with unique vertices and maintain an edge list linking these polylines. Each polyline is written into the vertex buffer one-after-another in traversal order, meaning that within each polyline, the vertex ordering implies the edges. We then write down the start and end of each polyline as integers in a Px2 list, where P is the number of polylines. Lastly, we write down the explicit edge list such that it indexes into the vertex buffer. In testing on a real 3D dataset, we found this reduced the size of the edge list to about 3% of the size of the file. For more information see the analysis below.
+As image derived skeletons often consist of many adjacent points, we efficiently represent the skeleton as a 3 part mathematical object that has full graph generality. First, we decompose an existing graph into a set of non-intersecting polylines with unique vertices and maintain an edge list linking these polylines. Each polyline is written into the vertex buffer one-after-another in traversal order, meaning that within each polyline, the vertex ordering implies the edges. We then write down the length of each polyline as an integer in a list of length P, where P is the number of polylines. Lastly, we write down the explicit edge list such that it indexes into the vertex buffer. In testing on a real 3D dataset, we found this reduced the size of the edge list to about 3% of the size of the file. For more information see the analysis below.
 
 The header of the skeleton includes basic information about how to parse it, like buffer sizes, number of vertices, compression types, and also records information for ease of high speed reading like path length and number of connected components. It also provides an advisory field for whether the skeleton is cyclic, acyclic, or unknown. This enables the automatic application of appropriate algorithms without scanning the entire skeleton first.
 
@@ -267,7 +267,7 @@ The graph is embedded in three buffers that are written one after another.
 | Buffer           | Size                                      | Note              |
 |------------------|-------------------------------------------|-------------------|
 | Vertices         | verted_datatype * num_axes * num_vertices | size in header    |
-| Polyline Offsets | 8 + 2 * fit(Nv) * num_polylines           |                   |
+| Polyline Lengths | 8 + fit(Nv) * num_polylines               |                   |
 | Explicit Edges   | 2 * edge_datatype * num_edges             | size in header    |
 
 ### Vertices
@@ -284,7 +284,7 @@ The vertex section is followed by a crc32c that is computed from the encoded str
 
 The edge binary size covers both the polyline and explicit edges. A crc32c covers both of them as well.
 
-#### Polyline Offsets
+#### Polyline Lengths
 
 This section describes how to extract the polylines (paths) from the vertex buffer. It consists of an array of integers indicating the length of each polyline in vertices in order of appearence in the vertex buffer.
 This array is preceeded by a uint64 le number of paths. The data type used for the path length should be the smallest integer that can contain the total number of vertices in the ostd section.
@@ -544,15 +544,15 @@ def rank_permutation(perm:list[int]) -> int:
 
 ### Path Graph Efficiency Analysis
 
-To give a quick analysis, in a 3D dataset using float32 vertices and uint64 edges, a vertex is 4x3 (12) bytes. An edge is 8x2 (16) bytes. In the naive approach, a polyline with Nv vertices (holding Nv > 2), would have 12xNv bytes in its vertex buffer, and 16x(Nv-1) bytes in its edge buffer. By contrast the new approach would have 12 x Nv bytes and 24 additional bytes to indicate the size of the offsets (size of buffer, start, end). 
+To give a quick analysis, in a 3D dataset using float32 vertices and uint64 edges, a vertex is 4x3 (12) bytes. An edge is 8x2 (16) bytes. In the naive approach, a polyline with Nv vertices (holding Nv > 2), would have 12xNv bytes in its vertex buffer, and 16x(Nv-1) bytes in its edge buffer. By contrast the new approach would have 12 x Nv bytes and 9 additional bytes to indicate the size of the offsets (size of buffer, length). 
 
 Assume a polyline of Nv = 1000 vertices with no branches, vertex datatype Dv = 4 bytes, and edge datatype De = 8 bytes.
 
 ```
 Naive Approach = 3 Nv Dv + 2 De (Nv - 1)
-Path Graph = 3 Nv Dv + 24
+Path Graph = 3 Nv Dv + 9
 
-Path Graph / Naive = 12024 bytes / 27984 bytes = 43%
+Path Graph / Naive = 12009 bytes / 27984 bytes = 43%
 ```
 
 In this simple example, we have produced a binary 43% the size of the original. With numerous polylines and branches, this advantage shrinks slightly. If every polyine consists of a single voxel, it becomes obvious the naive approach becomes better due to the size of the polyline offset buffer. We can calculate the crossover point at which this representation becomes more expensive. Let P again be the number of polylines and note P <= Nv. We can take our single polyline example, and arbitrarily break it into up to Nv polylines, which adds both an offset entry and an explicit edge per a polyline.
