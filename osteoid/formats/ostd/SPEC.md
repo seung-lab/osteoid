@@ -333,10 +333,11 @@ def decode_linked_paths(num_vertices:int, edge_dtype, edge_binary:bytes) -> np.n
 		for j in range(path_lengths[i]):
 			edges.append((edge_i, edge_i+1))
 			edge_i += 1
+		edge_i += 1
 
 	implicit_pairs = np.array(edges, dtype=edge_dtype)
 
-	offset = 8 + num_path_lengths * np.dtype(path_dtype).itemsize
+	offset = 8 + num_paths * np.dtype(path_dtype).itemsize
 	num_pairs = (len(edge_binary) - offset - 4) // np.dtype(edge_dtype).itemsize // 2
 	explicit_pairs = np.frombuffer(edge_binary, offset=offset, count=(num_pairs*2), dtype=edge_dtype)
 	explicit_pairs = explicit_pairs.reshape((num_pairs, 2), 'C')
