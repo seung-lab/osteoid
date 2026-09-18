@@ -270,7 +270,7 @@ The graph is embedded in three buffers that are written one after another.
 |------------------|-------------------------------------------|-------------------|
 | Vertices         | verted_datatype * num_axes * num_vertices | size in header    |
 | Polyline Lengths | 8 + fit(Nv) * num_polylines               |                   |
-| Explicit Edges   | 2 * edge_datatype * num_edges             | size in header    |
+| Explicit Edges   | 2 * edge_datatype * num_explicit_edges    | size in header    |
 
 ### Vertices
 
