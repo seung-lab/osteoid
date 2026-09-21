@@ -20,14 +20,14 @@ The data type inflexibility in Precomputed causes issues because edges lists mus
 - A header for each serialized object
 - Includes a format version number to enable smooth version upgrades
 - Has 64 bits for an object ID, important for connectomics.
-- Incorporates up to 255 4x4 transform matrices for space-like dimensions and tracks which state (e.g. voxel, physical) the vertices are in
-- Tracks the main physical unit of the vertices.
-- Tracks which orientation the coordinate frame is in.
+- Incorporates up to 255 4x4 transform matrices for space-like dimensions and stores which state (e.g. voxel, physical) the vertices are in
+- Stores the main physical unit of the vertices.
+- Stores which orientation the coordinate frame is in.
 - Blocks individually guarded against file corruption by CRCs to enable extraction of remaining good data if one block is damaged
 - Represents edges as a path graph saving space while retaining generality
 - Advisory fields to tell you the number of connected components, path length, and the graph structure
 - (Single-Part) Attributes header is located at the end of the file to enable efficient appending of more vertex attributes on POSIX systems
-- Efficiently support both vertex and edge attributes and tracks physical units.
+- Efficiently support both vertex and edge attributes and stores physical units.
 - Support optional spatial index (in the future)
 - Concatenate multiple ostd files together to append vertices and edges together (inhibits adding more vertex attributes)
 
