@@ -573,3 +573,14 @@ P = 499.25
 ```
 
 That's just under Nv/2. This analysis is very conservative, because if you take it too literally, you might think, well then if my data look like a binary tree, then I should go elsewhere. However, if you look at a diagram of a full binary tree, there are many nodes connected in chains! So you can elide explicitly representing edges to depth (d-1) (left) + (d-2) (right) at the first level, and so on as you progress down the tree. I think you need a pretty high depth before this becomes reasonable, but there are some possible savings here. At d=4, there are 14 edges in the graph, and 7 that can be represented implicitly (though it is offset by the polyline buffer). (Note: This is a empirically testable property.)
+
+Maintainer
+----------
+
+William Silversmith
+
+Acknowledgements
+----------------
+
+Thank you to Wan-Qing Yu, Forrest Collman, Xiang Ji, and LLM models Claude, Qwen, and Chat GPT for iterative review comments refining this specification.
+

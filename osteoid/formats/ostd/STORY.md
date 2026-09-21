@@ -1,4 +1,6 @@
 
+This document was the initial starting point for ideating on the `ostd` specification. See SPEC.md. This document is preserved for historical purposes.
+
 # List of Skeleton Problems
 
 - Selecting skeletons by bounding box
