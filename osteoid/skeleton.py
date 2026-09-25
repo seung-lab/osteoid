@@ -379,7 +379,7 @@ class Skeleton:
     return Skeleton.simple_merge((self, skel)).consolidate()
 
   def empty(self):
-    return self.vertices.size == 0 or self.edges.size == 0
+    return self.vertices.size == 0
 
   def to_networkx(self):
     G = nx.Graph()
@@ -530,6 +530,15 @@ class Skeleton:
 
     if self.empty():
       return Skeleton(
+        segid=self.id, 
+        space=self.space, 
+        extra_attributes=self.extra_attributes,
+        transform=self.transform,
+        default_attributes=self.default_attributes,
+      )
+    elif len(nodes) == 1:
+      return Skeleton(
+        vertices=nodes.copy(),
         segid=self.id, 
         space=self.space, 
         extra_attributes=self.extra_attributes,
