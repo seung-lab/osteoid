@@ -263,9 +263,9 @@ class Bbox(object):
       obj = Bbox.from_slices(obj, context, bounded, autocrop)
     elif isinstance(obj, Vec):
       obj = Bbox.from_vec(obj)
-    elif isinstance(typ, str):
+    elif isinstance(obj, str):
       obj = Bbox.from_filename(obj)
-    elif isinstance(typ, dict):
+    elif isinstance(obj, dict):
       obj = Bbox.from_dict(obj)
     else:
       raise NotImplementedError(f"{type(obj)} is not a Bbox convertible type.")
