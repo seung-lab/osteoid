@@ -233,14 +233,16 @@ py::tuple linked_paths_impl(const py::array_t<EDGE_T>& edges_arr) {
 				continue;
 			}
 
-			path.push_back(node);
-
 			// check visited after because you can visit a node 
 			// multiple times for different parents, but you don't
 			// want to keep re-adding it to the stack.
 			if (visited[node]) {
 				continue;
 			}
+
+			// path must be appended to after visited
+			// to avoid creating stale paths
+			path.push_back(node);
 
 			while (true) {
 				visited[node] = true;
