@@ -311,7 +311,7 @@ py::tuple linked_paths_impl(const py::array_t<EDGE_T>& edges_arr) {
 		py::tuple tup = extract_branches(edge);
 		all_paths.append(tup[0]);
 		all_edges.append(tup[1]);
-		has_cycle |= tup[2].cast<bool>();;
+		has_cycle |= tup[2].cast<bool>();
 		N++;
 	}
 
