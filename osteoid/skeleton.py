@@ -1022,6 +1022,7 @@ class Skeleton:
       segid=oskel.id,
       radii=(oskel.a.radius if "radius" in oskel.a else None),
       vertex_types=(oskel.a.vertex_types if "vertex_types" in oskel.a else None),
+      default_attributes=False,
     )
 
   def as_ostd(
