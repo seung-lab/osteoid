@@ -1076,7 +1076,7 @@ class Skeleton:
       vertices = self.physical_space().vertices
     else:
       spaces = [ 
-        (physical_unit, formats.ostd.SpaceType.PHYSICAL, transform) 
+        (physical_unit, SpaceType.PHYSICAL, transform) 
       ]
       space = 1
       length_unit = "vx"
