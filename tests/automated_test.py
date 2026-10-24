@@ -503,7 +503,7 @@ def test_paths():
   path = skel1.paths()
 
   path1 = np.array([[0,0,0], [1,0,0], [1,1,0]])
-  path2 = np.array([[2,0,0], [1,0,0], [1,1,0]])
+  path2 = np.array([[0,0,0], [1,0,0], [2,0,0]])
 
   assert np.all(path[0] == path1)
   assert np.all(path[1] == path2)

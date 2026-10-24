@@ -12,7 +12,7 @@ if sys.platform == 'win32':
   ]
 else:
   extra_compile_args += [
-    '-std=c++20', '-O2',
+    '-std=c++20', '-O3',
   ]
 
 setuptools.setup(

@@ -36,6 +36,8 @@ def load(filename:str, allow_mmap:bool = False) -> Skeleton:
 
   if filename.endswith("swc"):
     return Skeleton.from_swc(bytes(binary).decode("utf8"))
+  elif filename.endswith("ostd"):
+    return Skeleton.from_ostd(binary)
   else:
     return Skeleton.from_precomputed(binary)
 
@@ -47,6 +49,11 @@ def save(
   """Save labels into the file-like object or file path."""
   if filename.endswith("swc"):
     binary = skeleton.to_swc().encode("utf8")
+  elif filename.endswith("ostd"):
+    binary = skeleton.to_ostd(
+      unit=kwargs.get("unit", "nm"),
+      coordinate_frame=kwargs.get("coordinate_frame", "+X-Y-Z"),
+    )
   else:
     binary = skeleton.to_precomputed()
 

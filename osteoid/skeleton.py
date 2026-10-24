@@ -1,6 +1,6 @@
 from typing import Optional, Literal
 
-from collections import defaultdict
+from collections import defaultdict, deque, OrderedDict
 import copy
 import datetime
 
@@ -245,7 +245,7 @@ class Skeleton:
       axis=1
     )
     verts = transform.dot(verts.T).T
-    return verts[:,0:3]    
+    return verts[:,0:3].astype(vertices.dtype, copy=False)
 
   def apply_transform(self):
     self.vertices = self.transform_vertices(self.vertices, self.transform)
@@ -265,7 +265,7 @@ class Skeleton:
     transform[:,3] = -self.transform[:,3]
 
     verts = transform.dot(verts.T).T
-    self.vertices = verts[:,0:3]    
+    self.vertices = verts[:,0:3].astype(self.vertices.dtype, copy=False)
 
   @property 
   def radii(self):
@@ -276,15 +276,15 @@ class Skeleton:
     self.radius = val
 
   @classmethod
-  def from_path(kls, vertices):
+  def from_path(kls, vertices, default_attributes:bool = True):
     """
     Given an Nx3 array of vertices that constitute a single path, 
     generate a skeleton with appropriate edges.
     """
     if vertices.shape[0] == 0:
-      return Skeleton()
+      return Skeleton(default_attributes=default_attributes)
 
-    skel = Skeleton(vertices)
+    skel = Skeleton(vertices, default_attributes=default_attributes)
     edges = np.zeros(shape=(skel.vertices.shape[0] - 1, 2), dtype=np.uint32)
     edges[:,0] = np.arange(skel.vertices.shape[0] - 1)
     edges[:,1] = np.arange(1, skel.vertices.shape[0])
@@ -386,12 +386,15 @@ class Skeleton:
     G.add_edges_from(self.edges)
     return G
 
-  def to_precomputed(self):
+  def to_precomputed(self) -> bytes:
+    """
+    Convert a skeleton into the precomputed bytes format.
+    """
     from . import formats
     return formats.to_precomputed(self)
 
   @classmethod
-  def from_precomputed(kls, skelbuf, segid=None, vertex_attributes=None):
+  def from_precomputed(kls, skelbuf:bytes, segid=None, vertex_attributes=None) -> "Skeleton":
     """
     Convert a buffer into a Skeleton object.
 
@@ -531,6 +534,16 @@ class Skeleton:
         space=self.space, 
         extra_attributes=self.extra_attributes,
         transform=self.transform,
+        default_attributes=self.default_attributes,
+      )
+    elif len(nodes) == 1:
+      return Skeleton(
+        vertices=nodes.copy(),
+        segid=self.id, 
+        space=self.space, 
+        extra_attributes=self.extra_attributes,
+        transform=self.transform,
+        default_attributes=self.default_attributes,
       )
     elif len(nodes) == 1:
       return Skeleton(
@@ -561,6 +574,7 @@ class Skeleton:
       space=self.space,
       extra_attributes=self.extra_attributes,
       transform=self.transform,
+      default_attributes=self.default_attributes,
     )
 
     for attr in self.extra_attributes:
@@ -587,6 +601,7 @@ class Skeleton:
         space=self.space, 
         extra_attributes=self.extra_attributes,
         transform=self.transform,
+        default_attributes=self.default_attributes,
       )
 
     all_edges = fastremap.unique(self.edges.flat)
@@ -616,6 +631,7 @@ class Skeleton:
       space=self.space,
       extra_attributes=self.extra_attributes,
       transform=self.transform,
+      default_attributes=self.default_attributes,
     )
 
     if len(self.extra_attributes) == 0:
@@ -629,18 +645,31 @@ class Skeleton:
         
     return skel
 
+  def has(self, id:str) -> bool:
+    for attr in self.extra_attributes:
+      if attr["id"] == id:
+        return True
+    return False
+
   def clone(self):
     vertices = np.copy(self.vertices)
     edges = np.copy(self.edges)
-    radii = np.copy(self.radii)
-    vertex_types = np.copy(self.vertex_types)
+
+    radii = None
+    if self.has("radius"):
+      radii = np.copy(self.radii)
+
+    vertex_types = None
+    if self.has("vertex_types"):
+      vertex_types = np.copy(self.vertex_types)
 
     skel = Skeleton(
       vertices, edges, radii, vertex_types, 
       segid=self.id, 
       space=self.space, 
       extra_attributes=self.extra_attributes,
-      transform=np.copy(self.transform)
+      transform=np.copy(self.transform),
+      default_attributes=self.default_attributes,
     )
     for attr in skel.extra_attributes:
       setattr(skel, attr['id'], np.copy(getattr(self, attr['id'])))
@@ -654,17 +683,17 @@ class Skeleton:
     """
     skel = self.physical_space(copy=False)
 
-    v1 = skel.vertices[skel.edges[:,0]]
-    v2 = skel.vertices[skel.edges[:,1]]
+    dtype = self.vertices.dtype
+    if np.dtype(dtype).itemsize < 4:
+      dtype = np.float32
 
-    delta = (v2 - v1)
-    delta *= delta
-    dist = np.sum(delta, axis=1)
-    dist = np.sqrt(dist)
+    v1 = skel.vertices[skel.edges[:,0]].astype(dtype, copy=False)
+    v2 = skel.vertices[skel.edges[:,1]].astype(dtype, copy=False)
 
-    return np.sum(dist)
+    dist = np.linalg.norm(v2 - v1, axis=1)
+    return np.sum(dist.astype(np.float64))
 
-  def downsample(self, factor):
+  def downsample(self, factor:int) -> "Skeleton":
     """
     Compute a downsampled version of the skeleton by striding while 
     preserving endpoints.
@@ -687,7 +716,10 @@ class Skeleton:
       )
 
     ds_skel = Skeleton.simple_merge(
-      [ Skeleton.from_path(path) for path in paths ]
+      [ 
+        Skeleton.from_path(path, default_attributes=self.default_attributes) 
+        for path in paths 
+      ]
     ).consolidate()
     ds_skel.id = self.id
     ds_skel.extra_attributes = self.extra_attributes
@@ -713,50 +745,51 @@ class Skeleton:
     
     return ds_skel
 
-  def _single_tree_paths(self, tree, return_indices):
-    """Get all traversal paths from a single tree."""
-    skel = tree.consolidate()
+  def _enumerate_paths(self, graph, return_indices):
+    """Get all traversal paths from a single graph."""
+    skel = graph.consolidate()
 
-    tree = defaultdict(list)
+    adj = defaultdict(list)
 
     for edge in skel.edges:
       svert = edge[0]
       evert = edge[1]
-      tree[svert].append(evert)
-      tree[evert].append(svert)
+      adj[svert].append(evert)
+      adj[evert].append(svert)
 
-    def dfs(path, visited):
+    def unwind(parents, node) -> list[int]:
+      path = [ node ]
+      while (node := parents[node]) is not None:
+        path.append(node)
+      return path
+
+    def dfs(root):
       paths = []
-      stack = [ (path, visited) ]
-      
+      stack = deque([ root ])
+      parents = { root: None }
+
       while stack:
-        path, visited = stack.pop(0)
+        node = stack.popleft()
+        children = adj[node]
 
-        vertex = path[-1]
-        children = tree[vertex]
-        
-        visited[vertex] = True
-
-        children = [ child for child in children if not visited[child] ]
+        children = [ child for child in children if child not in parents ]
 
         if len(children) == 0:
-          paths.append(path)
+          paths.append(unwind(parents, node))
 
-        for child in children:
-          stack.append( 
-            (path + [child], np.copy(visited))
-          )
+        for child in children:  
+          parents[child] = node
+          stack.append(child)
 
       return paths
 
-    size = np.max(skel.edges) + 1
     root = skel.edges[0,0]
-    paths = dfs([root], np.zeros(size, dtype=bool))
+    paths = dfs(root)
 
-    root = np.argmax([ len(_) for _ in paths ])
+    root = np.argmax([ len(p) for p in paths ])
     root = paths[root][-1]
   
-    paths = dfs([ root ], np.zeros(size, dtype=bool))
+    paths = dfs(root)
 
     if return_indices:
       return [ np.flip(path) for path in paths ]
@@ -774,8 +807,8 @@ class Skeleton:
     Returns: [ [(x,y,z), (x,y,z), ...], path_2, path_3, ... ]
     """
     paths = []
-    for tree in self.components():
-      paths += self._single_tree_paths(tree, return_indices=return_indices)
+    for component in self.components():
+      paths += self._enumerate_paths(component, return_indices=return_indices)
     return paths
 
   def _single_tree_interjoint_paths(self, skeleton, return_indices):
@@ -802,8 +835,12 @@ class Skeleton:
 
     paths = []
 
-    stack = [ terminal_nodes[0] ]
-    criticals = [ terminal_nodes[0] ]
+    if len(terminal_nodes) > 0:
+      stack = [ terminal_nodes[0] ]
+      criticals = [ terminal_nodes[0] ]
+    else:
+      stack = [ unique_nodes[0] ]
+      criticals = [ unique_nodes[0] ]
     # Saving the path stack is memory intensive
     # There might be a way to do it more linearly
     # via a DFS rather than BFS strategy.
@@ -849,53 +886,6 @@ class Skeleton:
       paths.extend(subpaths)
 
     return paths
-
-  def _compute_components(self, skel):
-    if skel.edges.size == 0:
-      return [ skel ]
-
-    index = defaultdict(set)
-    visited = defaultdict(bool)
-    for e1, e2 in skel.edges:
-      index[e1].add(e2)
-      index[e2].add(e1)
-
-    def extract_component(start):
-      edge_list = []
-      stack = [ start ]
-      parents = [ -1 ]
-
-      while stack:
-        node = stack.pop()
-        parent = parents.pop()
-
-        if node < parent:
-          edge_list.append( (node, parent) )
-        else:
-          edge_list.append( (parent, node) )
-
-        if visited[node]:
-          continue
-
-        visited[node] = True
-        
-        for child in index[node]:
-          stack.append(child)
-          parents.append(node)
-
-      el = np.array(edge_list[1:], dtype=np.uint32)
-      return fastremap.unique(el, axis=0)
-
-    forest = []
-    for edge in fastremap.unique(skel.edges.flat):
-      if visited[edge]:
-        continue
-
-      forest.append(
-        extract_component(edge)
-      )
-
-    return forest
 
   def average_smoothing(
     self, n:int, 
@@ -976,7 +966,7 @@ class Skeleton:
     smooth_skel.id = self.id
     return smooth_skel
 
-  def components(self):
+  def components(self) -> list["Skeleton"]:
     """
     Extract connected components from graph. 
     Useful for ensuring that you're working with a single tree.
@@ -991,14 +981,17 @@ class Skeleton:
     elif len(forest) == 1:
       return [ skel.clone() ]
 
+    max_size = max([ max(np.max(edge_list), len(edge_list)) for edge_list in forest ])
+
+    if max_size < int(1e8):
+      remap = np.empty([ max_size + 1 ], dtype=np.uint32)
+
     skeletons = []
     for edge_list in forest:
       vert_idx = fastremap.unique(edge_list)
 
       vert_list = skel.vertices[vert_idx]
-
-      if max(vert_idx[-1], vert_idx.size) < int(1e8):
-        remap = np.zeros([ vert_idx[-1] + 1 ], dtype=np.uint32)
+      if max_size < int(1e8):
         remap[vert_idx] = np.arange(vert_idx.size)
         edge_list = remap[edge_list]
       else:
@@ -1029,7 +1022,120 @@ class Skeleton:
     return formats.from_navis(navis_skel)
 
   @classmethod
-  def from_swc(self, swcstr):
+  def from_ostd(self, binary:bytes) -> "Skeleton":
+    from . import formats
+    oskel = formats.ostd.OstdSkeleton.from_bytes(binary)
+    skel = Skeleton(
+      vertices=oskel.vertices,
+      edges=oskel.edges,
+      transform=oskel.transforms[0][:3,:],
+      segid=oskel.id,
+      radii=(oskel.a.radius if "radius" in oskel.a else None),
+      vertex_types=(oskel.a.vertex_types if "vertex_types" in oskel.a else None),
+      default_attributes=False,
+    )
+    for key, (si_unit, value) in oskel.attributes.items():
+      skel.add_vertex_attribute(key, value)
+    return skel
+
+  def as_ostd(
+    self, 
+    unit:str = "nm", 
+    coordinate_frame:str = "+X-Y-Z",
+    vertex_compression:Optional[Literal["draco", "gzip"]] = None,
+  ) -> "formats.ostd.OstdSkeleton":
+    """
+    Converts this skeleton into an OstdSkeleton.
+
+    unit: which physical unit the vertices represent
+      when transformed into physical space.
+    coordinate_frame: save how the coordinate space
+      is oriented. This can differ in computer graphics,
+      neurology, radiology, etc.
+    vertex_compression: None, draco, gzip
+    """
+    from .formats.ostd import OstdSkeleton
+    from .formats.ostd.types import (
+      TRANSLATE_UNIT, SIUnit, SpaceType,
+    )
+    transform = self.transform
+    bottom = np.zeros((1, 4), dtype=transform.dtype)
+    bottom[0,3] = 1
+    transform = np.vstack((transform, bottom))
+
+    attributes = OrderedDict([
+      (attr["id"], (SIUnit(), getattr(self, attr["id"])))
+      for attr in self.extra_attributes
+    ])
+
+    if "radius" in attributes:
+      radius_unit = TRANSLATE_UNIT[unit]
+      attributes["radius"] = (radius_unit, self.radii)
+
+    if "cross_sectional_area" in attributes:
+      xs_unit = TRANSLATE_UNIT[unit]
+      attributes["cross_sectional_area"] = (xs_unit, self.cross_sectional_area)
+
+    physical_unit = TRANSLATE_UNIT[unit]
+
+    if np.all(transform == np.eye(4)):
+      spaces = []
+      space = 0
+      length_unit = unit
+      if unit in ("voxel", "vx"):
+        space_type = SpaceType.VOXEL
+      else:
+        space_type = SpaceType.PHYSICAL
+      vertices = self.physical_space().vertices
+    else:
+      spaces = [ 
+        (physical_unit, SpaceType.PHYSICAL, transform) 
+      ]
+      space = 1
+      length_unit = "vx"
+      space_type = SpaceType.VOXEL
+      vertices = self.voxel_space().vertices
+
+    return OstdSkeleton.create(
+      id=self.id,
+      vertices=vertices,
+      edges=self.edges,
+      spaces=spaces,
+      space=space,
+      length_unit=length_unit, # defines space=0
+      space_type=space_type, # defines space=0
+      coordinate_frame=coordinate_frame,
+      voxel_centered=True,
+      attributes=attributes,
+      vertex_compression=vertex_compression,
+    )
+
+  def to_ostd(
+    self, 
+    unit:str = "nm", 
+    coordinate_frame:str = "+X-Y-Z",
+    vertex_compression:Optional[Literal["draco", "gzip"]] = None,
+  ) -> bytes:
+    """
+      Serializes the skeleton to osdt format, defined
+      at https://github.com/seung-lab/osteoid/
+
+      unit: which physical unit the vertices represent
+        when transformed into physical space.
+      coordinate_frame: save how the coordinate space
+        is oriented. This can differ in computer graphics,
+        neurology, radiology, etc.
+      vertex_compression: None, draco, gzip
+    """
+    return self.as_ostd(
+      unit,
+      coordinate_frame,
+      vertex_compression,
+    ).to_bytes()
+
+
+  @classmethod
+  def from_swc(self, swcstr:str) -> "Skeleton":
     """
     The SWC format was first defined in 
     
@@ -1126,6 +1232,41 @@ class Skeleton:
     else:
       raise ValueError(f"{library} is not currently supported.")
 
+  def save(self, filename:str):
+    from . import util
+    util.save(filename, self)
+
+  @classmethod
+  def load(kls, filename:str, allow_mmap:bool = False) -> "Skeleton":
+    from . import util
+    return util.load(filename, allow_mmap=allow_mmap)
+
+  def chunk(
+    self, 
+    chunk_size:tuple[float,float,float],
+    origin:Optional[np.ndarray] = None,
+  ) -> dict[tuple[int,int,int], "Skeleton"]:
+    """
+    Cut a skeleton into a grid.
+    """
+    vertices = self.vertices.astype(np.float32, copy=False)
+    
+    if origin is None:
+      origin = [0,0,0]
+
+    chunks = fastosteoid.chunk_skeleton(
+      vertices, self.edges,
+      chunk_size[0], chunk_size[1], chunk_size[2],
+      origin[0], origin[1], origin[2],
+    )
+    del vertices
+
+    skel_chunks = {}
+    for grid, (verts, edges) in chunks.items():
+      skel_chunks[grid] = Skeleton(verts, edges).consolidate()
+
+    return skel_chunks
+
   def __eq__(self, other):
     if self.id != other.id:
       return False
@@ -1216,6 +1357,35 @@ class Skeleton:
       buf = other_buf[other_indices]
       self.add_vertex_attribute(attr_name, buf)
       setattr(self, attr_name, buf)
+
+  def cutout(self, bbox:Bbox) -> "Skeleton":
+    selected_vertices = fastosteoid.vertices_in_bbox(
+      self.vertices, 
+      bbox.minpt.x, bbox.maxpt.x,
+      bbox.minpt.y, bbox.maxpt.y,
+      bbox.minpt.z, bbox.maxpt.z,
+    )
+    selected_vertices.sort()
+
+    verts = self.vertices[selected_vertices]
+    mask = np.isin(self.edges, selected_vertices).all(axis=1)
+    filtered_edges = self.edges[mask]
+    del mask
+    local_edges = np.searchsorted(selected_vertices, filtered_edges)
+
+    return Skeleton(
+      verts,
+      local_edges,
+    )
+
+  def bbox(self) -> Bbox:
+    min_pt = np.min(self.vertices, axis=0)
+    max_pt = np.max(self.vertices, axis=0)
+    return Bbox(min_pt, max_pt)
+  
+  def __getitem__(self, slices):
+    bbx = Bbox.create(slices, context=self.bbox())
+    return self.cutout(bbx)
 
   def __str__(self):
     template = "{}=({}, {})"
