@@ -33,6 +33,7 @@ def ids(src, uniq):
 @main.command()
 @click.argument("src")
 def info(src):
+  """Print basic information about this file."""
   import osteoid.formats
   from osteoid.formats.ostd import OstdSkeleton, OstdHeader
 
