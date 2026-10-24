@@ -748,16 +748,16 @@ class Skeleton:
       adj[svert].append(evert)
       adj[evert].append(svert)
 
+    def unwind(parents, node) -> list[int]:
+      path = [ node ]
+      while (node := parents[node]) is not None:
+        path.append(node)
+      return path
+
     def dfs(root):
       paths = []
       stack = deque([ root ])
       parents = { root: None }
-
-      def unwind(node) -> list[int]:
-        path = [ node ]
-        while (node := parents[node]) is not None:
-          path.append(node)
-        return path
 
       while stack:
         node = stack.popleft()
@@ -766,7 +766,7 @@ class Skeleton:
         children = [ child for child in children if child not in parents ]
 
         if len(children) == 0:
-          paths.append(unwind(node))
+          paths.append(unwind(parents, node))
 
         for child in children:  
           parents[child] = node
