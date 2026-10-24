@@ -1016,7 +1016,7 @@ class Skeleton:
   def from_ostd(self, binary:bytes) -> "Skeleton":
     from . import formats
     oskel = formats.ostd.OstdSkeleton.from_bytes(binary)
-    return Skeleton(
+    skel = Skeleton(
       vertices=oskel.vertices,
       edges=oskel.edges,
       transform=oskel.transforms[0][:3,:],
@@ -1025,6 +1025,9 @@ class Skeleton:
       vertex_types=(oskel.a.vertex_types if "vertex_types" in oskel.a else None),
       default_attributes=False,
     )
+    for key, (si_unit, value) in oskel.attributes.items():
+      skel.add_vertex_attribute(key, value)
+    return skel
 
   def as_ostd(
     self, 
