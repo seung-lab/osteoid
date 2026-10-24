@@ -736,50 +736,51 @@ class Skeleton:
     
     return ds_skel
 
-  def _single_tree_paths(self, tree, return_indices):
-    """Get all traversal paths from a single tree."""
-    skel = tree.consolidate()
+  def _enumerate_paths(self, graph, return_indices):
+    """Get all traversal paths from a single graph."""
+    skel = graph.consolidate()
 
-    tree = defaultdict(list)
+    adj = defaultdict(list)
 
     for edge in skel.edges:
       svert = edge[0]
       evert = edge[1]
-      tree[svert].append(evert)
-      tree[evert].append(svert)
+      adj[svert].append(evert)
+      adj[evert].append(svert)
 
-    def dfs(path, visited):
+    def dfs(root):
       paths = []
-      stack = deque([ (path, visited) ])
-      
+      stack = deque([ root ])
+      parents = { root: None }
+
+      def unwind(node) -> list[int]:
+        path = [ node ]
+        while (node := parents[node]) is not None:
+          path.append(node)
+        return path
+
       while stack:
-        path, visited = stack.popleft()
+        node = stack.popleft()
+        children = adj[node]
 
-        vertex = path[-1]
-        children = tree[vertex]
-        
-        visited[vertex] = True
-
-        children = [ child for child in children if not visited[child] ]
+        children = [ child for child in children if child not in parents ]
 
         if len(children) == 0:
-          paths.append(path)
+          paths.append(unwind(node))
 
-        for child in children:
-          stack.append( 
-            (path + [child], np.copy(visited))
-          )
+        for child in children:  
+          parents[child] = node
+          stack.append(child)
 
       return paths
 
-    size = np.max(skel.edges) + 1
     root = skel.edges[0,0]
-    paths = dfs([root], np.zeros(size, dtype=bool))
+    paths = dfs(root)
 
-    root = np.argmax([ len(_) for _ in paths ])
+    root = np.argmax([ len(p) for p in paths ])
     root = paths[root][-1]
   
-    paths = dfs([ root ], np.zeros(size, dtype=bool))
+    paths = dfs(root)
 
     if return_indices:
       return [ np.flip(path) for path in paths ]
@@ -797,8 +798,8 @@ class Skeleton:
     Returns: [ [(x,y,z), (x,y,z), ...], path_2, path_3, ... ]
     """
     paths = []
-    for tree in self.components():
-      paths += self._single_tree_paths(tree, return_indices=return_indices)
+    for component in self.components():
+      paths += self._enumerate_paths(component, return_indices=return_indices)
     return paths
 
   def _single_tree_interjoint_paths(self, skeleton, return_indices):
