@@ -1,6 +1,6 @@
 from typing import Optional, Literal
 
-from collections import defaultdict, OrderedDict
+from collections import defaultdict, deque, OrderedDict
 import copy
 import datetime
 
@@ -750,10 +750,10 @@ class Skeleton:
 
     def dfs(path, visited):
       paths = []
-      stack = [ (path, visited) ]
+      stack = deque([ (path, visited) ])
       
       while stack:
-        path, visited = stack.pop(0)
+        path, visited = stack.popleft()
 
         vertex = path[-1]
         children = tree[vertex]
